@@ -1,0 +1,3 @@
+# terraform init -backend-config=envs/dev.backend.hcl   (bucket name is printed by scripts/bootstrap.sh)
+bucket = "my-blr-dev-tfstate"
+prefix = "blr-traffic-control/dev"

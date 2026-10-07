@@ -1,0 +1,13 @@
+{
+  "name": "@blr/control",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Control web app (static ES modules, no bundler). Built into dist/ by scripts/build-web.mjs.",
+  "scripts": {
+    "build": "node ../../scripts/build-web.mjs",
+    "mock": "npm run build && node test/mock-api.mjs 8787",
+    "test:unit": "node --test test/analytics.test.mjs test/i18n.test.mjs",
+    "test": "npm run build && node --test --test-concurrency=1 test/*.test.mjs"
+  }
+}

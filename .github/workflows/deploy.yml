@@ -1,0 +1,164 @@
+name: Deploy
+
+# Manual: pick an environment. Tag push (v*): deploys to prod, gated by the GitHub "prod" environment's reviewers.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, prod]
+        default: dev
+  push:
+    tags: ["v*"]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: deploy-${{ inputs.environment || 'prod' }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  FIREBASE_TOOLS_VERSION: "15.32.1"
+  TARGET_ENV: ${{ inputs.environment || 'prod' }}
+
+jobs:
+  verify:
+    name: Verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+  deploy:
+    name: Deploy (${{ inputs.environment || 'prod' }})
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    environment: ${{ inputs.environment || 'prod' }}
+    permissions:
+      contents: read
+      id-token: write # Workload Identity Federation: no JSON keys anywhere
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+      REGION: ${{ vars.GCP_REGION }}
+      TF_VAR_oauth_client_secret: ${{ secrets.TF_VAR_OAUTH_CLIENT_SECRET }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Check required configuration
+        run: |
+          for v in PROJECT_ID REGION; do
+            [ -n "${!v}" ] || { echo "::error::GitHub environment variable for $v is empty"; exit 1; }
+          done
+          [ -n "${{ vars.WIF_PROVIDER }}" ] && [ -n "${{ vars.WIF_SERVICE_ACCOUNT }}" ] && [ -n "${{ vars.TF_STATE_BUCKET }}" ] && [ -n "${{ vars.TFVARS }}" ] \
+            || { echo "::error::Set WIF_PROVIDER, WIF_SERVICE_ACCOUNT, TF_STATE_BUCKET and TFVARS in the GitHub environment (see docs/runbook.md)"; exit 1; }
+
+      - id: auth
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.13
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - uses: google-github-actions/setup-gcloud@e427ad8a34f8676edf47cf7d7925499adf3eb74f # v2.2.1
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "~> 1.9"
+          terraform_wrapper: false
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Terraform init + plan
+        working-directory: infra/terraform
+        env:
+          TFVARS_CONTENT: ${{ vars.TFVARS }}
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          printf '%s\n' "$TFVARS_CONTENT" > envs/ci.tfvars
+          terraform init -input=false -backend-config="bucket=${STATE_BUCKET}" -backend-config="prefix=blr-traffic-control/${TARGET_ENV}"
+          terraform plan -input=false -var-file=envs/ci.tfvars -out=tfplan
+          terraform show -no-color tfplan | head -c 60000 >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Terraform apply
+        working-directory: infra/terraform
+        run: |
+          terraform apply -input=false tfplan
+          terraform output -json > "$RUNNER_TEMP/tf-outputs.json"
+
+      - id: tf
+        name: Read Terraform outputs
+        run: |
+          node scripts/tf-output.mjs "$RUNNER_TEMP/tf-outputs.json" \
+            repo=artifact_repository api=api_service worker=worker_service control_url=control_url admin_url=admin_url >> "$GITHUB_OUTPUT"
+
+      - id: prev
+        name: Remember current revisions (for rollback)
+        run: |
+          for svc in api worker; do
+            name="$(gcloud run services describe "blr-${svc}" --project "$PROJECT_ID" --region "$REGION" --format='value(status.traffic[0].revisionName)' 2>/dev/null || true)"
+            echo "${svc}=${name}" >> "$GITHUB_OUTPUT"
+          done
+
+      - name: Build and push images (tag = commit SHA)
+        env:
+          REPO: ${{ steps.tf.outputs.repo }}
+        run: |
+          gcloud auth configure-docker "${REGION}-docker.pkg.dev" --quiet
+          for app in api worker; do
+            docker build -f "apps/${app}/Dockerfile" -t "${REPO}/${app}:${GITHUB_SHA}" .
+            docker push "${REPO}/${app}:${GITHUB_SHA}"
+          done
+
+      - id: run
+        name: Deploy Cloud Run revisions
+        env:
+          REPO: ${{ steps.tf.outputs.repo }}
+          API_SVC: ${{ steps.tf.outputs.api }}
+          WORKER_SVC: ${{ steps.tf.outputs.worker }}
+        run: |
+          gcloud run services update "$WORKER_SVC" --project "$PROJECT_ID" --region "$REGION" \
+            --image "${REPO}/worker:${GITHUB_SHA}" --update-labels "commit-sha=${GITHUB_SHA}" --quiet
+          gcloud run services update "$API_SVC" --project "$PROJECT_ID" --region "$REGION" \
+            --image "${REPO}/api:${GITHUB_SHA}" --update-labels "commit-sha=${GITHUB_SHA}" --quiet
+
+      - name: Build web, render config
+        run: |
+          npm ci
+          npm run build:web
+          node scripts/render-deploy-config.mjs --outputs "$RUNNER_TEMP/tf-outputs.json"
+          node scripts/lint.mjs --dist
+
+      - name: Deploy Firebase Hosting + Firestore rules/indexes
+        run: |
+          npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" deploy --project "$PROJECT_ID" --config firebase.deploy.json \
+            --only hosting:control,hosting:admin,firestore:rules,firestore:indexes --non-interactive
+
+      - name: Smoke test
+        env:
+          CONTROL_URL: ${{ steps.tf.outputs.control_url }}
+          ADMIN_URL: ${{ steps.tf.outputs.admin_url }}
+        run: scripts/smoke.sh "$CONTROL_URL" "$ADMIN_URL"
+
+      - name: Roll back Cloud Run to the previous revisions
+        if: failure() && steps.run.conclusion != 'skipped'
+        env:
+          PREV_API: ${{ steps.prev.outputs.api }}
+          PREV_WORKER: ${{ steps.prev.outputs.worker }}
+          API_SVC: ${{ steps.tf.outputs.api }}
+          WORKER_SVC: ${{ steps.tf.outputs.worker }}
+        run: |
+          echo "::warning::Deploy failed after Cloud Run update: rolling back"
+          if [ -n "$PREV_API" ]; then gcloud run services update-traffic "$API_SVC" --project "$PROJECT_ID" --region "$REGION" --to-revisions "${PREV_API}=100"; fi
+          if [ -n "$PREV_WORKER" ]; then gcloud run services update-traffic "$WORKER_SVC" --project "$PROJECT_ID" --region "$REGION" --to-revisions "${PREV_WORKER}=100"; fi
+          echo "Static sites are not rolled back automatically: re-run this workflow on the previous tag if needed." >> "$GITHUB_STEP_SUMMARY"

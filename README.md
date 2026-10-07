@@ -1,0 +1,69 @@
+# Bengaluru Traffic Control Room
+
+A map-based control room for Bengaluru traffic operations: whole city plus North, East, Central, West and South regions, 53 police-station territories, real OpenStreetMap roads, role-scoped actions, road-closure planner, works-clash analysis, English and Kannada. A separate Admin site manages users, data connectors, API keys, AI budget, system checks and audit. Built for Google Cloud, sized for a proof of concept.
+
+> **Honest status.** Traffic state is **modelled** (BPR link times, assignment, gravity demand) and is labelled "LIVE (modelled)" only when calibrated against probe observations. Crash statistics are real (BTP 2018–2025 via OpenCity). Station territories are approximate (Voronoi, clipped to the boundary). Kannada text needs native review. Nothing here has been run against real Firestore, Vertex AI, Secret Manager, Firebase Auth or Cloud Run; see [Validation status](#validation-status).
+
+## What is in the repo
+
+| Path | Purpose |
+|---|---|
+| `apps/control` | Control room (static ES modules, canvas map). Commissioner, DCP, station, viewer views |
+| `apps/admin` | Admin site: users, stations, connectors, probes, works, API keys, AI, system checks, audit, settings |
+| `apps/api` | Fastify API on Cloud Run (`/api`, `/ingest/v1`) |
+| `apps/worker` | Private Cloud Run worker (tick, checks, retention, budget kill switch) |
+| `packages/model` | Traffic model: network, assignment, calibration, incidents |
+| `packages/core` | Store (Firestore / in-memory), auth, connectors, AI router, ingest, checks |
+| `packages/shared` | Roles, permissions, jurisdiction, workflow |
+| `packages/ui` | Shared design system |
+| `packages/mapdata`, `tools/mapdata` | Packaged map and the pipeline that builds it |
+| `infra/terraform` | All GCP resources |
+| `scripts` | bootstrap, deploy, doctor, seed, set-secret, smoke, rollback, teardown |
+| `docs` | Architecture, API contract, security, cost and AI, model, integration guide, runbook, data sources, roadmap |
+
+## Run locally (no GCP needed)
+
+```sh
+npm ci
+npm run dev        # builds both sites, starts the API with in-memory demo data
+```
+
+Control: `http://127.0.0.1:8080/`, Admin: `http://127.0.0.1:8080/admin/`. Pick a demo user on the dev sign-in screen (commissioner, DCP, station, viewer, admin). Dev auth is refused when `NODE_ENV=production`.
+
+Checks: `npm test` (API, core, model, shared, worker), `npm test --prefix apps/control`, `npm test --prefix apps/admin` (Playwright, needs Chromium), `npm run lint`.
+
+## Deploy to your own GCP project
+
+You run these; no credentials ever go to anyone else.
+
+1. Create a GCP project with billing. Install `gcloud`, `docker`, `terraform`, Node 22. `gcloud auth login` and `gcloud auth application-default login`.
+2. In the console create a Google OAuth client (Identity Platform needs it; one manual step) and keep the client id and secret.
+3. `cp infra/terraform/envs/dev.tfvars.example infra/terraform/envs/dev.tfvars` and fill in project, admin emails, OAuth client id, budget.
+4. `scripts/bootstrap.sh --env dev --project <id> --github-repo <owner/name>` (state bucket, deployer service account, Workload Identity Federation for GitHub Actions).
+5. `scripts/deploy.sh --env dev --project <id>` (Terraform, image build and push, Cloud Run, Hosting, smoke test).
+6. `scripts/seed.sh --env dev --admin-email you@example.com` creates the first admin. Everything after that is done in the Admin site.
+7. `scripts/doctor.sh --env dev` for a read-only health check.
+
+Details: [docs/runbook.md](docs/runbook.md). Costs and AI caps: [docs/cost-and-ai.md](docs/cost-and-ai.md). Every price in that page is an assumption to verify.
+
+## Access model
+
+Google sign-in through Identity Platform, then an email allowlist in Firestore (`users/{email}`). Roles: `admin`, `commissioner` (whole city), `dcp` (one region), `station` (own station, sees region map), `viewer` (read only). Every check is enforced server-side; the UI only dims. See [docs/security.md](docs/security.md).
+
+## AI and cost control
+
+Tiered Gemini routing: t0 templates (no model), t1 cheapest model (short, Kannada), t2 mid (advice, clash narrative), t3 strongest (commissioner brief only, cached per scope and hour). Per-user quota, global daily cap, caches, kill switch, and a Pub/Sub billing-budget trigger that disables AI and paid connectors. Model ids are settings, not code.
+
+## Connecting existing systems
+
+Generic REST and webhook connectors, CSV upload, inbound `x-api-key` ingest, Google Routes and TomTom speeds, GBA/BMRCL works feeds, BTP crash records. See [docs/integration-guide.md](docs/integration-guide.md).
+
+## Validation status
+
+Verified here: unit tests (core 45, api 23, worker 4, model 6, shared 6), Control Playwright suite (22 scenarios) and Admin Playwright suite (38) against mock and in-memory servers, repo lint, shellcheck, Terraform syntax parse.
+
+**Not verified:** `terraform validate/plan/apply`, Docker image builds, real Firestore, Vertex AI, Secret Manager, Identity Platform, Cloud Scheduler OIDC, billing budget. Read the plan before the first apply. Open items before real operational use: independent VAPT, MFA enforced at the Google tenant, calibration against real probe data, native Kannada review, verification of approximate station coordinates (6 are approximate).
+
+## Data and licences
+
+Roads © OpenStreetMap contributors (ODbL), crash data from BTP via OpenCity, see [docs/data-sources.md](docs/data-sources.md). Code is released under the licence in [LICENSE](LICENSE).

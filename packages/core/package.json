@@ -1,0 +1,13 @@
+{
+  "name": "@blr/core",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "main": "src/index.mjs",
+  "exports": { ".": "./src/index.mjs", "./testing": "./src/testing.mjs" },
+  "scripts": { "test": "node --test \"test/*.test.mjs\"" },
+  "dependencies": {
+    "@blr/mapdata": "*", "@blr/model": "*", "@blr/shared": "*",
+    "@google-cloud/firestore": "^7.11.0", "@google-cloud/secret-manager": "^5.6.0", "@google/genai": "^1.0.0", "firebase-admin": "^13.0.0"
+  }
+}

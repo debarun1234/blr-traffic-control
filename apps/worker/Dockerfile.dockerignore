@@ -1,0 +1,13 @@
+**/node_modules
+**/dist
+**/test
+.git
+.github
+docs
+infra
+tools
+scripts
+apps/control
+apps/admin
+packages/ui
+*.md

@@ -1,0 +1,2 @@
+bucket = "my-blr-prod-tfstate"
+prefix = "blr-traffic-control/prod"

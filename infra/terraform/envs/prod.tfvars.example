@@ -1,0 +1,22 @@
+project_id  = "my-blr-prod"
+region      = "asia-south1"
+environment = "prod"
+
+bootstrap_admin_emails = ["admin1@example.com"]
+
+# export TF_VAR_oauth_client_secret='...'
+oauth_client_id = "1234567890-abc.apps.googleusercontent.com"
+
+custom_domains = [] # e.g. ["control.example.org", "admin.example.org"]
+
+api_min_instances = 0 # set 1 to avoid cold starts (fixed monthly cost)
+api_max_instances = 3
+delete_protection = true
+firestore_pitr    = true
+
+alert_email = "oncall@example.org"
+
+create_budget      = true
+billing_account_id = "XXXXXX-XXXXXX-XXXXXX"
+budget_amount      = 3000
+budget_currency    = "INR"

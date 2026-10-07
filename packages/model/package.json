@@ -1,0 +1,1 @@
+{"name":"@blr/model","version":"1.0.0","type":"module","private":true,"main":"src/index.mjs","exports":{".":"./src/index.mjs"},"scripts":{"test":"node --test \"test/*.test.mjs\""}}

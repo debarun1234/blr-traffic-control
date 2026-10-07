@@ -1,0 +1,10 @@
+{
+  "name": "@blr/worker",
+  "version": "1.0.0",
+  "type": "module",
+  "private": true,
+  "main": "src/server.mjs",
+  "exports": { ".": "./src/server.mjs" },
+  "scripts": { "start": "node src/main.mjs", "test": "node --test \"test/*.test.mjs\"" },
+  "dependencies": { "@blr/core": "*", "@blr/mapdata": "*", "@blr/model": "*", "@blr/shared": "*", "fastify": "^5.12.0", "google-auth-library": "^9.15.0" }
+}

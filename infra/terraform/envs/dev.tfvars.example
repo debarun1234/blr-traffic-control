@@ -1,0 +1,22 @@
+# Copy to envs/dev.tfvars (git-ignore it if it gains anything sensitive; secrets go in TF_VAR_* env vars).
+project_id  = "my-blr-dev"
+region      = "asia-south1"
+environment = "dev"
+
+bootstrap_admin_emails = ["you@example.com"]
+
+# From the manual OAuth step (docs/runbook.md). The secret goes in the environment, not in this file:
+#   export TF_VAR_oauth_client_secret='...'
+oauth_client_id = ""
+
+api_max_instances = 2
+delete_protection = false # throwaway project only
+firestore_pitr    = false
+
+alert_email = "you@example.com"
+
+# Budget (optional; needs billing-account permission)
+create_budget      = false
+billing_account_id = ""
+budget_amount      = 500
+budget_currency    = "INR"

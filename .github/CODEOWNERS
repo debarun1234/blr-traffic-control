@@ -1,0 +1,12 @@
+# Replace @REPLACE-WITH-OWNER with a GitHub user or team. Changes to infra, CI and security-sensitive files need an
+# owner review (enable "Require review from Code Owners" in branch protection).
+*                          @REPLACE-WITH-OWNER
+/infra/                    @REPLACE-WITH-OWNER
+/.github/                  @REPLACE-WITH-OWNER
+/scripts/                  @REPLACE-WITH-OWNER
+/firebase.json             @REPLACE-WITH-OWNER
+/firestore.rules           @REPLACE-WITH-OWNER
+/firestore.indexes.json    @REPLACE-WITH-OWNER
+/SECURITY.md               @REPLACE-WITH-OWNER
+/docs/security.md          @REPLACE-WITH-OWNER
+/docs/api-contract.md      @REPLACE-WITH-OWNER

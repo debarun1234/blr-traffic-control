@@ -1,0 +1,14 @@
+{
+  "name": "@blr/admin",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Admin web site (static ES modules). Built into dist/ by scripts/build-web.mjs.",
+  "scripts": {
+    "build": "node ../../scripts/build-web.mjs",
+    "serve": "node test/mock-api.mjs",
+    "test:unit": "node --test test/unit.test.mjs",
+    "test:e2e": "node --test --test-concurrency=1 test/e2e.test.mjs",
+    "test": "npm run build && node --test --test-concurrency=1 test/unit.test.mjs test/e2e.test.mjs"
+  }
+}

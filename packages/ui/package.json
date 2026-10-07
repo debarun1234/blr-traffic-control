@@ -1,0 +1,1 @@
+{"name":"@blr/ui","version":"1.0.0","type":"module","private":true,"main":"src/ui.mjs","exports":{".":"./src/ui.mjs","./ui.css":"./src/ui.css"}}
