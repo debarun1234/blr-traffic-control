@@ -4,6 +4,44 @@ A map-based control room for Bengaluru traffic operations: whole city plus North
 
 > **Honest status.** Traffic state is **modelled** (BPR link times, assignment, gravity demand) and is labelled "LIVE (modelled)" only when calibrated against probe observations. Crash statistics are real (BTP 2018–2025 via OpenCity). Station territories are approximate (Voronoi, clipped to the boundary). Kannada text needs native review. Nothing here has been run against real Firestore, Vertex AI, Secret Manager, Firebase Auth or Cloud Run; see [Validation status](#validation-status).
 
+## Why this exists
+
+Dashboards over monthly crash data are easy to rebuild in a BI tool. What a city traffic command lacks is a **spatial, role-scoped decision tool**: one map where the Commissioner sees the whole city, each DCP sees a region, each station sees its own territory, and everyone can ask "what happens if we close this road, and when is the least bad time?" This repo is a proof of concept of that tool. It deliberately does not duplicate camera analytics, e-challan or ANPR systems; it connects to them.
+
+## Scope
+
+**In scope (built):**
+- Whole-city map plus North, East, Central, West and South regions, 53 station territories, about 10,000 real OpenStreetMap road segments.
+- Role-scoped access: Commissioner (city), DCP (one region), station (own station, sees its region), viewer (read only), admin.
+- Action workflow (new, acknowledged, in progress, done) with escalation and verification timers.
+- Road-closure and works planner that quantifies city-wide impact by time of day, plus works-clash detection.
+- Replay of a typical day in the browser; English and Kannada.
+- Admin site for users, connectors, API keys, probes, AI budget, system checks, audit log.
+- Cost-bounded AI (Gemini tiers, quotas, caches, kill switch) and Terraform for the full GCP stack.
+
+**Out of scope (not built):** camera or video analytics, e-challan, ANPR processing, citizen-facing features, mobile apps, any integration with real police systems (the connector framework is ready; access is not).
+
+## Screens
+
+All images are real screenshots of the running app (Control from the local dev server with built-in simulated data; Admin from the test fixtures, so its numbers are illustrative). Traffic shown is modelled.
+
+| | |
+|---|---|
+| ![Commissioner, whole city, 09:00 replay](docs/images/control-commissioner.png) | ![Station user: map locked to North, own station highlighted](docs/images/control-station.png) |
+| **Commissioner**: whole city with regions, KPIs, typical-day timeline and replay | **Station user (Yalahanka)**: sees only its region, own station highlighted |
+| ![Closure planner](docs/images/control-planner.png) | ![Dark theme](docs/images/control-dark.png) |
+| **Planner**: closure impact by time of day, diversion shifts with crash history | **Dark theme** |
+| ![Admin overview](docs/images/admin-overview.png) | ![Admin connectors](docs/images/admin-connectors.png) |
+| **Admin overview**: system checks, connector health, feed and AI status | **Connectors**: REST, webhook, CSV, Google Routes, TomTom, GBA/BMRCL, OpenCity |
+| ![AI and cost](docs/images/admin-ai-cost.png) | ![Users and roles](docs/images/admin-users.png) |
+| **AI and cost**: calls by tier, spend, cache hit rate, kill switch | **Users and roles**: allowlist with region and station scope |
+
+<p align="center"><img src="docs/images/control-mobile.png" alt="Control app on a phone" width="260"></p>
+
+## Architecture at a glance
+
+Two static sites on Firebase Hosting (Control, Admin) call one Cloud Run API through hosting rewrites. A private Cloud Run worker, driven by Cloud Scheduler, runs the feed tick, system checks, retention and the budget kill switch. Firestore holds everything; Secret Manager holds connector credentials; Vertex AI serves Gemini. Details and diagram: [docs/architecture.md](docs/architecture.md).
+
 ## What is in the repo
 
 | Path | Purpose |

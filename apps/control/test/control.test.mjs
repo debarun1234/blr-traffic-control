@@ -206,6 +206,7 @@ test('replay: R toggles, REPLAY pill, in-browser model recolours, back to live',
     await page.locator('[data-testid=replay-slider]').fill('74'); // 18:30
     await page.waitForFunction(() => window.__blr.S.result?.kind === 'replay' && window.__blr.S.result.h === 18.5, null, { timeout: 60000 });
     await page.waitForTimeout(300); assert.notEqual(await canvasHash(page), h0);
+    await page.waitForFunction(() => /18:30 IST/.test(document.querySelector('h2').parentElement.innerText), null, { timeout: 5000 }); // panel head follows the focused slider (regression)
     await page.getByTestId('replay-back').click();
     await page.waitForFunction(() => /SIMULATED/i.test(document.querySelector('[data-testid=status-pill]').innerText)); assert.equal(await page.evaluate(() => window.__blr.S.result.kind), 'live');
   });

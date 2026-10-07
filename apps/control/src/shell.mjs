@@ -131,7 +131,7 @@ export function mountApp(root, { onSignOut }) {
     }
     const dirty = new Set(['overview', 'station', 'actions', 'planner', 'works']);
     const runPanel = (id) => { dirty.delete(id); try { panels[id].update(); } catch (e) { console.error('panel', id, e); } };
-    const typing = (id) => { const a = document.activeElement; return a && panelEls[id].contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName); };
+    const typing = (id) => { const a = document.activeElement; return a && panelEls[id].contains(a) && /^(INPUT|SELECT|TEXTAREA)$/.test(a.tagName) && a.type !== 'range'; }; // the replay slider must keep refreshing the panel while focused
     const flushActive = frame(() => {
       if (destroyed) return; const id = S.tab;
       if (dirty.has(id)) { if (typing(id) && !dirty.has('force' + id)) return; runPanel(id); }
