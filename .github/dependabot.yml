@@ -23,13 +23,29 @@ updates:
     directory: /infra/terraform
     schedule:
       interval: weekly
+    # Provider constraints live in the root AND in every module; bumping only the root file makes
+    # `terraform init` fail ("no available releases match the given constraints"). Major provider
+    # upgrades are done by hand, in all files at once.
+    ignore:
+      - dependency-name: "hashicorp/google"
+        update-types: ["version-update:semver-major"]
+      - dependency-name: "hashicorp/google-beta"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /apps/api
     schedule:
       interval: weekly
+    # Tested on Node 22 LTS; odd-numbered releases (23, 25) are not LTS. Move LTS-to-LTS by hand.
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
 
   - package-ecosystem: docker
     directory: /apps/worker
     schedule:
       interval: weekly
+    # Tested on Node 22 LTS; odd-numbered releases (23, 25) are not LTS. Move LTS-to-LTS by hand.
+    ignore:
+      - dependency-name: "node"
+        update-types: ["version-update:semver-major"]
