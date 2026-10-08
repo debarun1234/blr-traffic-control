@@ -1,6 +1,6 @@
 # syntax=docker/dockerfile:1
 # Build from the repository root:  docker build -f apps/api/Dockerfile -t blr-api .
-FROM node:22-slim AS deps
+FROM node:25-slim AS deps
 WORKDIR /app
 COPY package.json package-lock.json ./
 COPY packages/core/package.json packages/core/
@@ -10,7 +10,7 @@ COPY packages/mapdata/package.json packages/mapdata/
 COPY apps/api/package.json apps/api/
 RUN npm ci --omit=dev --ignore-scripts -w @blr/api && npm cache clean --force
 
-FROM node:22-slim AS runtime
+FROM node:25-slim AS runtime
 ENV NODE_ENV=production PORT=8080
 WORKDIR /app
 COPY --from=deps /app/node_modules node_modules
