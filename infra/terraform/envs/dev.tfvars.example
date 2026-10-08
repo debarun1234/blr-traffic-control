@@ -3,7 +3,7 @@ project_id  = "my-blr-dev"
 region      = "asia-south1"
 environment = "dev"
 
-bootstrap_admin_emails = ["debarun.ghosh.121@gmail.com"]
+bootstrap_admin_emails = ["you@example.com"]
 
 # From the manual OAuth step (docs/runbook.md). The secret goes in the environment, not in this file:
 #   export TF_VAR_oauth_client_secret='...'
@@ -14,7 +14,7 @@ api_max_instances = 2
 delete_protection = false # throwaway project only
 firestore_pitr    = false
 
-alert_email = "debarun.ghosh.121@gmail.com"
+alert_email = "you@example.com"
 
 # Budget (optional; needs billing-account permission)
 create_budget      = false
