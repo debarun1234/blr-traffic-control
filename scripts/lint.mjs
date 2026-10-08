@@ -75,7 +75,7 @@ if (args.has('--dist')) {
     const c = join(root, 'apps', app, 'dist', 'config.js');
     if (!existsSync(c)) { err(`apps/${app}/dist/config.js`, 'missing (run build:web and scripts/render-deploy-config.mjs)'); continue; }
     const t = readText(c);
-    if (/authMode['"]?\s*:\s*['"]dev['"]/.test(t)) err(`apps/${app}/dist/config.js`, "authMode is 'dev'");
+    if (!/authMode['"]?\s*:\s*['"]google['"]/.test(t)) err(`apps/${app}/dist/config.js`, "authMode must be exactly 'google' (the apps fall back to the dev picker for any other value)");
     if (/firebase['"]?\s*:\s*null/.test(t)) err(`apps/${app}/dist/config.js`, 'firebase config is null');
   }
 }

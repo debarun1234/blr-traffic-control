@@ -136,7 +136,7 @@ jobs:
         run: |
           npm ci
           npm run build:web
-          node scripts/render-deploy-config.mjs --outputs "$RUNNER_TEMP/tf-outputs.json"
+          node scripts/render-deploy-config.mjs --outputs "$RUNNER_TEMP/tf-outputs.json" --env "$TARGET_ENV"
           node scripts/lint.mjs --dist
 
       - name: Deploy Firebase Hosting + Firestore rules/indexes

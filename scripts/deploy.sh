@@ -115,7 +115,7 @@ fi
 if [[ "${SKIP_HOSTING}" == "0" ]]; then
   info "Build web + render config"
   npm run build:web --silent
-  node scripts/render-deploy-config.mjs --outputs "${OUT_JSON}"
+  node scripts/render-deploy-config.mjs --outputs "${OUT_JSON}" --env "${ENV_NAME}"
   node scripts/lint.mjs --dist
   info "Firebase deploy (hosting + firestore rules/indexes)"
   npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" deploy --project "${PROJECT_ID}" --config firebase.deploy.json \
