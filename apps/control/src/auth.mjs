@@ -25,7 +25,7 @@ export async function initAuth(cfg) {
     const auth = A.getAuth(initializeApp(cfg.firebase));
     await new Promise((res) => { const un = A.onAuthStateChanged(auth, (u) => { api.user = u ? { email: (u.email ?? '').toLowerCase(), name: u.displayName ?? '' } : null; un(); res(); }); });
     A.onAuthStateChanged(auth, (u) => { api.user = u ? { email: (u.email ?? '').toLowerCase(), name: u.displayName ?? '' } : null; emit(); });
-    api.signIn = async () => { const r = await A.signInWithPopup(auth, new A.GoogleAuthProvider()); api.user = { email: (r.user.email ?? '').toLowerCase(), name: r.user.displayName ?? '' }; emit(); };
+    api.signIn = async () => { const provider = new A.GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' }); const r = await A.signInWithPopup(auth, provider); api.user = { email: (r.user.email ?? '').toLowerCase(), name: r.user.displayName ?? '' }; emit(); };
     api.signOut = async () => { await A.signOut(auth); api.user = null; emit(); };
     api.headers = async () => (auth.currentUser ? { authorization: `Bearer ${await auth.currentUser.getIdToken()}` } : {});
     api.refresh = async () => { if (auth.currentUser) await auth.currentUser.getIdToken(true); };
