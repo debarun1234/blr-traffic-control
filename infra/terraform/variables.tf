@@ -256,3 +256,15 @@ variable "uptime_host" {
   default     = ""
   description = "Host for the /readyz uptime check. Empty = control site default domain."
 }
+
+variable "maps_browser_key" {
+  type        = string
+  default     = ""
+  description = "Google Maps JavaScript API key for the optional Google basemap. Public by design (it ships to the browser): restrict it to the two hosting domains and the Maps JavaScript API in the console. Empty = Google basemap option hidden. NOT the Routes key (that one is a secret, set with scripts/set-secret.sh)."
+}
+
+variable "maps_map_id" {
+  type        = string
+  default     = ""
+  description = "Optional Google Maps map ID (vector map, needed for smooth fractional zoom). Empty = Google's DEMO_MAP_ID."
+}

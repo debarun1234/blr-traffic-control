@@ -74,6 +74,7 @@ const D = {
   'map.loading': ['Loading modelled feed…', 'ಮಾದರಿ ಮಾಹಿತಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ…'],
   'map.note': ['Modelled traffic on real road geometry, not sensor data. Crash figures are real (BTP 2018–2025).', 'ನೈಜ ರಸ್ತೆ ಜ್ಯಾಮಿತಿಯ ಮೇಲೆ ಮಾದರಿ ಸಂಚಾರ, ಸೆನ್ಸರ್ ಮಾಹಿತಿಯಲ್ಲ. ಅಪಘಾತ ಅಂಕಿಅಂಶಗಳು ನೈಜ (BTP 2018–2025).'],
   'layers.title': ['Layers', 'ಪದರಗಳು'], 'layers.cong': ['Congestion', 'ದಟ್ಟಣೆ'], 'layers.minor': ['Minor roads', 'ಸಣ್ಣ ರಸ್ತೆಗಳು'], 'layers.stn': ['Stations', 'ಠಾಣೆಗಳು'], 'layers.inc': ['Incidents', 'ಘಟನೆಗಳು'], 'layers.works': ['Works', 'ಕಾಮಗಾರಿ'],
+  'layers.base': ['Basemap', 'ಬೇಸ್‌ಮ್ಯಾಪ್'], 'layers.base.plain': ['Plain (built-in)', 'ಸರಳ (ಅಂತರ್ನಿರ್ಮಿತ)'], 'layers.base.roadmap': ['Google Maps', 'ಗೂಗಲ್ ಮ್ಯಾಪ್ಸ್'], 'layers.base.hybrid': ['Google satellite', 'ಗೂಗಲ್ ಉಪಗ್ರಹ'],
   'layers.shade': ['Territory shading', 'ವ್ಯಾಪ್ತಿ ಛಾಯೆ'], 'layers.shade.none': ['None', 'ಇಲ್ಲ'], 'layers.shade.crash': ['Fatal crashes 2025', 'ಮರಣಾಂತಿಕ ಅಪಘಾತ 2025'], 'layers.shade.speed': ['Modelled speed', 'ಮಾದರಿ ವೇಗ'],
   'legend.title': ['Road load (v/c)', 'ರಸ್ತೆ ಭಾರ (v/c)'],
   'legend.free': ['Free', 'ಸುಗಮ'], 'legend.light': ['Light', 'ಹಗುರ'], 'legend.busy': ['Busy', 'ಕಾರ್ಯನಿರತ'], 'legend.slow': ['Slow', 'ನಿಧಾನ'], 'legend.jam': ['Jammed', 'ಜಾಮ್'], 'legend.grid': ['Gridlock', 'ಸ್ಥಗಿತ'],

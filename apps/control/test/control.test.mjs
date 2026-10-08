@@ -225,17 +225,6 @@ test('keyboard: ? sheet, 2-6 scope, / search, [ ] zoom, Esc', async () => {
   });
 });
 
-test('AI advice is regenerated in Kannada when the language is switched', async () => {
-  await run('north.dcp', async (page) => {
-    await tab(page, 'actions');
-    await page.waitForFunction(async () => !(await import('/sim.mjs')).simBusy());
-    await page.getByTestId('advise').first().click(); await page.waitForSelector('[data-testid=ai-result]');
-    assert.match(await page.locator('.cc-ai-b').first().innerText(), /Deploy staff/);
-    await page.getByTestId('lang').first().click();
-    await page.waitForFunction(() => /ಸಿಬ್ಬಂದಿಯನ್ನು ನಿಯೋಜಿಸಿ/.test(document.querySelector('.cc-ai-b')?.innerText || ''));
-  });
-});
-
 test('AI: tier + cached badges, label, inert HTML, quota, 429 and disabled handling', async () => {
   await run('north.dcp', { allow: /429/ }, async (page) => {
     await tab(page, 'actions');

@@ -21,3 +21,7 @@ create_budget      = false
 billing_account_id = ""
 budget_amount      = 500
 budget_currency    = "INR"
+
+# Optional Google basemap (Maps JavaScript API). Restrict this key to your two hosting domains in the console.
+maps_browser_key = ""
+maps_map_id      = ""

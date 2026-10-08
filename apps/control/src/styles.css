@@ -54,6 +54,8 @@ body.kn .cc-pill{text-transform:none;letter-spacing:0}
 
 /* ---- map ---- */
 .cc-map{position:relative;background:var(--map);min-width:0;min-height:0;overflow:hidden}
+.cc-gmap{position:absolute;inset:0;pointer-events:none}.cc-gmap[hidden]{display:none}
+.cc-map.gm .cc-legend{bottom:30px}.cc-map.gm .cc-note{bottom:24px}
 .cc-canvas{position:absolute;inset:0;width:100%;height:100%;display:block;touch-action:none;cursor:grab}
 .cc-canvas.drag{cursor:grabbing}.cc-canvas:focus-visible{outline-offset:-3px}
 .cc-tools{position:absolute;left:10px;top:10px;display:flex;gap:8px;align-items:flex-start;z-index:5;max-width:calc(100% - 70px)}

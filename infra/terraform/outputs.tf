@@ -90,3 +90,12 @@ output "google_sign_in_configured" {
   description = "false until oauth_client_id/oauth_client_secret are supplied."
   value       = module.identity.google_provider_configured
 }
+
+output "maps_browser_key" {
+  description = "Public browser key for the Google basemap (empty when unset)."
+  value       = var.maps_browser_key
+}
+
+output "maps_map_id" {
+  value = var.maps_map_id
+}

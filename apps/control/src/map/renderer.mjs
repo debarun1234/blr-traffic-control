@@ -71,8 +71,8 @@ export function createRenderer(canvas) {
     const C = colours(), k = R.view.k, W = R.W, H = R.H, vc = S.result?.vc, hasFeed = !!vc && S.layers.cong;
     const mini = W < 560;
     ctx.setTransform(R.DPR, 0, 0, R.DPR, 0, 0);
-    ctx.fillStyle = C['--map']; ctx.fillRect(0, 0, W, H);
-    ctx.beginPath(); ringPath(map.city); ctx.fillStyle = C['--land']; ctx.fill();
+    if (R.baseOn?.()) ctx.clearRect(0, 0, W, H); // Google basemap shows through
+    else { ctx.fillStyle = C['--map']; ctx.fillRect(0, 0, W, H); ctx.beginPath(); ringPath(map.city); ctx.fillStyle = C['--land']; ctx.fill(); }
 
     // territory shading
     if (S.layers.shade !== 'none') {

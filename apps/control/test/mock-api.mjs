@@ -154,8 +154,8 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       if (S.aiUsed >= S.aiLimit) return err(res, 'quota_exceeded', 429, 'daily AI quota exceeded');
       S.aiUsed++;
       const out = brief
-        ? { text: `${b.lang === 'kn' ? 'ಸಂಕ್ಷಿಪ್ತ ವರದಿ' : 'Briefing for'} ${b.scope}\n- ${S.incidents.filter((x) => x.startHour <= S.hour && S.hour < x.endHour).length} incidents active; <img src=x onerror="window.__xss=1"> must stay inert text.\n- Escalated actions need acknowledgement first.\n- Morning peak speeds are modelled, not measured.`, tier: 't3', cached: false, generatedAt: S.now }
-        : { text: b.lang === 'kn' ? `ಸಿಬ್ಬಂದಿಯನ್ನು ನಿಯೋಜಿಸಿ: ${b.context?.road} (${b.context?.station})` : `Deploy staff at ${b.context?.road} (${b.context?.station}). ${b.context?.alternate ? `Divert via ${b.context.alternate.road}.` : 'No clear alternate found.'} <b>bold?</b> stays text.`, tier: b.context?.road ? 't2' : 't0', cached: false, model: 'mock-model' };
+        ? { text: `Briefing for ${b.scope}\n- ${S.incidents.filter((x) => x.startHour <= S.hour && S.hour < x.endHour).length} incidents active; <img src=x onerror="window.__xss=1"> must stay inert text.\n- Escalated actions need acknowledgement first.\n- Morning peak speeds are modelled, not measured.`, tier: 't3', cached: false, generatedAt: S.now }
+        : { text: `Deploy staff at ${b.context?.road} (${b.context?.station}). ${b.context?.alternate ? `Divert via ${b.context.alternate.road}.` : 'No clear alternate found.'} <b>bold?</b> stays text.`, tier: b.context?.road ? 't2' : 't0', cached: false, model: 'mock-model' };
       S.aiCache.set(key, out); return json(res, 200, out);
     }
     return err(res, 'not_found', 404, 'unknown endpoint ' + m + ' ' + path);
@@ -166,7 +166,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     if (p === '/__mock/reset') { init(); return json(res, 200, { ok: true }); }
     if (p === '/__mock/set') {
       let re = false;
-      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration', 'noPreflight']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
+      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration', 'noPreflight', 'mapsKey']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
       if (b.addUser) S.users.set(b.addUser.email, { active: true, ...b.addUser });
       if (b.addIncident) { const i = b.addIncident; S.incidents.push(mkInc(i.id ?? `x-${++S.seq}`, i.type ?? 'Accident', i.edge ?? edgeIn(i.station), i.sh ?? S.hour - 0.2, i.eh ?? S.hour + 0.8)); re = true; }
       syncActions(); if (re) recompute(3); else S.version++;
@@ -181,7 +181,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       const url = new URL(req.url, 'http://x');
       if (url.pathname.startsWith('/__mock/')) return await control(req, res, url);
       if (url.pathname.startsWith('/api/')) { if (S.down === 'drop') return req.socket.destroy(); return await api(req, res, url); }
-      if (url.pathname === '/config.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(`window.__CONFIG__={authMode:'dev',apiBase:'/api',pollMs:${pollMs},adminUrl:'/admin/'};`); }
+      if (url.pathname === '/config.js') { res.writeHead(200, { 'content-type': 'text/javascript' }); return res.end(`window.__CONFIG__={authMode:'dev',apiBase:'/api',pollMs:${pollMs},adminUrl:'/admin/'${S.mapsKey ? `,mapsKey:'${S.mapsKey}'` : ''}};`); }
       if (url.pathname.startsWith('/admin')) { res.writeHead(200, { 'content-type': 'text/html' }); return res.end('<!doctype html><title>Admin</title><h1>Admin site placeholder</h1>'); }
       let p = normalize(decodeURIComponent(url.pathname)).replace(/^(\.\.[/\\])+/, ''); if (p === '/' || p === '\\') p = '/index.html';
       const f = join(DIST, p);

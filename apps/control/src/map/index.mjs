@@ -4,6 +4,9 @@ import { S, on, emit, setSel, setTab, setReplay, lockedRegion, fatal2025, scopeS
 import { t, regionName } from '../i18n.mjs';
 import { ic } from '../icons.mjs';
 import { createRenderer } from './renderer.mjs';
+import { createGoogleBase } from './gmaps.mjs';
+import { lsSet } from '../util.mjs';
+import { toast } from '/vendor/ui.mjs';
 import { attachInteraction } from './interaction.mjs';
 import { edgesBox } from '../analytics.mjs';
 import { fmtH } from '/vendor/ui.mjs';
@@ -15,6 +18,10 @@ export function createMapPane() {
   const tip = h('div.cc-tip', { role: 'tooltip', hidden: true });
   const wrap = h('section.cc-map', { 'aria-label': t('map.region') }, canvas);
   const R = createRenderer(canvas);
+  const mapsKey = S.cfg?.mapsKey || '';
+  const gbase = mapsKey ? createGoogleBase(wrap, R, { key: mapsKey, mapId: S.cfg?.mapsMapId, origin: MD.map.o, onFail: (m) => { S.layers.base = 'plain'; lsSet('blr-base', 'plain'); baseSel && (baseSel.value = 'plain'); toast(m, 'bad', 6000); } }) : null;
+  R.baseOn = () => !!gbase?.active;
+  let baseSel = null;
 
   // ---- overlays ----
   const roadNames = []; { const seen = new Set(); net.map.n.forEach((n, i) => { if (net.roads.has(i) && !seen.has(n.toLowerCase())) { seen.add(n.toLowerCase()); roadNames.push({ i, n, low: n.toLowerCase() }); } }); }
@@ -58,8 +65,10 @@ export function createMapPane() {
   const layerRow = (key, label) => h('label.cc-chk', h('input', { type: 'checkbox', checked: S.layers[key], onchange: (e) => { S.layers[key] = e.target.checked; R.dirty = true; } }), h('span', label));
   const shadeSel = h('select.select', { 'aria-label': t('layers.shade'), onchange: (e) => { S.layers.shade = e.target.value; R.dirty = true; } },
     ...['none', 'crash', 'speed'].map((v) => h('option', { value: v, selected: S.layers.shade === v }, t(`layers.shade.${v}`))));
+  if (gbase) baseSel = h('select.select', { 'aria-label': t('layers.base'), 'data-testid': 'base-select', onchange: (e) => { S.layers.base = e.target.value; lsSet('blr-base', e.target.value); gbase.set(e.target.value); } },
+    ...['plain', 'roadmap', 'hybrid'].map((v) => h('option', { value: v, selected: S.layers.base === v }, t(`layers.base.${v}`))));
   const layersPop = h('div.cc-pop', { id: 'cc-layers', hidden: true, role: 'group', 'aria-label': t('layers.title') },
-    layerRow('cong', t('layers.cong')), layerRow('minor', t('layers.minor')), layerRow('stn', t('layers.stn')), layerRow('inc', t('layers.inc')), layerRow('works', t('layers.works')),
+    ...(baseSel ? [h('div.field', h('label', t('layers.base')), baseSel)] : []), layerRow('cong', t('layers.cong')), layerRow('minor', t('layers.minor')), layerRow('stn', t('layers.stn')), layerRow('inc', t('layers.inc')), layerRow('works', t('layers.works')),
     h('div.field', h('label', t('layers.shade')), shadeSel));
   const layersBtn = h('button.btn.sm.cc-layersbtn', { 'aria-expanded': 'false', 'aria-controls': 'cc-layers', onclick: () => { layersPop.hidden = !layersPop.hidden; layersBtn.setAttribute('aria-expanded', String(!layersPop.hidden)); } }, ic('layers', 16), h('span.lbl', t('layers.title')));
   const outside = (e) => { if (!layersPop.hidden && !layersPop.contains(e.target) && !layersBtn.contains(e.target)) { layersPop.hidden = true; layersBtn.setAttribute('aria-expanded', 'false'); } };
@@ -118,9 +127,9 @@ export function createMapPane() {
   const recolour = () => { R.refreshColours(); drawLegend(); };
   const mo = new MutationObserver(recolour); mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   const mq = matchMedia('(prefers-color-scheme: dark)'); mq.addEventListener?.('change', recolour);
-  (function loop() { if (R.dead) return; if (R.dirty && R.W) R.draw(); requestAnimationFrame(loop); })();
-  R.destroy = () => { R.dead = true; ro.disconnect(); mo.disconnect(); mq.removeEventListener?.('change', recolour); document.removeEventListener('pointerdown', outside); };
-  drawLegend(); refreshOverlays();
+  (function loop() { if (R.dead) return; if (R.dirty && R.W) { R.draw(); gbase?.sync(); } requestAnimationFrame(loop); })();
+  R.destroy = () => { R.dead = true; gbase?.destroy(); ro.disconnect(); mo.disconnect(); mq.removeEventListener?.('change', recolour); document.removeEventListener('pointerdown', outside); };
+  drawLegend(); refreshOverlays(); if (gbase && S.layers.base !== 'plain') gbase.set(S.layers.base);
   R.pane = wrap; R.canvas = canvas; R.focusSearch = () => { search.classList.add('open'); input.focus(); input.select(); };
   R.zoomBy = (f) => R.zoomAt(R.W / 2, R.H / 2, f);
   return R;

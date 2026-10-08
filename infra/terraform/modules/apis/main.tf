@@ -32,6 +32,8 @@ locals {
     "storage.googleapis.com",
     "apikeys.googleapis.com",
     "cloudbilling.googleapis.com",
+    "maps-backend.googleapis.com", # Maps JavaScript API (optional Google basemap)
+    "routes.googleapis.com",       # Routes API (google_routes connector)
   ]
   apis = toset(concat(local.base_apis, var.include_billing_budgets ? ["billingbudgets.googleapis.com"] : []))
 }

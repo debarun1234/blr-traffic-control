@@ -9,7 +9,7 @@ export const S = {
   cfg: null, api: null, auth: null, MD: null, me: null,
   lang: lsGet('blr-lang', 'en') === 'kn' ? 'kn' : 'en',
   scope: 'All', sel: null, tab: 'overview',
-  layers: { cong: true, minor: true, stn: true, inc: true, works: true, shade: 'none' },
+  layers: { cong: true, minor: true, stn: true, inc: true, works: true, shade: 'none', base: ['roadmap', 'hybrid'].includes(lsGet('blr-base', 'plain')) ? lsGet('blr-base', 'plain') : 'plain' },
   replay: null, replayBusy: false, replayRes: null,
   live: null, result: null, sum: null,
   incidents: [], works: [], actions: [], crash: null, quota: null,
