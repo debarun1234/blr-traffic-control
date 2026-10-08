@@ -12,4 +12,13 @@
 | Maintenance | Set the maintenance flag in Admin > Settings (non-admins see a maintenance screen) |
 | Teardown | `scripts/teardown.sh --env <env>` (read the prompt; `delete_protection` guards Firestore) |
 
+## Frontend-only deploys
+
+`Deploy web only` (`.github/workflows/deploy-web.yml`) rebuilds the two static sites and publishes them to Firebase Hosting: lint, tests, build, `firebase deploy --only hosting`, smoke test. No Terraform apply, no Docker, no Cloud Run change; about 2 minutes.
+
+- Push to `main` that touches `apps/control/src`, `apps/admin/src`, `packages/ui`, `packages/shared`, `packages/mapdata`, or the hosting/rules files deploys to **dev** automatically.
+- Manual: Actions > Deploy web only > Run workflow > dev or prod.
+- Use the full `Deploy` workflow when API, worker, packages/core, Terraform or Firestore rules/indexes change.
+- Locally: `scripts/deploy.sh --env dev --skip-terraform --skip-build`.
+
 Deploy order and first-time setup are in the README. Terraform has not been applied in the authoring environment: read `terraform plan` before the first apply.

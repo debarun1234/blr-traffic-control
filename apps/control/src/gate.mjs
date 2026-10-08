@@ -5,6 +5,10 @@ import { t, roleLabel } from './i18n.mjs';
 import { ic } from './icons.mjs';
 import { DEV_USERS } from './auth.mjs';
 import { S, setLang } from './state.mjs';
+import { startArt } from './art.mjs';
+
+let stopArt = null;
+const LOGO = '/assets/btp-logo.png';
 
 const effectiveTheme = () => document.documentElement.dataset.theme || (matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
 const GOOGLE_G = () => {
@@ -18,24 +22,7 @@ function utilBar() {
   return h('div.row.cc-util', h('button.btn.sm.ghost', { 'data-testid': 'lang', onclick: () => setLang(S.lang === 'kn' ? 'en' : 'kn') }, ic('globe', 15), S.lang === 'kn' ? 'English' : 'ಕನ್ನಡ'),
     h('button.btn.sm.ghost', { 'data-testid': 'theme', 'aria-label': t('theme.toggle'), onclick: () => { setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark'); } }, ic(effectiveTheme() === 'dark' ? 'sun' : 'moon', 16)));
 }
-const brand = () => h('div.brand', h('div.mark', ic('map', 18)), h('div', t('app.name'), h('small', t('app.sub'))));
-
-function drawArt(canvas, map) {
-  const dpr = Math.min(2, devicePixelRatio || 1), w = canvas.clientWidth || 560, hh = canvas.clientHeight || 420; canvas.width = w * dpr; canvas.height = hh * dpr;
-  const g = canvas.getContext('2d'); g.setTransform(dpr, 0, 0, dpr, 0, 0);
-  let x0 = 1e9, y0 = 1e9, x1 = -1e9, y1 = -1e9; for (const r of map.city) for (const p of r) { x0 = Math.min(x0, p[0]); x1 = Math.max(x1, p[0]); y0 = Math.min(y0, p[1]); y1 = Math.max(y1, p[1]); }
-  const k = Math.min(w / (x1 - x0), hh / (y1 - y0)) * 0.92, cx = (x0 + x1) / 2, cy = (y0 + y1) / 2, X = (x) => (x - cx) * k + w / 2, Y = (y) => hh / 2 - (y - cy) * k;
-  const cs = getComputedStyle(document.documentElement), col = (v) => cs.getPropertyValue(v).trim();
-  g.beginPath(); for (const r of map.city) { g.moveTo(X(r[0][0]), Y(r[0][1])); for (const p of r) g.lineTo(X(p[0]), Y(p[1])); g.closePath(); } g.fillStyle = col('--surface'); g.globalAlpha = 0.85; g.fill(); g.globalAlpha = 1; g.strokeStyle = col('--line-2'); g.lineWidth = 1.5; g.stroke();
-  const cls = [col('--c4'), col('--accent'), col('--road-major')], width = [1.9, 1.2, 0.7]; g.lineCap = 'round'; g.lineJoin = 'round';
-  for (const c of [2, 1, 0]) {
-    g.beginPath();
-    for (const d of map.d) { if (d[0] !== c || d[4] < 0) continue; const f = d[3]; let x = f[0], y = f[1]; g.moveTo(X(x), Y(y)); for (let j = 2; j < f.length; j += 2) { x += f[j]; y += f[j + 1]; g.lineTo(X(x), Y(y)); } }
-    g.strokeStyle = c === 0 ? col('--accent') : c === 1 ? col('--ink-3') : col('--line-2'); g.globalAlpha = c === 0 ? 0.95 : c === 1 ? 0.55 : 0.4; g.lineWidth = width[c]; g.stroke();
-  }
-  g.globalAlpha = 1; g.strokeStyle = col('--accent'); g.lineWidth = 1.2; g.globalAlpha = 0.5; g.setLineDash([4, 4]);
-  for (const reg of Object.values(map.reg)) { g.beginPath(); for (const r of reg) { g.moveTo(X(r[0][0]), Y(r[0][1])); for (const p of r) g.lineTo(X(p[0]), Y(p[1])); g.closePath(); } g.stroke(); }
-}
+const brand = () => h('div.brand', h('img.cc-logo-sm', { src: LOGO, alt: '', width: 40, height: 40 }), h('div', t('app.name'), h('small', t('app.sub'))));
 
 export function renderSignin(root, { auth, mapPromise, error }) {
   const cfg = S.cfg, dev = cfg.authMode !== 'google';
@@ -54,9 +41,13 @@ export function renderSignin(root, { auth, mapPromise, error }) {
   fill(root, h('div.signin.cc-signin',
     h('div.panel', h('div.row.between.nowrap', brand(), utilBar()), h('div.stack', h('h1', t('signin.title')), h('p.muted', t('signin.purpose'))), err, body,
       h('p.sm.muted.cc-honest', ic('shield', 15), t('signin.honest'))),
-    h('div.art', h('div.cc-artcard', art, h('div.cc-artcap', h('b', t('signin.art.t')), h('span.xs.faint', t('signin.art.s')))))));
-  mapPromise.then((m) => { drawArt(art, m); }).catch(() => {});
-  new MutationObserver(() => mapPromise.then((m) => drawArt(art, m)).catch(() => {})).observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
+    h('div.art', h('div.cc-artcard', art,
+      h('div.cc-welcome', h('div.cc-logo', h('i.cc-ring'), h('i.cc-ring.r2'), h('img', { src: LOGO, alt: t('signin.btp'), width: 96, height: 96 })),
+        h('div.cc-hello', h('div.cc-greet', h('span.g1', 'ನಮಸ್ಕಾರ'), h('span.g2', t('signin.hello'))), h('div.cc-btp', t('signin.btp')))),
+      h('span.cc-simtag', h('i'), t('signin.sim')),
+      h('div.cc-artcap', h('b', t('signin.art.t')), h('span.xs.faint', t('signin.art.s')))))));
+  stopArt?.(); stopArt = null;
+  mapPromise.then((m) => { if (art.isConnected) stopArt = startArt(art, m); }).catch(() => {});
 }
 
 export function renderGate(root, kind, { email, onSignOut, onRetry, detail }) {

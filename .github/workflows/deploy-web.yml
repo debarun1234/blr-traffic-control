@@ -1,0 +1,107 @@
+name: Deploy web only
+
+# Frontend-only deploy: lint + tests, rebuild the two static sites, push to Firebase Hosting, smoke test.
+# No Terraform apply, no Docker, no Cloud Run changes (use "Deploy" for those). Typically ~2 minutes.
+# - Push to main touching frontend files: deploys to dev automatically.
+# - Manual: pick dev or prod.
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: Target environment
+        type: choice
+        options: [dev, prod]
+        default: dev
+  push:
+    branches: [main]
+    paths:
+      - "apps/control/src/**"
+      - "apps/admin/src/**"
+      - "packages/ui/**"
+      - "packages/shared/**"
+      - "packages/mapdata/**"
+      - "scripts/build-web.mjs"
+      - "scripts/render-deploy-config.mjs"
+      - "firebase.json"
+      - "firestore.rules"
+      - "firestore.indexes.json"
+      - ".github/workflows/deploy-web.yml"
+
+permissions:
+  contents: read
+
+# Same group as the full deploy so the two never run at once for one environment.
+concurrency:
+  group: deploy-${{ inputs.environment || 'dev' }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "22"
+  FIREBASE_TOOLS_VERSION: "15.32.1"
+  TARGET_ENV: ${{ inputs.environment || 'dev' }}
+
+jobs:
+  web:
+    name: Deploy web (${{ inputs.environment || 'dev' }})
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: ${{ inputs.environment || 'dev' }}
+    permissions:
+      contents: read
+      id-token: write
+    env:
+      PROJECT_ID: ${{ vars.GCP_PROJECT_ID }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Check required configuration
+        run: |
+          [ -n "$PROJECT_ID" ] && [ -n "${{ vars.WIF_PROVIDER }}" ] && [ -n "${{ vars.WIF_SERVICE_ACCOUNT }}" ] && [ -n "${{ vars.TF_STATE_BUCKET }}" ] \
+            || { echo "::error::Set GCP_PROJECT_ID, WIF_PROVIDER, WIF_SERVICE_ACCOUNT and TF_STATE_BUCKET in the GitHub environment (see docs/runbook.md)"; exit 1; }
+
+      - run: npm ci
+      - run: npm run lint
+      - run: npm test
+
+      - id: auth
+        uses: google-github-actions/auth@c200f3691d83b41bf9bbd8638997a462592937ed # v2.1.13
+        with:
+          workload_identity_provider: ${{ vars.WIF_PROVIDER }}
+          service_account: ${{ vars.WIF_SERVICE_ACCOUNT }}
+
+      - uses: hashicorp/setup-terraform@b9cd54a3c349d3f38e8881555d616ced269862dd # v3.1.2
+        with:
+          terraform_version: "~> 1.9"
+          terraform_wrapper: false
+
+      - name: Read Terraform outputs (read-only, nothing is applied)
+        working-directory: infra/terraform
+        env:
+          STATE_BUCKET: ${{ vars.TF_STATE_BUCKET }}
+        run: |
+          terraform init -input=false -backend-config="bucket=${STATE_BUCKET}" -backend-config="prefix=blr-traffic-control/${TARGET_ENV}"
+          terraform output -json > "$RUNNER_TEMP/tf-outputs.json"
+
+      - id: tf
+        run: node scripts/tf-output.mjs "$RUNNER_TEMP/tf-outputs.json" control_url=control_url admin_url=admin_url >> "$GITHUB_OUTPUT"
+
+      - name: Build web, render config
+        run: |
+          npm run build:web
+          node scripts/render-deploy-config.mjs --outputs "$RUNNER_TEMP/tf-outputs.json" --env "$TARGET_ENV"
+          node scripts/lint.mjs --dist
+
+      - name: Deploy Firebase Hosting
+        run: |
+          npx --yes "firebase-tools@${FIREBASE_TOOLS_VERSION}" deploy --project "$PROJECT_ID" --config firebase.deploy.json \
+            --only hosting:control,hosting:admin --non-interactive
+
+      - name: Smoke test
+        env:
+          CONTROL_URL: ${{ steps.tf.outputs.control_url }}
+          ADMIN_URL: ${{ steps.tf.outputs.admin_url }}
+        run: scripts/smoke.sh "$CONTROL_URL" "$ADMIN_URL"

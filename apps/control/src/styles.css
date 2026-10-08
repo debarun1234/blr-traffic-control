@@ -149,6 +149,28 @@ body.kn .cc-pill{text-transform:none;letter-spacing:0}
 .cc-gate-i.warn{background:var(--warn-soft);color:var(--warn)}.cc-gate-i.bad{background:var(--bad-soft);color:var(--bad)}.cc-gate-i.info{background:var(--info-soft);color:var(--info)}
 .cc-gate-email{font:600 13px var(--mono);background:var(--surface-3);padding:6px 12px;border-radius:99px;word-break:break-all}
 
+/* sign-in welcome overlay + logo animation */
+.cc-logo-sm{width:40px;height:40px;border-radius:50%;flex:none;object-fit:cover}
+.cc-artcard{position:relative}
+.cc-welcome{position:absolute;left:52px;top:48px;display:flex;align-items:center;gap:16px;pointer-events:none;z-index:2}
+.cc-logo{position:relative;width:96px;height:96px;flex:none;animation:cc-logo-in .9s cubic-bezier(.2,.9,.3,1.2) both}
+.cc-logo img{position:relative;width:96px;height:96px;border-radius:50%;display:block;box-shadow:0 6px 22px rgba(0,0,0,.35)}
+.cc-ring{position:absolute;inset:0;border-radius:50%;border:2px solid var(--accent);opacity:0;animation:cc-ring 3.2s ease-out 1s infinite}
+.cc-ring.r2{animation-delay:2.1s}
+.cc-hello{animation:cc-fade .8s ease .5s both}
+.cc-greet{position:relative;height:34px;min-width:150px;font-size:26px;font-weight:700;letter-spacing:.2px;color:var(--ink)}
+.cc-greet span{position:absolute;left:0;top:0;white-space:nowrap;opacity:0}
+.cc-greet .g1{animation:cc-swap 8s ease-in-out 1s infinite}.cc-greet .g2{animation:cc-swap 8s ease-in-out 5s infinite}
+.cc-btp{font-size:13px;color:var(--ink-3);margin-top:2px}
+.cc-simtag{position:absolute;right:16px;top:14px;display:inline-flex;align-items:center;gap:6px;font-size:11px;color:var(--ink-3);background:var(--surface);border:1px solid var(--line);border-radius:99px;padding:3px 10px;z-index:2}
+.cc-simtag i{width:7px;height:7px;border-radius:50%;background:var(--good);animation:cc-blink 1.6s ease-in-out infinite}
+@keyframes cc-logo-in{from{opacity:0;transform:scale(.55) rotate(-25deg)}to{opacity:1;transform:none}}
+@keyframes cc-ring{0%{opacity:.7;transform:scale(1)}100%{opacity:0;transform:scale(1.9)}}
+@keyframes cc-fade{from{opacity:0;transform:translateX(-10px)}to{opacity:1;transform:none}}
+@keyframes cc-swap{0%{opacity:0;transform:translateY(8px)}8%,42%{opacity:1;transform:none}50%,100%{opacity:0;transform:translateY(-8px)}}
+@keyframes cc-blink{50%{opacity:.25}}
+@media (max-width:860px){.cc-welcome{left:30px;top:30px}.cc-logo,.cc-logo img{width:64px;height:64px}.cc-greet{font-size:20px;height:26px;min-width:110px}.cc-simtag{display:none}}
+
 /* ---- mobile ---- */
 @media (max-width:1180px){.cc-updated{display:none}.cc-brandtxt small{display:none}}
 @media (max-width:1020px){.cc-clock{display:none}}
