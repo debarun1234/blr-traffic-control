@@ -128,3 +128,7 @@ Reading the table: Cloud Run, Hosting and the Scheduler are noise at this scale.
 2. Admin site, AI and cost: calls, tokens, cache hits and estimated cost per day (`ai_usage`).
 3. Admin site, Connectors: `cost.calls` on each run, and today's counter against the cap.
 4. Cloud Run metrics for `blr-api`: instance count and request count.
+
+## Gemini location
+
+Vertex AI is called at location `global` everywhere (`vertex_location` in Terraform, `VERTEX_LOCATION` at runtime), because most Gemini models are only offered on the global endpoint. Consequence: prompts are not pinned to an Indian region. Prompts contain road names, station names and aggregate figures only, never citizen data (see [security.md](security.md)). Confirm this is acceptable under your department's data-residency rules before real use. Everything else (Cloud Run, Firestore, storage) stays in `asia-south1`.

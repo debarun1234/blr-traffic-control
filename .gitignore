@@ -13,3 +13,7 @@ service-account*.json
 .DS_Store
 tools/mapdata/stage*.json
 __pycache__/
+
+# Environment-specific Terraform inputs (keep local; the .example files are tracked)
+infra/terraform/envs/*.tfvars
+infra/terraform/envs/*.backend.hcl

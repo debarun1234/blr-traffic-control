@@ -23,6 +23,17 @@ warn() { printf '%sWARN%s %s\n' "${C_YEL}" "${C_OFF}" "$*" >&2; }
 die()  { printf '%sERROR%s %s\n' "${C_RED}" "${C_OFF}" "$*" >&2; exit 1; }
 
 # run CMD...: execute, or only print when DRY_RUN=1.
+# retry N SECONDS cmd...: IAM changes are eventually consistent (a just-created service account may not be visible yet).
+retry() {
+  local n="$1" d="$2" i; shift 2
+  [[ "${DRY_RUN:-0}" == "1" ]] && { run "$@"; return 0; }
+  for ((i = 1; i <= n; i++)); do
+    "$@" && return 0
+    [[ "${i}" -lt "${n}" ]] && { warn "attempt ${i}/${n} failed; retrying in ${d}s (IAM propagation)"; sleep "${d}"; }
+  done
+  return 1
+}
+
 run() {
   if [[ "${DRY_RUN}" == "1" ]]; then
     printf '%s[dry-run]%s %s\n' "${C_DIM}" "${C_OFF}" "$*" >&2

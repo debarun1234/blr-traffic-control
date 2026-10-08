@@ -49,7 +49,7 @@ Where `docs/api-contract.md` was ambiguous or silent, the simplest reading was t
 ## Worker
 - `/internal/*` requires an OIDC token whose email equals `INTERNAL_INVOKER_SA` (unset -> deny all). Audience check uses `INTERNAL_AUDIENCE` when set.
 - `/internal/tick` has an in-process re-entrancy guard only; the tick is idempotent, so overlapping instances are safe but wasteful. Malformed budget notifications get 400.
-- Env summary: `PORT`, `NODE_ENV`, `AUTH_MODE` (dev only), `BOOTSTRAP_ADMIN_EMAILS`, `GOOGLE_CLOUD_PROJECT`, `FIRESTORE_DATABASE`, `VERTEX_LOCATION` (default `asia-south1`), `AI_MODEL_T1..T3`, `INTERNAL_INVOKER_SA`, `INTERNAL_AUDIENCE`, `LOG_LEVEL`.
+- Env summary: `PORT`, `NODE_ENV`, `AUTH_MODE` (dev only), `BOOTSTRAP_ADMIN_EMAILS`, `GOOGLE_CLOUD_PROJECT`, `FIRESTORE_DATABASE`, `VERTEX_LOCATION` (default `global`), `AI_MODEL_T1..T3`, `INTERNAL_INVOKER_SA`, `INTERNAL_AUDIENCE`, `LOG_LEVEL`.
 
 ## Build
 - Docker: build from the repo root (`docker build -f apps/api/Dockerfile .`). Ignore rules are in `apps/*/Dockerfile.dockerignore` (BuildKit per-Dockerfile ignore) because the root `.dockerignore` is outside this task's ownership. Image build was not run here (no Docker daemon); the `npm ci -w` subset install and the runtime file layout were verified by hand.

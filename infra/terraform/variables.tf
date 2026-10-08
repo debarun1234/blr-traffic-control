@@ -142,19 +142,19 @@ variable "vertex_location" {
 
 variable "ai_model_t1" {
   type        = string
-  default     = "gemini-2.5-flash-lite"
+  default     = "gemini-3.1-flash-lite"
   description = "Cheapest tier. Verify the current model id; runtime can override via settings/app.ai.tiers."
 }
 
 variable "ai_model_t2" {
   type        = string
-  default     = "gemini-2.5-flash"
+  default     = "gemini-3-flash-preview"
   description = "Mid tier."
 }
 
 variable "ai_model_t3" {
   type        = string
-  default     = "gemini-2.5-pro"
+  default     = "gemini-3.1-pro-preview"
   description = "Strongest tier (commissioner brief only)."
 }
 

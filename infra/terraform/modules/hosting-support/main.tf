@@ -38,7 +38,8 @@ resource "google_firebase_hosting_site" "control" {
   provider = google-beta
   project  = var.project_id
   site_id  = var.control_site_id
-  app_id   = google_firebase_web_app.web.app_id
+  # No app_id: a Firebase web app can be linked to only ONE Hosting site (the API rejects a second link with
+  # "already linked to hosting site"). Linking is optional for hosting and sign-in, so only the admin site carries it.
 
   depends_on = [google_firebase_project.this]
 }

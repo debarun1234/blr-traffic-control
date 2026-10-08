@@ -118,7 +118,7 @@ if [[ -n "${GITHUB_REPO}" ]]; then
       --attribute-mapping "google.subject=assertion.sub,attribute.repository=assertion.repository,attribute.ref=assertion.ref,attribute.environment=assertion.environment" \
       --attribute-condition "assertion.repository == '${GITHUB_REPO}'"
   fi
-  run gcloud iam service-accounts add-iam-policy-binding "${DEPLOYER}" --project "${PROJECT_ID}" \
+  retry 8 10 gcloud iam service-accounts add-iam-policy-binding "${DEPLOYER}" --project "${PROJECT_ID}" \
     --role roles/iam.workloadIdentityUser \
     --member "principalSet://iam.googleapis.com/projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}/attribute.repository/${GITHUB_REPO}" >/dev/null
   WIF_PROVIDER="projects/${PROJECT_NUMBER}/locations/global/workloadIdentityPools/${POOL}/providers/${PROVIDER}"

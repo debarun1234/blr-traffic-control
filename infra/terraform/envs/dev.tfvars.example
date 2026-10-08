@@ -3,17 +3,18 @@ project_id  = "my-blr-dev"
 region      = "asia-south1"
 environment = "dev"
 
-bootstrap_admin_emails = ["you@example.com"]
+bootstrap_admin_emails = ["debarun.ghosh.121@gmail.com"]
 
 # From the manual OAuth step (docs/runbook.md). The secret goes in the environment, not in this file:
 #   export TF_VAR_oauth_client_secret='...'
 oauth_client_id = ""
 
+vertex_location = "global" # Gemini models are available on the global endpoint; keep global throughout
 api_max_instances = 2
 delete_protection = false # throwaway project only
 firestore_pitr    = false
 
-alert_email = "you@example.com"
+alert_email = "debarun.ghosh.121@gmail.com"
 
 # Budget (optional; needs billing-account permission)
 create_budget      = false

@@ -10,9 +10,9 @@ export function defaultSettings(env = process.env) {
       enabled: true, dailyCallCap: 400, briefPerDay: 24,
       perUserDaily: { admin: 100, commissioner: 60, dcp: 30, station: 20, viewer: 0 },
       tiers: {
-        t1: { enabled: true, model: env.AI_MODEL_T1 || 'gemini-2.5-flash-lite' },
-        t2: { enabled: true, model: env.AI_MODEL_T2 || 'gemini-2.5-flash' },
-        t3: { enabled: true, model: env.AI_MODEL_T3 || 'gemini-2.5-pro' },
+        t1: { enabled: true, model: env.AI_MODEL_T1 || 'gemini-3.1-flash-lite' },
+        t2: { enabled: true, model: env.AI_MODEL_T2 || 'gemini-3-flash-preview' },
+        t3: { enabled: true, model: env.AI_MODEL_T3 || 'gemini-3.1-pro-preview' },
       },
       maxOutputTokens: { t1: 300, t2: 500, t3: 900 },
       timeoutMs: { t1: 8000, t2: 15000, t3: 30000 },
