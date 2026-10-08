@@ -75,6 +75,21 @@ export function createAiRouter({ store, clock, generate, env = process.env }) {
       const r = await run({ user, kind: 'brief', ctx: cleanContext('brief', context), scope });
       return { text: r.text, tier: 't3', cached: r.cached, generatedAt: r.generatedAt ?? clock.now() };
     },
+    /** Cheap once-a-day model health probe (tier t1). Never throws: returns {status:'ok'|'off'|'capped'|'degraded', ...}. */
+    async ping() {
+      const now = clock.now(), s = await getSettings(store, env);
+      if (!s.ai.enabled) return { status: 'off', detail: s.ai.killReason ? `disabled: ${s.ai.killReason}` : 'disabled by an administrator' };
+      if (!s.ai.tiers.t1.enabled) return { status: 'off', detail: 'model tier t1 is disabled' };
+      const u0 = await usageDoc(now); if (u0.calls >= s.ai.dailyCallCap) return { status: 'capped', detail: 'daily AI budget already used' };
+      const model = s.ai.tiers.t1.model, prompt = 'Reply with the single word: ready', t0 = performance.now(), ac = new AbortController(); let timer;
+      try {
+        const out = await Promise.race([generate({ model, prompt, maxOutputTokens: 8, signal: ac.signal }), new Promise((_, rej) => { timer = setTimeout(() => { ac.abort(); rej(new Error('timeout')); }, s.ai.timeoutMs.t1); })]);
+        const raw = typeof out === 'string' ? out : out?.text; if (!String(raw ?? '').trim()) return { status: 'degraded', model, detail: 'model returned no text' };
+        const tin = out?.tokensIn ?? est(prompt), tout = out?.tokensOut ?? est(raw), price = s.ai.prices.t1 ?? { inPerM: 0, outPerM: 0 };
+        await bump(now, (u) => { u.calls++; u.tokensIn += tin; u.tokensOut += tout; u.byTier.t1++; u.byKind.ping = (u.byKind.ping ?? 0) + 1; u.estCostUsd = Math.round((u.estCostUsd + (tin * price.inPerM + tout * price.outPerM) / 1e6) * 1e6) / 1e6; });
+        return { status: 'ok', model, ms: Math.round(performance.now() - t0) };
+      } catch (e) { return { status: 'degraded', model, detail: e?.message === 'timeout' ? 'model did not answer in time' : 'model call failed' }; } finally { clearTimeout(timer); }
+    },
     async quota(user) {
       const now = clock.now(), s = await getSettings(store, env), u = await usageDoc(now);
       return { used: u.byUser[user.email] ?? 0, limit: s.ai.perUserDaily[user.role] ?? 0, resetsAt: nextIstMidnight(now), aiEnabled: s.ai.enabled && !s.maintenance };

@@ -7,9 +7,11 @@ import { initAuth } from './auth.mjs';
 import { buildMapData } from './map/data.mjs';
 import { startSim } from './sim.mjs';
 import { loadMe, startPolling, stopPolling, resetFeed, pollNow } from './feed.mjs';
-import { renderSignin, renderGate } from './gate.mjs';
+import { renderSignin, renderGate, utilBar } from './gate.mjs';
+import { renderWelcome } from '/vendor/welcome.mjs';
+import { startArt } from '/vendor/art.mjs';
 import { mountApp, installShortcuts } from './shell.mjs';
-import { t } from './i18n.mjs';
+import { t, regionName } from './i18n.mjs';
 
 const root = document.getElementById('root');
 const cfg = { authMode: 'dev', apiBase: '/api', adminUrl: '/admin/', pollMs: 30000, ...(window.__CONFIG__ ?? {}) };
@@ -18,15 +20,34 @@ setLang(S.lang);
 const mapPromise = fetch('/assets/map.json').then((r) => { if (!r.ok) throw new Error('map ' + r.status); return r.json(); });
 mapPromise.catch(() => {});
 
-let auth, app = null, screen = null, token = 0, retryTimer = null;
+let auth, app = null, screen = null, token = 0, retryTimer = null, pf = null, welcome = null, mapJson = null;
 const show = (fn) => { screen = fn; fn(); };
 
 async function signOut() {
-  token++; clearTimeout(retryTimer); stopPolling(); unmount(); resetFeed(); S.me = null; S.sel = null; S.replay = null; S.tab = 'overview';
+  token++; welcome?.destroy(); welcome = null; pf = null; S.justSignedIn = false; clearTimeout(retryTimer); stopPolling(); unmount(); resetFeed(); S.me = null; S.sel = null; S.replay = null; S.tab = 'overview';
   try { await auth.signOut(); } catch { /* ignore */ }
   route();
 }
-function unmount() { if (app) { app.destroy(); app = null; } }
+function unmount() { if (app) { app.destroy(); app = null; } welcome?.destroy(); welcome = null; }
+
+// After an interactive sign-in the person lands on a welcome screen (greeting by name + pre-entry checks), not straight on the map.
+// A page refresh with a live session goes straight in. Real Google sign-in always shows it; dev mode only with ?welcome=1 or config welcome:true.
+const welcomeOn = () => cfg.authMode === 'google' || cfg.welcome === true || new URLSearchParams(location.search).has('welcome');
+function showWelcome(my) {
+  const me = S.me, region = regionName(me.lockedRegion ?? me.region ?? ''), station = me.station ?? '';
+  const variant = ['commissioner', 'dcp', 'station', 'viewer'].includes(me.role) ? me.role : me.role === 'admin' ? 'admin' : 'viewer';
+  pf ??= S.api.post('/preflight').then((r) => r.data).catch(() => null);
+  const focus = me.role === 'dcp' ? mapJson.reg?.[me.region ?? me.lockedRegion] : me.role === 'station' ? mapJson.st?.find((x) => x.n === station)?.poly : null;
+  show(() => {
+    welcome?.destroy();
+    welcome = renderWelcome(root, {
+      variant, lang: S.lang, user: { name: auth.user?.name || me.name, email: auth.user?.email ?? me.email }, kicker: t(`wl.k.${variant}`, { region, station }), region, station,
+      stations: me.jurisdiction?.length || 53, logo: '/assets/btp-logo.png', preflight: pf, util: utilBar(),
+      onEnter: () => { if (my !== token) return; welcome = null; S.justSignedIn = false; S.scope = lockedRegion() ?? 'All'; S.gate = null; mount(); startPolling(); },
+      onSignOut: signOut, art: (cv) => startArt(cv, mapJson, { focus }),
+    });
+  });
+}
 
 function gate(kind, extra = {}) {
   unmount(); stopPolling(); clearTimeout(retryTimer);
@@ -44,7 +65,9 @@ async function startSession() {
       gate('maintenance', { onRetry: () => startSession() });
       retryTimer = setTimeout(() => { if (my === token) startSession(); }, 15000); return;
     }
-    S.scope = lockedRegion() ?? 'All'; S.gate = null;
+    mapJson = map;
+    if (S.justSignedIn && welcomeOn()) { showWelcome(my); return; }
+    S.justSignedIn = false; S.scope = lockedRegion() ?? 'All'; S.gate = null;
     mount(); startPolling();
   } catch (e) {
     if (my !== token) return;

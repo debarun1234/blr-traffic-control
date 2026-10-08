@@ -22,3 +22,12 @@
 - Locally: `scripts/deploy.sh --env dev --skip-terraform --skip-build`.
 
 Deploy order and first-time setup are in the README. Terraform has not been applied in the authoring environment: read `terraform plan` before the first apply.
+
+## Sign-in flow and the welcome screen
+
+After an interactive Google sign-in both sites show a welcome screen before the dashboard: a greeting by name (different copy and layout for Commissioner, DCP, Station, Viewer, Administrator on Control, and the Admin console), then pre-entry checks: connection, data feed, AI assistant, and for administrators system health and connectors. Checks never block entry; a failed one is shown and the person can continue.
+
+- `POST /api/preflight` (any signed-in role) returns the check results and a snapshot scoped to the person's jurisdiction.
+- The AI probe (one tiny tier-t1 call) runs at most **once per IST day for the whole system**; the result is stored in `checks/ai-<day>` and shared by everyone who signs in that day. A failed probe is retried after 30 minutes. If AI is off, over budget or unconfigured, no model call is made.
+- Administrators also trigger the daily full system-check run (`checks/latest`) if it has not run yet today.
+- A page refresh with a live session goes straight to the dashboard. In dev mode the welcome screen only appears with `?welcome=1` (or `welcome: true` in config.js).

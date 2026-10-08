@@ -13,6 +13,9 @@ for (const app of ['control', 'admin']) {
   cpSync(join(root, 'packages/shared/src/index.mjs'), join(out, 'vendor/shared.mjs'));
   cpSync(join(root, 'packages/ui/src/ui.mjs'), join(out, 'vendor/ui.mjs'));
   cpSync(join(root, 'packages/ui/src/ui.css'), join(out, 'vendor/ui.css'));
+  cpSync(join(root, 'packages/ui/src/welcome.mjs'), join(out, 'vendor/welcome.mjs'));
+  cpSync(join(root, 'packages/ui/src/art.mjs'), join(out, 'vendor/art.mjs'));
+  cpSync(join(root, 'packages/ui/src/btp-logo.png'), join(out, 'assets/btp-logo.png'));
   cpSync(join(root, 'packages/mapdata/map.json'), join(out, 'assets/map.json'));
   if (!existsSync(join(out, 'config.js'))) writeFileSync(join(out, 'config.js'), `// Overwritten by scripts/deploy.sh from Terraform outputs. Safe to publish (no secrets).\nwindow.__CONFIG__ = { authMode: 'dev', apiBase: '/api', version: '${version}', firebase: null };\n`);
   console.log('built', app);

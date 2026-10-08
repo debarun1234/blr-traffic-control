@@ -386,3 +386,15 @@ test('screenshots', async () => {
   await page.goto(`${mock.url}/#/connectors`); await page.waitForSelector('tr[data-connector]'); await page.waitForTimeout(400); await shot('tablet-connectors');
   await page.goto(`${mock.url}/#/users`); await page.waitForSelector('tr[data-email]'); await shot('tablet-users');
 });
+
+test('welcome: signing in lands on a greeting + checks first; Enter opens the console; refresh goes straight in', async () => {
+  await page.goto(mock.url + '/?welcome=1'); await page.fill('#dev-email', 'admin@blr.test'); await page.click('button[type=submit]');
+  await page.getByTestId('welcome').waitFor();
+  assert.equal(await page.getByTestId('welcome').getAttribute('data-variant'), 'admin-site');
+  assert.match(await page.locator('.wl-h').innerText(), /engine room/); assert.match(await page.locator('.wl-sub').innerText(), /Users, feeds, probes and AI limits/);
+  await page.waitForFunction(() => !document.querySelector('[data-testid=welcome-enter]').disabled);
+  assert.equal(await page.locator('.wl-row').count(), 5); assert.equal(await page.locator('.wl-row.warn').count(), 1, 'system health reports its one warning');
+  assert.equal(await page.locator('.shell').count(), 0, 'console is not mounted before Enter');
+  await page.getByTestId('welcome-enter').click(); await page.waitForSelector('.shell');
+  await page.reload(); await page.waitForSelector('.shell'); assert.equal(await page.getByTestId('welcome').count(), 0);
+});

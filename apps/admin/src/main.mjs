@@ -3,6 +3,7 @@ import { cfg, api, ApiError, errMsg, onUnauthed } from './lib/api.mjs';
 import { initAuth, signIn, signOut } from './lib/auth.mjs';
 import { loadMap } from './lib/mapview.mjs';
 import { skeleton, errorState } from './lib/kit.mjs';
+import { renderWelcome } from './vendor/welcome.mjs';
 
 initTheme();
 const app = document.getElementById('app');
@@ -36,7 +37,7 @@ function signInPage(msg) {
   const dev = cfg.authMode !== 'google';
   const err = h('div.banner.bad' + (msg ? '' : '.hide'), { role: 'alert' }, msg ?? '');
   const email = h('input.input', { id: 'dev-email', type: 'email', autocomplete: 'username', placeholder: 'you@example.com', required: true, 'data-autofocus': '' });
-  const go = async (e) => { e?.preventDefault(); try { err.classList.add('hide'); await signIn(email.value); await start(); } catch (x) { err.textContent = x?.code === 'auth/popup-closed-by-user' ? 'Sign-in was cancelled.' : errMsg(x); err.classList.remove('hide'); } };
+  const go = async (e) => { e?.preventDefault(); try { err.classList.add('hide'); justSignedIn = true; await signIn(email.value); await start(); } catch (x) { justSignedIn = false; err.textContent = x?.code === 'auth/popup-closed-by-user' ? 'Sign-in was cancelled.' : errMsg(x); err.classList.remove('hide'); } };
   app.replaceChildren(h('div.signin', h('div.panel', brand(),
     h('div.stack', h('h1', 'Admin sign-in'), h('p.muted', 'This site is for administrators who manage users, data feeds and system settings. Access is by allowlist; there is no self-registration.')),
     err,
@@ -92,6 +93,19 @@ async function route() {
   } catch (e) { if (tok === navTok) { console.error(e); root.replaceChildren(errorState(e, route)); } }
 }
 
+let justSignedIn = false, welcome = null, pf = null;
+const welcomeOn = () => cfg.authMode === 'google' || cfg.welcome === true || new URLSearchParams(location.search).has('welcome');
+/** After an interactive sign-in: greet by name and run the pre-entry checks before opening the console. */
+function showWelcome(who) {
+  pf ??= api.post('/preflight', {}).catch(() => null);
+  const themeBtn = h('button.btn.ghost.sm', { type: 'button', 'aria-label': 'Toggle light or dark theme', onclick: () => { const dark = document.documentElement.dataset.theme ? document.documentElement.dataset.theme === 'dark' : matchMedia('(prefers-color-scheme: dark)').matches; setTheme(dark ? 'light' : 'dark'); } }, icon('sun', 16));
+  welcome = renderWelcome(app, {
+    variant: 'admin-site', lang: 'en', user: { name: who?.name || ctx.me.name, email: ctx.me.email }, kicker: 'Administrator · Admin console', logo: './assets/btp-logo.png', preflight: pf, util: themeBtn,
+    onEnter: () => { welcome = null; enter(); }, onSignOut: async () => { welcome = null; await signOut(); location.hash = ''; location.reload(); },
+  });
+}
+function enter() { buildShell(); if (!location.hash) location.hash = '#/overview'; route(); }
+
 async function start() {
   app.replaceChildren(h('div.denied', skeleton(3)));
   let who;
@@ -109,7 +123,8 @@ async function start() {
   ctx = { me, map, stations: map.st, hubs: map.hubs, signOut,
     setMaintenance(on) { me.flags = { ...(me.flags ?? {}), maintenance: on }; $('#maint')?.classList.toggle('hide', !on); } };
   onUnauthed.fn = async () => { await signOut(); ctx = null; signInPage('Your session expired. Sign in again.'); };
-  buildShell(); if (!location.hash) location.hash = '#/overview'; route();
+  if (justSignedIn && welcomeOn()) { justSignedIn = false; showWelcome(who); return; }
+  justSignedIn = false; enter();
 }
 
 ribbon();

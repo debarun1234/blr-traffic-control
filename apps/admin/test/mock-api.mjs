@@ -85,6 +85,10 @@ export function startMock({ port = 0, dist = join(here, '..', 'dist'), env = 'st
     const m = req.method, q = url.searchParams, seg = path.split('/').filter(Boolean).slice(1); // after 'api'
     if (seg[0] === 'me' && m === 'GET') { user.lastLogin = Date.now(); return { email, name: user.name, role: user.role, region: user.region, station: user.station, active: true, permissions: [], lockedRegion: null, jurisdiction: [], flags: { aiEnabled: S.settings.ai.enabled, maintenance: S.settings.maintenance } }; }
     if (seg[0] === 'state') return { t: Date.now(), hour: 12, date: istDate(), mode: S.settings.feed.mode, boost: 1.12, stale: false, updatedAt: S.stateAt ?? Date.now() - 3 * MIN, net: { edges: 10263, mapVersion: 'test' }, city: { speed: 31, congPct: 12 }, stations: [], incidents: [], works: [], calibration: { rmsePct: 9.1, probes: S.probes.filter((p) => p.enabled).length, at: Date.now() - 8 * MIN } };
+    if (seg[0] === 'preflight' && m === 'POST') {
+      const base = { at: Date.now(), day: istDate(), api: { ok: true, ms: 9 }, data: { ok: true, mode: 'sim', ageMin: 3, stale: false, limitMin: 25 }, ai: { status: 'ok', model: 'gemini-test', cached: false }, glance: { incidents: 1, actions: 2, works: 3, stations: 53 } };
+      return user.role === 'admin' ? { ...base, platform: { system: { at: Date.now(), cached: true, ok: 7, warn: 1, fail: 0, worst: [] }, users: { active: [...S.users.values()].filter((x) => x.active).length, total: S.users.size }, connectors: { enabled: 0, failing: 0, total: 0 }, ai: { calls: 4, cap: 400 } } } : base;
+    }
     if (seg[0] === 'actions') return { actions: S.actions };
     if (seg[0] === 'incidents') return { incidents: S.incidents.filter((i) => i.date === (q.get('date') || istDate())) };
     if (seg[0] === 'crash') return { stations: Object.fromEntries(NAMES.slice(0, 12).map((n, i) => [n, { y2025: { fatal: 3 + (i % 7), nonfatal: 10 + i }, hist: { 2023: [4 + i % 5, 12], 2024: [5, 14 + i] } }])), importedAt: S.crashImportedAt };

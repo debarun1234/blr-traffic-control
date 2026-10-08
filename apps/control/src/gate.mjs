@@ -5,7 +5,7 @@ import { t, roleLabel } from './i18n.mjs';
 import { ic } from './icons.mjs';
 import { DEV_USERS } from './auth.mjs';
 import { S, setLang } from './state.mjs';
-import { startArt } from './art.mjs';
+import { startArt } from '/vendor/art.mjs';
 
 let stopArt = null;
 const LOGO = '/assets/btp-logo.png';
@@ -18,7 +18,7 @@ const GOOGLE_G = () => {
   return s;
 };
 
-function utilBar() {
+export function utilBar() {
   return h('div.row.cc-util', h('button.btn.sm.ghost', { 'data-testid': 'lang', onclick: () => setLang(S.lang === 'kn' ? 'en' : 'kn') }, ic('globe', 15), S.lang === 'kn' ? 'English' : 'ಕನ್ನಡ'),
     h('button.btn.sm.ghost', { 'data-testid': 'theme', 'aria-label': t('theme.toggle'), onclick: () => { setTheme(effectiveTheme() === 'dark' ? 'light' : 'dark'); } }, ic(effectiveTheme() === 'dark' ? 'sun' : 'moon', 16)));
 }
@@ -27,7 +27,7 @@ const brand = () => h('div.brand', h('img.cc-logo-sm', { src: LOGO, alt: '', wid
 export function renderSignin(root, { auth, mapPromise, error }) {
   const cfg = S.cfg, dev = cfg.authMode !== 'google';
   const err = h('div.banner.bad.sm', { role: 'alert', hidden: !error, 'data-testid': 'signin-error' }, error ?? '');
-  const go = async (email) => { err.hidden = true; try { await auth.signIn(email); } catch (e) { err.textContent = e?.code === 'auth/popup-closed-by-user' ? t('signin.cancelled') : t('signin.failed'); err.hidden = false; } };
+  const go = async (email) => { err.hidden = true; S.justSignedIn = true; try { await auth.signIn(email); } catch (e) { S.justSignedIn = false; err.textContent = e?.code === 'auth/popup-closed-by-user' ? t('signin.cancelled') : t('signin.failed'); err.hidden = false; } };
   const art = h('canvas.cc-art', { 'aria-hidden': 'true' });
   let body;
   if (dev) {

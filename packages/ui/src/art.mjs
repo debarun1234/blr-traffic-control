@@ -3,7 +3,8 @@
 
 const rnd = (a, b) => a + Math.random() * (b - a);
 
-export function startArt(canvas, map) {
+/** @param {{focus?: number[][][] | null}} [opt] focus = polygon rings in map units to spotlight (a region or a station) */
+export function startArt(canvas, map, opt = {}) {
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   let raf = 0, stopped = false, geo = null, base = null, last = 0, t0 = 0, nextEvent = 0;
   const particles = [], ripples = [];
@@ -44,6 +45,15 @@ export function startArt(canvas, map) {
     g.globalAlpha = 1; g.strokeStyle = col('--accent'); g.lineWidth = 1.2; g.globalAlpha = 0.5; g.setLineDash([4, 4]);
     for (const reg of Object.values(map.reg)) { g.beginPath(); for (const r of reg) { g.moveTo(X(r[0][0]), Y(r[0][1])); for (const p of r) g.lineTo(X(p[0]), Y(p[1])); g.closePath(); } g.stroke(); }
     geo.city = city;
+    if (opt.focus?.length) {
+      const fp = new Path2D(); for (const r of opt.focus) { fp.moveTo(X(r[0][0]), Y(r[0][1])); for (const p of r) fp.lineTo(X(p[0]), Y(p[1])); fp.closePath(); }
+      const veil = new Path2D(); veil.rect(0, 0, w, hh); veil.addPath(fp);
+      g.save(); g.setLineDash([]); g.fillStyle = col('--bg'); g.globalAlpha = 0.6; g.fill(veil, 'evenodd'); g.globalAlpha = 0.1; g.fillStyle = col('--accent'); g.fill(fp);
+      g.globalAlpha = 1; g.strokeStyle = col('--accent'); g.lineWidth = 2; g.stroke(fp); g.restore();
+      let bx0 = 1e9, by0 = 1e9, bx1 = -1e9, by1 = -1e9; for (const r of opt.focus) for (const p of r) { const px = X(p[0]), py = Y(p[1]); bx0 = Math.min(bx0, px); bx1 = Math.max(bx1, px); by0 = Math.min(by0, py); by1 = Math.max(by1, py); }
+      const pad = 18, near = geo.longRoads.filter((r) => { const [px, py] = r.pts[0]; return px > bx0 - pad && px < bx1 + pad && py > by0 - pad && py < by1 + pad; });
+      if (near.length >= 3) geo.longRoads = near; geo.focus = true;
+    }
     particles.length = 0; ripples.length = 0;
   };
 
@@ -55,7 +65,7 @@ export function startArt(canvas, map) {
   const pickRoad = () => { const m = geo.longRoads.filter((r) => r.major === (Math.random() < 0.65)); const a = m.length ? m : geo.longRoads; return a[(Math.random() * a.length) | 0]; };
   const spawn = () => {
     const rd = pickRoad(); if (!rd) return null; const rr = Math.random();
-    return { rd, rev: Math.random() < 0.5, s: 0, v: rnd(70, 170), trail: rnd(50, 130), life: rnd(350, 1100), hist: [], color: rr < 0.82 ? geo.col.accent : rr < 0.94 ? geo.col.warn : geo.col.bad };
+    return { rd, rev: Math.random() < 0.5, s: 0, v: rnd(70, 170), trail: rnd(50, 130), life: geo.focus ? rnd(120, 360) : rnd(350, 1100), hist: [], color: rr < 0.82 ? geo.col.accent : rr < 0.94 ? geo.col.warn : geo.col.bad };
   };
   const posOn = (p) => pointAt(p.rd, p.rev ? p.rd.len - p.s : p.s);
   const advance = (p, d) => { // move d px, turning onto a connected edge at each end; false when the pulse has run its course
@@ -86,7 +96,7 @@ export function startArt(canvas, map) {
     }
 
     // pulses travelling along roads (ramp up over the first 2.5 s so the screen "wakes up")
-    const target = Math.round(Math.min(1, el / 2.5) * 70);
+    const target = Math.round(Math.min(1, el / 2.5) * (geo.focus ? 40 : 70));
     while (particles.length < target) { const p = spawn(); if (!p) break; particles.push(p); }
     g.lineCap = 'round'; g.lineJoin = 'round';
     for (let i = particles.length - 1; i >= 0; i--) {

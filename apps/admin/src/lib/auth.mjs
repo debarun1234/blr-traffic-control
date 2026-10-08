@@ -14,7 +14,7 @@ export async function initAuth() {
     fb = { auth, mod };
     await auth.authStateReady();
     setAuthProvider(async () => (auth.currentUser ? { authorization: `Bearer ${await auth.currentUser.getIdToken()}` } : {}));
-    return auth.currentUser ? { email: auth.currentUser.email } : null;
+    return auth.currentUser ? { email: auth.currentUser.email, name: auth.currentUser.displayName ?? '' } : null;
   }
   devUser = safe.get(DEV_KEY);
   setAuthProvider(async () => (devUser ? { 'x-dev-user': devUser } : {}));
@@ -23,7 +23,7 @@ export async function initAuth() {
 export async function signIn(email) {
   if (cfg.authMode === 'google') {
     const { auth, mod } = fb; const provider = new mod.GoogleAuthProvider(); provider.setCustomParameters({ prompt: 'select_account' });
-    const r = await mod.signInWithPopup(auth, provider); return { email: r.user.email };
+    const r = await mod.signInWithPopup(auth, provider); return { email: r.user.email, name: r.user.displayName ?? '' };
   }
   devUser = String(email).trim().toLowerCase(); safe.set(DEV_KEY, devUser); return { email: devUser };
 }

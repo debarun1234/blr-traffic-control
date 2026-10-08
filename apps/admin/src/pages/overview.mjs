@@ -22,7 +22,7 @@ export async function mount(root, ctx) {
   }
 
   function card(title, node, ...extra) { return h('section.card', h('div.card-h', h('h2', title), ...extra), node); }
-  const failed = (r) => h('p.sm.bad', { role: 'alert' }, 'Unavailable: ' + errMsg(r.e));
+  function failed(r) { return h('p.sm.bad', { role: 'alert' }, 'Unavailable: ' + errMsg(r.e)); } // function declaration: hoisted, because load() runs before this line is reached
 
   function view({ checks, state, conns, usage, settings, actions, users }) {
     const S = settings.v, st = state.v;

@@ -5,6 +5,7 @@ import { ApiError, err, systemClock, getNet, createAudit, createAuthenticator, a
 import { registerOps } from './routes/ops.mjs';
 import { registerAdmin } from './routes/admin.mjs';
 import { registerIngest } from './routes/ingest.mjs';
+import { registerPreflight } from './routes/preflight.mjs';
 
 /** Fastify >=5.12 deprecates the top-level `disableRequestLogging`; use a LogController when available. */
 export function quietRequests() {
@@ -82,7 +83,7 @@ export async function buildServer(o) {
       if (req.url.split('?')[0].endsWith('/healthz') || req.url.split('?')[0].endsWith('/readyz')) return;
       req.user = await auth.verifyRequest(req.headers);
     });
-    registerOps(api, ctx); registerAdmin(api, ctx);
+    registerOps(api, ctx); registerAdmin(api, ctx); registerPreflight(api, ctx);
   }, { prefix: '/api' });
   await app.register(async (ing) => registerIngest(ing, ctx), { prefix: '/ingest/v1' });
 

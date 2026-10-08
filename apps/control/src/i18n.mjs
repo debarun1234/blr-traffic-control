@@ -171,6 +171,8 @@ const D = {
   'signin.scope.admin': ['Everything + admin site', 'ಎಲ್ಲವೂ + ನಿರ್ವಾಹಕ ಸೈಟ್'], 'signin.scope.commissioner': ['Whole city, works, briefing', 'ಇಡೀ ನಗರ, ಕಾಮಗಾರಿ, ಸಾರಾಂಶ'], 'signin.scope.dcp': ['North region only', 'ಉತ್ತರ ವಿಭಾಗ ಮಾತ್ರ'], 'signin.scope.station': ['One station, its region’s map', 'ಒಂದು ಠಾಣೆ, ಅದರ ವಿಭಾಗದ ನಕ್ಷೆ'], 'signin.scope.viewer': ['Read-only', 'ಓದಲು ಮಾತ್ರ'],
   'signin.cancelled': ['Sign-in was cancelled.', 'ಸೈನ್-ಇನ್ ರದ್ದಾಯಿತು.'], 'signin.failed': ['Sign-in failed. Try again.', 'ಸೈನ್-ಇನ್ ವಿಫಲವಾಯಿತು. ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ.'],
   'signin.hello': ['Welcome', 'ಸ್ವಾಗತ'], 'signin.btp': ['Bengaluru Traffic Police', 'ಬೆಂಗಳೂರು ಸಂಚಾರ ಪೊಲೀಸ್'], 'signin.sim': ['Simulated telemetry, not live data', 'ಅನುಕರಣ ಟೆಲಿಮೆಟ್ರಿ, ನೇರ ಮಾಹಿತಿಯಲ್ಲ'],
+  'wl.k.commissioner': ['Commissioner · All Bengaluru', 'ಆಯುಕ್ತರು · ಇಡೀ ಬೆಂಗಳೂರು'], 'wl.k.dcp': ['DCP · {region} division', 'ಡಿಸಿಪಿ · {region} ವಿಭಾಗ'], 'wl.k.station': ['Station · {station}', 'ಠಾಣೆ · {station}'],
+  'wl.k.viewer': ['Viewer · Read-only', 'ವೀಕ್ಷಕರು · ಓದಲು ಮಾತ್ರ'], 'wl.k.admin': ['Administrator · Control room', 'ನಿರ್ವಾಹಕರು · ನಿಯಂತ್ರಣ ಕೊಠಡಿ'],
   'signin.art.t': ['Real road network', 'ನೈಜ ರಸ್ತೆ ಜಾಲ'], 'signin.art.s': ['Illustration only. Traffic values are modelled.', 'ಚಿತ್ರಣ ಮಾತ್ರ. ಸಂಚಾರ ಮೌಲ್ಯಗಳು ಮಾದರಿಯವು.'],
   'gate.denied.t': ['You are not on the allowlist', 'ನೀವು ಅನುಮತಿ ಪಟ್ಟಿಯಲ್ಲಿಲ್ಲ'], 'gate.denied.d': ['This account is signed in but is not on the allowlist. Contact your admin to be added, then sign in again.', 'ಈ ಖಾತೆ ಸೈನ್ ಇನ್ ಆಗಿದೆ ಆದರೆ ಅನುಮತಿ ಪಟ್ಟಿಯಲ್ಲಿಲ್ಲ. ಸೇರಿಸಲು ನಿಮ್ಮ ನಿರ್ವಾಹಕರನ್ನು ಸಂಪರ್ಕಿಸಿ, ನಂತರ ಮತ್ತೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.'],
   'gate.unauth.t': ['Your session has ended', 'ನಿಮ್ಮ ಸೆಷನ್ ಮುಗಿದಿದೆ'], 'gate.unauth.d': ['Sign in again to continue.', 'ಮುಂದುವರಿಯಲು ಮತ್ತೆ ಸೈನ್ ಇನ್ ಮಾಡಿ.'],

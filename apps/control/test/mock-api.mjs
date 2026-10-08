@@ -95,6 +95,13 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     if (au.status === 403) return err(res, 'forbidden', 403, 'not on the allowlist');
     const u = au.u; S.calls.push(`${m} ${path}`);
     if (S.maintenance && u.role !== 'admin' && path !== '/me') return err(res, 'unavailable', 503, 'maintenance');
+    if (m === 'POST' && path === '/preflight') {
+      if (S.noPreflight) return err(res, 'unavailable', 503, 'down');
+      const inScope = (st) => u.role === 'station' ? st === u.station : u.role === 'dcp' ? stations.find((x) => x.n === st)?.r === u.region : true;
+      const n = u.role === 'station' ? 1 : u.role === 'dcp' ? stations.filter((x) => x.r === u.region).length : stations.length;
+      return json(res, 200, { at: S.now, day: S.date, api: { ok: true, ms: 12 }, data: { ok: true, mode: S.mode, ageMin: 3, stale: false, limitMin: 25 }, ai: { status: S.aiEnabled ? 'ok' : 'off', model: 'gemini-test', cached: true },
+        glance: { incidents: S.incidents.filter((i) => inScope(i.station)).length, actions: [...S.actions.values()].filter((a) => inScope(a.station)).length, works: 3, stations: n } });
+    }
     if (m === 'GET' && path === '/me') return json(res, 200, meOf(u));
     if (m === 'GET' && path === '/state') {
       const et = `W/"${S.version}"`; if (req.headers['if-none-match'] === et) { res.writeHead(304, { etag: et }); return res.end(); }
@@ -159,7 +166,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     if (p === '/__mock/reset') { init(); return json(res, 200, { ok: true }); }
     if (p === '/__mock/set') {
       let re = false;
-      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
+      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration', 'noPreflight']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
       if (b.addUser) S.users.set(b.addUser.email, { active: true, ...b.addUser });
       if (b.addIncident) { const i = b.addIncident; S.incidents.push(mkInc(i.id ?? `x-${++S.seq}`, i.type ?? 'Accident', i.edge ?? edgeIn(i.station), i.sh ?? S.hour - 0.2, i.eh ?? S.hour + 0.8)); re = true; }
       syncActions(); if (re) recompute(3); else S.version++;

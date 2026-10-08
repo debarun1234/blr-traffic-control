@@ -296,3 +296,47 @@ test('contrast audit (WCAG AA text) in light and dark on main views', async () =
     });
   }
 });
+
+test('welcome: after an interactive sign-in each role gets its own greeting and checks, Enter opens the dashboard, a refresh skips it', async () => {
+  const cases = [
+    ['commissioner', /Commissioner Ravi/, /All Bengaluru/i, /All of Bengaluru is in view/, 'Enter the control room'],
+    ['north.dcp', /DCP Kavita/, /North division/i, /North division is ready/, 'Enter the control room'],
+    ['yalahanka', /Manoj/, /Yalahanka/i, /Yalahanka station, ready for your shift/, 'Start my shift'],
+    ['viewer', /Vikram/, /Read-only/i, /read-only view/, 'Open the control room'],
+    ['admin', /Asha/, /Administrator/i, /Admin console is one click away/, 'Enter the control room'],
+  ];
+  for (const [who, head, kick, sub, go] of cases) {
+    await run(null, async (page) => {
+      await page.goto(page.mock.url + '/?welcome=1'); await page.getByTestId(`dev-${who}`).click();
+      await page.getByTestId('welcome').waitFor();
+      assert.match(await page.locator('.wl-h').innerText(), head); assert.match(await page.locator('.wl-chip').innerText(), kick); assert.match(await page.locator('.wl-sub').innerText(), sub);
+      assert.equal(await page.getByTestId('welcome').getAttribute('data-variant'), who === 'north.dcp' ? 'dcp' : who === 'yalahanka' ? 'station' : who);
+      const enter = page.getByTestId('welcome-enter'); await page.waitForFunction(() => !document.querySelector('[data-testid=welcome-enter]').disabled);
+      assert.equal((await enter.innerText()).trim(), go);
+      assert.equal(await page.locator('.wl-row.ok').count(), 3, 'connection, data and AI checks all pass');
+      assert.equal(await page.locator('.cc-grid').count(), 0, 'dashboard is not mounted before Enter');
+      await enter.click(); await ready(page);
+      await page.reload(); await ready(page); assert.equal(await page.getByTestId('welcome').count(), 0, 'an existing session goes straight in');
+    });
+  }
+});
+
+test('welcome: Kannada copy, scoped numbers, AI off and a failing check never block entry', async () => {
+  await run(null, { mock: { aiEnabled: false } }, async (page) => {
+    await page.goto(page.mock.url + '/?welcome=1'); await page.getByTestId('dev-yalahanka').click();
+    await page.getByTestId('welcome').waitFor(); await page.waitForFunction(() => !document.querySelector('[data-testid=welcome-enter]').disabled);
+    assert.equal(await page.locator('.wl-row.off').count(), 1, 'AI shows as switched off, not as a failure');
+    assert.match(await page.locator('.wl-row[data-row=ai]').innerText(), /built-in advice still works/);
+    await page.getByTestId('lang').click(); assert.match(await page.locator('.wl-h').innerText(), /ಶುಭ|ಸ್ವಾಗತ/); assert.match(await page.locator('.wl-sub').innerText(), /ಠಾಣೆ/);
+  });
+  await run(null, { mock: { noPreflight: true }, allow: /503/ }, async (page) => {
+    await page.goto(page.mock.url + '/?welcome=1'); await page.getByTestId('dev-viewer').click(); await page.getByTestId('welcome').waitFor();
+    await page.waitForFunction(() => !document.querySelector('[data-testid=welcome-enter]').disabled);
+    assert.equal(await page.locator('.wl-row.fail').count(), 1); assert.match(await page.getByTestId('welcome-enter').innerText(), /Continue anyway/);
+    await page.getByTestId('welcome-enter').click(); await ready(page);
+  });
+  await run(null, { allow: /403/ }, async (page) => { // not on the allowlist still shows the gate, never the welcome
+    await open(page); await page.getByTestId('dev-email').fill('nobody@example.test'); await page.getByTestId('dev-email').press('Enter');
+    await page.waitForSelector('[data-testid=gate-denied]'); assert.equal(await page.getByTestId('welcome').count(), 0);
+  });
+});

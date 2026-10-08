@@ -2,12 +2,12 @@
 import { lsGet, lsSet, lsDel } from './util.mjs';
 
 export const DEV_USERS = [
-  { email: 'admin@example.test', role: 'admin' },
-  { email: 'commissioner@example.test', role: 'commissioner' },
-  { email: 'north.dcp@example.test', role: 'dcp' },
-  { email: 'yalahanka@example.test', role: 'station' },
-  { email: 'indiranagar@example.test', role: 'station' },
-  { email: 'viewer@example.test', role: 'viewer' },
+  { email: 'admin@example.test', name: 'Asha Rao', role: 'admin' },
+  { email: 'commissioner@example.test', name: 'Ravi Menon', role: 'commissioner' },
+  { email: 'north.dcp@example.test', name: 'Kavita Nair', role: 'dcp' },
+  { email: 'yalahanka@example.test', name: 'Manoj Gowda', role: 'station' },
+  { email: 'indiranagar@example.test', name: 'Divya Shetty', role: 'station' },
+  { email: 'viewer@example.test', name: 'Vikram Rao', role: 'viewer' },
 ];
 const FB_VERSION = '11.0.2';
 const FB = `https://www.gstatic.com/firebasejs/${FB_VERSION}`;
@@ -31,8 +31,8 @@ export async function initAuth(cfg) {
     api.refresh = async () => { if (auth.currentUser) await auth.currentUser.getIdToken(true); };
   } else {
     const saved = lsGet('blr-dev-user');
-    api.user = saved ? { email: saved, name: '' } : null;
-    api.signIn = async (email) => { const e = String(email ?? '').trim().toLowerCase(); if (!e) return; lsSet('blr-dev-user', e); api.user = { email: e, name: '' }; emit(); };
+    api.user = saved ? { email: saved, name: DEV_USERS.find((u) => u.email === saved)?.name ?? '' } : null;
+    api.signIn = async (email) => { const e = String(email ?? '').trim().toLowerCase(); if (!e) return; lsSet('blr-dev-user', e); api.user = { email: e, name: DEV_USERS.find((u) => u.email === e)?.name ?? '' }; emit(); };
     api.signOut = async () => { lsDel('blr-dev-user'); api.user = null; emit(); };
     api.headers = async () => (api.user ? { 'x-dev-user': api.user.email } : {});
     api.refresh = async () => {};
