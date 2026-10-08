@@ -10,10 +10,10 @@ import { scopeLabel } from './common.mjs';
 
 export function createBriefCard() {
   const el = h('div.card.cc-brief', { 'data-testid': 'brief' }); const store = new Map(); let busy = false, err = null;
-  const key = () => (S.scope === 'All' ? 'city' : S.scope);
+  const scopeKey = () => (S.scope === 'All' ? 'city' : S.scope), key = () => `${scopeKey()}|${S.lang}`;
   async function run() {
     busy = true; err = null; render(); const k = key();
-    try { store.set(k, await aiBrief(k)); } catch (e) { err = e; } finally { busy = false; render(); }
+    try { store.set(k, await aiBrief(scopeKey())); } catch (e) { err = e; } finally { busy = false; render(); }
   }
   function render() {
     const show = can('ai.brief') && aiAvailable(); el.hidden = !show; if (!show) return;

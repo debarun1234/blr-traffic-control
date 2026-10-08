@@ -126,7 +126,7 @@ export function registerOps(api, ctx) {
   const aiLimit = (req) => { const r = ctx.limiter.hit(`ai:${req.user.email}`, ctx.rl.aiPerMinute); if (!r.ok) throw err('rate_limited', 'Too many AI requests', { retryAfterSec: r.retryAfterSec }); };
   const needAi = () => { if (!ctx.ai) throw err('unavailable', 'AI is not configured'); return ctx.ai; };
   api.post('/ai/advise', async (req) => {
-    const b = only(body(req), ['kind', 'context']), ai = needAi(); need(req.user, 'ai.advise'); aiLimit(req);
+    const b = only(body(req), ['kind', 'context', 'lang']), ai = needAi(); const lang = b.lang === 'kn' ? 'kn' : 'en'; if (b.lang !== undefined && b.lang !== 'en' && b.lang !== 'kn') bad('lang must be en or kn'); need(req.user, 'ai.advise'); aiLimit(req);
     const kind = b.kind, c = b.context ?? {}; if (typeof c !== 'object' || Array.isArray(c)) bad('context must be an object');
     let context = c;
     if (kind === 'action_advice' && c.actionId !== undefined) {
@@ -139,14 +139,14 @@ export function registerOps(api, ctx) {
       const works = (await store.list('works', { where: [['active', '==', true]] })).filter((w) => !ids || ids.includes(w.id));
       context = { works, simulated: st?.mode !== 'live', hour: st?.hour, incidents: (st?.incidents ?? []).map((i) => ({ type: i.type, road: roadName(net, i.edge), station: stations[i.station]?.n, endHour: i.endHour })) };
     }
-    return ai.advise({ user: req.user, kind, context });
+    return ai.advise({ user: req.user, kind, context: { ...context, lang } });
   });
   api.post('/ai/brief', async (req) => {
-    const b = only(body(req), ['scope']), ai = needAi(); need(req.user, 'ai.brief'); aiLimit(req);
+    const b = only(body(req), ['scope', 'lang']), ai = needAi(); const lang = b.lang === 'kn' ? 'kn' : 'en'; if (b.lang !== undefined && b.lang !== 'en' && b.lang !== 'kn') bad('lang must be en or kn'); need(req.user, 'ai.brief'); aiLimit(req);
     const scope = b.scope ?? 'city'; if (scope !== 'city' && !REGIONS.includes(scope)) bad('scope must be city or a region');
     const st = await store.get('state', 'current'); if (!st) throw err('unavailable', 'No state has been computed yet');
     const actions = await store.list('actions', { where: [['state', 'in', OPEN]] });
-    return ai.brief({ user: req.user, scope, context: briefContext({ net, state: st, actions, scope }) });
+    return ai.brief({ user: req.user, scope, context: { ...briefContext({ net, state: st, actions, scope }), lang } });
   });
   api.get('/ai/quota', async (req) => {
     if (!ctx.ai) return { used: 0, limit: 0, resetsAt: null, aiEnabled: false };

@@ -42,10 +42,10 @@ export function createAiRouter({ store, clock, generate, env = process.env }) {
     if ((u0.byUser[user.email] ?? 0) >= limit) throw err('quota_exceeded', 'Daily AI quota used up for your role');
     if (u0.calls >= s.ai.dailyCallCap) throw err('quota_exceeded', 'Daily AI budget for the whole system is used up');
     if (kind === 'brief' && (u0.byKind.brief ?? 0) >= s.ai.briefPerDay) throw err('quota_exceeded', 'Daily brief limit reached');
-    const key = sha256(kind === 'brief' ? `t3|brief|${scope}|${istHourKey(now)}` : `${effTier}|${kind}|${stable(ctx)}`);
+    const key = sha256(kind === 'brief' ? `t3|brief|${scope}|${ctx.lang === 'kn' ? 'kn|' : ''}${istHourKey(now)}` : `${effTier}|${kind}|${stable(ctx)}`);
     const hit = await store.get('ai_cache', key);
     if (hit && hit.expireAt > now) { await bump(now, (u) => { u.cacheHits++; }); return { text: hit.text, tier: effTier, cached: true, model: hit.model, generatedAt: hit.createdAt }; }
-    const maxOutputTokens = s.ai.maxOutputTokens[effTier], prompt = buildPrompt(kind, ctx);
+    const maxOutputTokens = Math.min(8192, s.ai.maxOutputTokens[effTier] * (ctx.lang === 'kn' ? 4 : 1)), prompt = buildPrompt(kind, ctx); // Kannada needs several times more tokens per sentence
     const ac = new AbortController(); let timer;
     let out;
     try {

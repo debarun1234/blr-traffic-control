@@ -23,12 +23,12 @@ async function doTransition(a, to) {
   catch (e) { toast(errText(e), 'bad'); }
 }
 async function advise(a) {
-  advice.set(a.id, { status: 'loading' }); emitUpdate();
+  const lang = S.lang; advice.set(a.id, { status: 'loading', lang }); emitUpdate();
   const net = S.MD.net, vc = S.result?.vc, alt = a.e >= 0 ? nearestAlternate(net, vc, a.e) : null;
   const ctx = { actionId: a.id, road: S.MD.edgeName(a.e, t('road.unnamed')), station: a.station, region: a.region, vc: vc && a.e >= 0 ? +vc[a.e].toFixed(2) : null, type: a.type, title: a.title, hour: +curHour().toFixed(2),
     alternate: alt ? { road: S.MD.NAMES[alt.nameIdx], vc: +alt.vc.toFixed(2) } : null };
-  try { advice.set(a.id, { status: 'done', data: await aiAdvise(ctx) }); }
-  catch (e) { if (e.code === 'quota_exceeded') quotaOut = true; advice.set(a.id, { status: 'error', err: e }); }
+  try { advice.set(a.id, { status: 'done', lang, data: await aiAdvise(ctx) }); }
+  catch (e) { if (e.code === 'quota_exceeded') quotaOut = true; advice.set(a.id, { status: 'error', lang, err: e }); }
   emitUpdate();
 }
 
@@ -66,6 +66,7 @@ export function createActions() {
     const items = (filter === 'open' ? open : all).slice().sort((a, b) => (b.escalated - a.escalated) || (b.raisedAt - a.raisedAt));
     fill(seg, ...['open', 'all'].map((f) => h('button', { 'aria-pressed': String(filter === f), onclick: () => { filter = f; update(); } }, t(`act.f.${f}`))));
     fill(head, h('div', h('h2', t('tab.actions')), h('div.xs.faint', t('act.count', { n: open.filter((a) => a.state !== 'done').length, e: open.filter((a) => a.escalated).length }))), seg);
+    for (const a of items) { const ad = advice.get(a.id); if (ad && ad.status === 'done' && ad.lang !== S.lang && !quotaOut) advise(a); } // regenerate in the new language
     reconcile(list, items, (a) => a.id, actionSig, actionCard);
     fill(empty, ...(items.length ? [] : [S.conn.loaded ? emptyState(t('act.none'), t('act.noneHint')) : h('div.stack', h('div.skel', { style: { height: '90px' } }), h('div.skel', { style: { height: '90px' } }))]));
     if (S.me?.role === 'viewer') empty.append(h('p.sm.muted', { style: { textAlign: 'center' } }, t('role.readonly')));

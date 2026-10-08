@@ -108,3 +108,15 @@ test('platform: security headers, JSON errors, size limit, rate limiting, readin
   const sick = await makeApp({ tick: false }); const orig = sick.store.get; sick.store.get = async (c, id) => { if (c === 'settings') throw new Error('down'); return orig(c, id); };
   assert.equal((await sick.call(null, 'GET', '/readyz')).status, 503); await sick.app.close();
 });
+
+test('AI output follows the requested language (Kannada templates, model prompt, separate cache)', async () => {
+  const a = (await T.call('admin', 'GET', '/api/actions?state=open')).body.actions[0];
+  const kn = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id }, lang: 'kn' });
+  assert.equal(kn.status, 200); assert.equal(kn.body.tier, 't0'); assert.match(kn.body.text, /[\u0C80-\u0CFF]/, 'template is in Kannada script');
+  const en = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id } });
+  assert.doesNotMatch(en.body.text, /[\u0C80-\u0CFF]/); assert.equal(en.body.cached, false, 'languages are cached separately');
+  const q = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id, question: 'ಮೊದಲು ಯಾವ ಜಂಕ್ಷನ್?' }, lang: 'kn' });
+  assert.match(T.calls.at(-1).prompt, /Kannada/);
+  assert.equal((await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id }, lang: 'fr' })).status, 400);
+  const b = await T.call('commissioner', 'POST', '/api/ai/brief', { scope: 'city', lang: 'kn' }); assert.equal(b.status, 200); assert.match(T.calls.at(-1).prompt, /Kannada/);
+});

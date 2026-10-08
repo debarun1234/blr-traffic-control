@@ -123,10 +123,10 @@ export async function deleteWorks(id) {
   await refreshWorks();
 }
 export async function aiAdvise(context) {
-  try { const r = await S.api.post('/ai/advise', { kind: 'action_advice', context }); refreshQuota(); return r.data; }
+  try { const r = await S.api.post('/ai/advise', { kind: 'action_advice', context, lang: S.lang === 'kn' ? 'kn' : 'en' }); refreshQuota(); return r.data; }
   catch (e) { if (e.code === 'quota_exceeded') refreshQuota(); throw e; }
 }
 export async function aiBrief(scope) {
-  try { const r = await S.api.post('/ai/brief', { scope }); refreshQuota(); return r.data; }
+  try { const r = await S.api.post('/ai/brief', { scope, lang: S.lang === 'kn' ? 'kn' : 'en' }); refreshQuota(); return r.data; }
   catch (e) { if (e.code === 'quota_exceeded') refreshQuota(); throw e; }
 }
