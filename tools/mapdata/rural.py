@@ -1,10 +1,13 @@
-"""Add Bengaluru Rural (Devanahalli, Doddaballapura, Hoskote, Nelamangala taluks) to the road/territory stage.
-Rural = four Bangalore Rural taluks + the parts of the four Bengaluru Urban district taluks (Anekal, South, North, East, Yelahanka) that lie outside the city territory.
-Reads  stage1.city.json (the city-only stage, copied once from stage1.json), data/rural_taluks.json (KGIS taluk
-boundaries, EPSG:4326) and data/raw/work4/rural_osm.json (OSM highways from tools/mapdata/extract_osm.py).
-Writes stage1.json (city + Rural). Then run graph12.py and final.py as before.
-Rural territories are the four official taluks minus the existing city territory. They are taluk-level units, NOT police
-stations: no Rural station list was available, so none is invented. Crash figures are absent (t/f = null)."""
+"""Add the outer area (Bengaluru Rural and the rural parts of Bengaluru Urban district) to the road/territory stage.
+Units (9): Nelamangala, Doddaballapura, Devanahalli, Hoskote (Bangalore Rural taluks) and Anekal, Bengaluru South, Bengaluru North,
+Bengaluru East, Yelahanka (Bengaluru Urban district taluks, only the part outside the city territory).
+Reads  stage1.city.json (the city-only stage, copied once from stage1.json), data/rural_taluks.json (KGIS taluk boundaries,
+EPSG:4326) and data/raw/work4/rural_osm.json (OSM highways from extract_osm.py, motorway to residential).
+Roads: classes 0-2 routable; tertiary/unclassified (3) and residential (4) are draw-only. Residential streets are kept only
+inside the city and within a transition belt of it; endpoints near existing roads are snapped (SNAP) so city and outer roads link.
+Writes stage1.json (city + outer area). Then run graph12.py and final.py as before.
+The outer units are taluk-level units, NOT police stations: no station list was available, so none is invented.
+Crash figures are absent (t/f = null) and shown as a dash in the app."""
 import json, math, os, shutil, collections, sys
 import numpy as np
 from shapely.geometry import Polygon, MultiPolygon, LineString, Point, shape

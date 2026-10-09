@@ -12,6 +12,22 @@
 | Maintenance | Set the maintenance flag in Admin > Settings (non-admins see a maintenance screen) |
 | Teardown | `scripts/teardown.sh --env <env>` (read the prompt; `delete_protection` guards Firestore) |
 
+## GitHub Actions configuration
+
+The `Deploy` and `Deploy web only` workflows use Workload Identity Federation (no JSON keys). Set these in the GitHub environment (`dev` / `prod`):
+
+| Variable | Meaning |
+|---|---|
+| `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT` | Workload Identity provider and deployer service account, printed by `scripts/bootstrap.sh` |
+| `TF_STATE_BUCKET` | Terraform state bucket (`<project>-tfstate`) |
+| `TFVARS` | The full contents of your `dev.tfvars` / `prod.tfvars` (project, admin emails, OAuth client id, budget, optional `maps_browser_key` and `maps_map_id`). Git-ignored locally; never commit it |
+
+The OAuth client secret is a GitHub **secret**, not a variable: `TF_VAR_OAUTH_CLIENT_SECRET`. `Deploy` fails fast with a clear message if a variable is missing.
+
+### Google sign-in (one manual step)
+
+Identity Platform needs a Google OAuth Web client, which cannot be created by Terraform. In the Cloud console: APIs & Services > Credentials > Create OAuth client ID (Web). Put the client id in `oauth_client_id` (in `TFVARS`) and the secret in `TF_VAR_OAUTH_CLIENT_SECRET`. After the first Deploy add `https://<value>/__/auth/handler` to the OAuth client's authorised redirect URIs, for each `auth_domain_*` Terraform output. If a secret is ever exposed, create a new one, update `TF_VAR_OAUTH_CLIENT_SECRET`, redeploy, and delete the old one.
+
 ## Frontend-only deploys
 
 `Deploy web only` (`.github/workflows/deploy-web.yml`) rebuilds the two static sites and publishes them to Firebase Hosting: lint, tests, build, `firebase deploy --only hosting`, smoke test. No Terraform apply, no Docker, no Cloud Run change; about 2 minutes.

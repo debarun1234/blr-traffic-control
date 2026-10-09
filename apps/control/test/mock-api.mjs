@@ -108,7 +108,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       return json(res, 200, stateBody(), { etag: et });
     }
     if (m === 'GET' && path === '/crash') {
-      const st = {}; map.st.forEach((s) => { st[s.n] = { station: s.n, y2025: { fatal: s.f, nonfatal: s.t }, hist: CRASH.hist[s.n] ?? {}, source: 'btp' }; });
+      const st = {}; map.st.filter((s) => s.f != null).forEach((s) => { st[s.n] = { station: s.n, y2025: { fatal: s.f, nonfatal: s.t }, hist: CRASH.hist[s.n] ?? {}, source: 'btp' }; });
       return json(res, 200, { stations: st, importedAt: FIXED_NOW });
     }
     if (m === 'GET' && path === '/actions') return json(res, 200, { actions: actionsFor(u).slice(0, +url.searchParams.get('limit') || 200) });

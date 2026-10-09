@@ -8,3 +8,5 @@
 6. Backups and DR (Firestore PITR on), Binary Authorization and image scanning.
 7. Native Kannada review; accessibility audit.
 8. Mobile layout for field officers and push notifications.
+9. Outer area: confirm jurisdiction, then replace the 9 taluk units with real police-station territories and crash data; add the Ramanagara-district taluks if needed.
+10. Map pipeline: remove the 6,800 degenerate (zero-length or self-loop) edges in `graph12.py`; add village streets deep in Rural if wanted; consider tiling or splitting `map.json` (6.8 MB) for slow mobile networks.

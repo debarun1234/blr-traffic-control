@@ -29,7 +29,7 @@ epoch milliseconds unless a field says `hour` (IST hour-of-day float, 0–24). B
 | `probes/{id}` | `{id,name,fromNode,toNode,fromLabel,toLabel,freeMin,enabled,weight}` — node ids index `map.json` route nodes |
 | `probe_obs/{id}` | `{probeId,at,minutes,source}` (TTL 7 d) |
 | `apikeys/{id}` | `{id,name,hash,prefix,scopes:[…],rateLimit,createdBy,createdAt,lastUsed?,revoked:boolean}` |
-| `settings/app` | `{feed:{mode:'sim'|'live'|'blend',tickMin:10,staleAfterMin:25},workflow:{escalateAfterMin:15,verifyAfterMin:30},ai:{enabled,dailyCallCap,perUserDaily:{admin,commissioner,dcp,station,viewer},tiers:{t1:{enabled,model},t2:{…},t3:{…}},killReason?},caps:{routesCallsPerDay,tomtomCallsPerDay},maintenance:boolean}` |
+| `settings/app` | `{feed:{mode:'sim'|'live'|'blend',tickMin:10,staleAfterMin:25},workflow:{escalateAfterMin:15,verifyAfterMin:30},ai:{enabled,dailyCallCap,perUserDaily:{admin,commissioner,dcp,station,viewer},tiers:{t1:{enabled,model},t2:{…},t3:{…}},killReason?},caps:{routesCallsPerDay,tomtomCallsPerDay},map:{defaultView:'traffic'|'safety'|'speed',views:{safety:{[role]:boolean},speed:{[role]:boolean}},layers:{minorRoads,stations,incidents,works,googleTraffic:boolean},speedBands:{slow,moderate,good,fast:int km/h, strictly rising},crashScale:int},maintenance:boolean}` (`map.views` and `map.layers` are admin-controlled; Live traffic is always available) |
 | `ai_usage/{yyyyMMdd}` | `{date,calls,tokensIn,tokensOut,byTier:{t0,t1,t2,t3},byUser:{email:calls},cacheHits,estCostUsd}` |
 | `ai_cache/{sha256}` | `{key,tier,text,createdAt,expireAt}` (TTL 24 h) |
 | `audit/{id}` | `{id,at,actor,role,kind,target,summary,ip?,meta?}` (append-only; never updated or deleted by the app) |
@@ -39,7 +39,7 @@ epoch milliseconds unless a field says `hour` (IST hour-of-day float, 0–24). B
 Response header `ETag`; request `If-None-Match` → `304`. Response (`state/current` plus server fields):
 ```json
 { "t": 1791378144000, "hour": 18.33, "date": "2026-10-07", "mode": "sim|live|blend", "boost": 1.12, "stale": false,
-  "updatedAt": 1791378140000, "net": {"edges": 10263, "mapVersion": "…"},
+  "updatedAt": 1791378140000, "net": {"edges": 15051, "mapVersion": "…"},
   "city": {"speed": 31.2, "congPct": 12.4},
   "stations": [{"i":0,"speed":28.1,"cong":14.0}],
   "vc": "<base64 uint8 per edge, vc*100>", "spd": "<base64 uint8 per edge, km/h>",
@@ -53,19 +53,20 @@ Everything in `/state` is **modelled**; `mode:"live"` means the model is calibra
 ## Endpoints (caller role in brackets; `*` = any signed-in allowlisted user)
 
 ### Session
-* `GET /api/me` `*` → `{email,name,role,region,station,active,permissions:string[],lockedRegion:string|null,jurisdiction:string[],flags:{aiEnabled:boolean,maintenance:boolean}}`
+* `GET /api/me` `*` → `{email,name,role,region,station,active,permissions:string[],lockedRegion:string|null,jurisdiction:string[],flags:{aiEnabled:boolean,maintenance:boolean},map:{…as settings.map…}}`. `map` carries the admin-controlled view and layer settings; the Control app re-reads `/me` about every 4 ticks and hides views and layers that are switched off for the caller's role.
+* `POST /api/preflight` `*` → `{at,day,api:{ok,ms},data:{ok,mode,ageMin,stale,limitMin},ai:{status,detail,cached},glance:{incidents,actions,works,stations,mode},maintenance,platform?}` for the sign-in welcome screen (`platform` only for `admin`: system checks, users, connectors, AI usage). The AI probe runs at most once per IST day for the whole system (see the runbook).
 * `GET /healthz` (public, no auth) `{ok:true}`; `GET /readyz` (public) checks store reachability → `{ok,store:'ok'}`.
 
 ### Operations
 * `GET /api/state` `*` → State.
-* `GET /api/crash` `*` → `{stations:{[name]:{y2025:{fatal,nonfatal},hist}},importedAt}`.
+* `GET /api/crash` `*` → `{stations:{[name]:{y2025:{fatal,nonfatal},hist}},importedAt}`. Only the 53 police stations have entries; the 9 outer taluk units have none and the UI shows a dash.
 * `GET /api/actions?state=open|all&limit=200` `*` → `{actions:[…]}` filtered server-side: `station`/`dcp` get their **region**; others all. Sorted escalated first, then newest.
 * `POST /api/actions/:id/transition` `{to:'ack'|'prog'|'done', note?}` → updated action. Requires `action.transition` **and** the action's station ∈ caller jurisdiction, else 403. Illegal transition → 409. Writes audit.
 * `GET /api/incidents?date=` `*` → `{incidents:[…]}` (sim + user + connector for the date).
 * `POST /api/incidents` `{edge:number,type:string,durationMin:10..240,note?}` `incident.report` & station of `edge` ∈ jurisdiction → incident (src `user`) and a new action. Audit.
 * `GET /api/works` `*` → `{works:[…]}`; `POST /api/works` / `PATCH /api/works/:id` / `DELETE /api/works/:id` require `works.write`; `DELETE` is a soft delete (`active:false`). Audit.
 * `POST /api/ai/advise` `ai.advise` `{kind:'action_advice'|'translate_kn'|'works_clash',context:object}` → `{text,tier:'t0'|'t1'|'t2',cached:boolean,model?}`
-* `POST /api/ai/brief` `ai.brief` `{scope:'city'|region}` → `{text,tier:'t3',cached,generatedAt}` (cached per scope+hour; at most `brief` quota/day).
+* `POST /api/ai/brief` `ai.brief` `{scope:'city'|'Urban'|region}` → `{text,tier:'t3',cached,generatedAt}` (cached per scope+hour; at most `brief` quota/day).
 * `GET /api/ai/quota` `*` → `{used,limit,resetsAt,aiEnabled}`.
 
 ### Admin (role `admin` only; every mutation writes an audit row)

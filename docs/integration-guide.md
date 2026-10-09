@@ -37,7 +37,7 @@ Two separate Google keys, two separate jobs:
 
 | Key | Used by | Where it lives | Restrict to |
 |---|---|---|---|
-| Maps JavaScript API key | Optional Google basemap in the Control app (Layers → Basemap) | `maps_browser_key` in your git-ignored `dev.tfvars` → Terraform output → `config.js`. Public by design | HTTP referrers: the two `*.web.app` / `*.firebaseapp.com` Control domains; API: Maps JavaScript API only |
+| Maps JavaScript API key | Optional Google basemap in the Control app (Map → Base map) | `maps_browser_key` in your git-ignored `dev.tfvars` → Terraform output → `config.js`. Public by design | HTTP referrers: the two `*.web.app` / `*.firebaseapp.com` Control domains; API: Maps JavaScript API only |
 | Routes API key | `google_routes` connector (Admin → Connectors) | Secret Manager via `scripts/set-secret.sh`; the connector holds only `secretRef` | API: Routes API only; no referrer restriction (server-side calls) |
 
 Enable billing on the project. Terraform enables `maps-backend` and `routes`; deploy with the full Deploy workflow after setting `maps_browser_key` (optionally `maps_map_id`, a vector map ID, for smooth zoom; otherwise Google's demo ID is used).
@@ -46,11 +46,13 @@ Behaviour: the basemap is a layer under the existing canvas; the model's roads, 
 
 Terms caveat: Routes API durations are used only to calibrate the model; the app does not draw Google traffic or route geometry on a non-Google map. Have your counsel confirm that calibration use fits the Maps Platform terms before relying on it operationally.
 
-## Bengaluru Rural coverage
+## Outer area (Rural scope)
 
-Rural is covered by Google's own live traffic, not by our model. With a Google basemap selected, Layers → "Google live traffic" draws Google's Traffic layer over the whole visible area (zoom out beyond the city). It is Google's data on Google's map, which keeps within the Maps terms. Rural has no modelled congestion, actions, station territories or crash statistics because the road graph and stations come from the offline pipeline in `tools/mapdata` (OpenStreetMap roads plus the BTP station list), and Google data cannot be bulk-extracted into that graph under its terms.
+The map includes the outer area as nine taluk units: Nelamangala, Doddaballapura, Devanahalli, Hoskote, Anekal, Bengaluru South, Bengaluru North, Bengaluru East and Yelahanka (each minus the city territory). Their motorway to secondary roads are in the routable graph and carry modelled demand, so Rural shows modelled congestion, incidents and actions like the city. What it does not have: police-station territories (the units are taluks), crash statistics (shown as a dash), and any calibration data (probes are in the city). Treat Rural numbers as less reliable than the city's.
 
-Extending the modelled network to Rural means re-running that pipeline with OpenStreetMap road extracts and a Rural station list added as a separate zone. Confirm first that the Commissionerate's jurisdiction includes Rural stations; as far as I know Rural has its own district police.
+With a Google basemap selected, Map > "Google live traffic" additionally draws Google's own Traffic layer over the visible area. That is Google's data on Google's map, which keeps within the Maps terms; it is not mixed into the model. Google data cannot be bulk-extracted into the road graph under its terms.
+
+Confirm that the Commissionerate's jurisdiction covers these taluks before operational use; as far as I know Bengaluru Rural has its own district police. Add taluks or a station list by extending `tools/mapdata/rural.py` (see [data-sources.md](data-sources.md)).
 
 ## Map views and layers (admin-controlled)
 

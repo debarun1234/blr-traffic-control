@@ -1,4 +1,4 @@
-"""Extract highway ways (motorway..tertiary) and police nodes inside a bbox from an OSM .osm.pbf.
+"""Extract highway ways (motorway..residential; classes in CLS) and police nodes inside a bbox from an OSM .osm.pbf.
 Resumable, time-budgeted (each run does at most --budget seconds) and parallel; node coordinates are decoded
 straight from the PBF DenseNodes blocks with numpy, so no node index is held in memory.
 Usage: python3 extract_osm.py <in.osm.pbf> <workdir> [--budget 150] [--bbox S W N E] [--finish out.json]"""

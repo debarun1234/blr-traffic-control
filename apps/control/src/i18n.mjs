@@ -84,7 +84,7 @@ const D = {
   'layers.inc': ['Incidents', 'ಘಟನೆಗಳು'], 'layers.inc.d': ['Active crashes, breakdowns and closures.', 'ಸಕ್ರಿಯ ಅಪಘಾತ, ಕೆಟ್ಟುನಿಂತ ವಾಹನ ಮತ್ತು ಮುಚ್ಚುವಿಕೆ.'],
   'layers.works': ['Road works', 'ರಸ್ತೆ ಕಾಮಗಾರಿ'], 'layers.works.d': ['Planned works that cut road capacity.', 'ರಸ್ತೆ ಸಾಮರ್ಥ್ಯ ಕಡಿಮೆ ಮಾಡುವ ಯೋಜಿತ ಕಾಮಗಾರಿ.'],
   'layers.gtraffic.d': ['Google’s own traffic colours on the Google basemap. Separate from our model.', 'ಗೂಗಲ್ ಬೇಸ್‌ಮ್ಯಾಪ್ ಮೇಲೆ ಗೂಗಲ್‌ನ ಸ್ವಂತ ಸಂಚಾರ ಬಣ್ಣಗಳು. ನಮ್ಮ ಮಾದರಿಯಿಂದ ಬೇರೆ.'],
-  'legend.safety.none': ['None recorded', 'ದಾಖಲೆ ಇಲ್ಲ'], 'legend.safety.max': ['{n} or more', '{n} ಅಥವಾ ಹೆಚ್ಚು'], 'legend.nodata': ['No crash data', 'ಅಪಘಾತ ದತ್ತಾಂಶ ಇಲ್ಲ'], 'legend.top': ['Highest: {list}', 'ಅತಿ ಹೆಚ್ಚು: {list}'], 'legend.slowest': ['Slowest: {list}', 'ಅತಿ ನಿಧಾನ: {list}'],
+  'legend.safety.none': ['None recorded', 'ದಾಖಲೆ ಇಲ್ಲ'], 'legend.nodata': ['No crash data', 'ಅಪಘಾತ ದತ್ತಾಂಶ ಇಲ್ಲ'], 'legend.top': ['Highest: {list}', 'ಅತಿ ಹೆಚ್ಚು: {list}'], 'legend.slowest': ['Slowest: {list}', 'ಅತಿ ನಿಧಾನ: {list}'],
   'legend.speed.crawl': ['Crawling', 'ತೆವಳುತ್ತಿದೆ'], 'legend.speed.ok': ['Moderate', 'ಮಧ್ಯಮ'], 'legend.speed.good': ['Good', 'ಉತ್ತಮ'], 'legend.speed.fast': ['Fast', 'ವೇಗ'],
   'legend.title': ['Road load (v/c)', 'ರಸ್ತೆ ಭಾರ (v/c)'],
   'legend.free': ['Free', 'ಸುಗಮ'], 'legend.light': ['Light', 'ಹಗುರ'], 'legend.busy': ['Busy', 'ಕಾರ್ಯನಿರತ'], 'legend.slow': ['Slow', 'ನಿಧಾನ'], 'legend.jam': ['Jammed', 'ಜಾಮ್'], 'legend.grid': ['Gridlock', 'ಸ್ಥಗಿತ'],

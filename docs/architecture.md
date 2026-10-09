@@ -1,6 +1,6 @@
 # Architecture
 
-Bengaluru Traffic Control Room: a modelled live congestion map with role-scoped operations. Sized for a proof of concept (about 10 to 200 users) and built to cost close to nothing when idle. The HTTP contract is in [api-contract.md](api-contract.md); this page covers the deployed system.
+Bengaluru Traffic Control Room: a modelled live congestion map (Urban city plus outer taluks) with role-scoped operations and admin-controlled map views. Sized for a proof of concept (about 10 to 200 users) and built to cost close to nothing when idle. The HTTP contract is in [api-contract.md](api-contract.md); this page covers the deployed system.
 
 ## Components
 
@@ -127,6 +127,13 @@ The state is modelled. Even in `live` mode it is a model calibrated against prob
 ### What-if planner
 
 Runs entirely in the browser: the same `@blr/model` module as the server, executed in a Web Worker on the downloaded `map.json`. The server is involved only to supply current state and works. Requires the `planner.run` permission; nothing is written.
+
+## Control app: map data, scopes, views
+
+- **Map data.** `/assets/map.json` (from `packages/mapdata`, about 6.8 MB, about 2.1 MB over the wire with Hosting compression) holds 62 areas (53 police-station territories and 9 outer taluk units), about 15,000 routable segments (classes 0 to 2) and about 117,000 draw-only segments (tertiary, unclassified and class 4 residential streets). Every browser downloads it once per version; the model, replay and planner run on it client-side. The per-edge state in `state/current` is indexed by the routable segments only.
+- **Rendering.** One canvas. Classes 0 to 2 always; class 3 once zoomed in a little and class 4 residential streets once zoomed in further (both controlled by the Local roads layer). The canvas redraws on state, scope, view and zoom changes.
+- **Scopes.** `All` (whole area), `Urban` (the five regions together), one of North, East, Central, West, South, or `Rural` (the 9 outer units). A scope filters the KPIs, tables and the briefing; the map dims what is out of scope. Station and DCP users stay locked to their region by the server, not by the UI.
+- **Views.** Live traffic (road colours from the model), Crash hotspots (area shading from `/api/crash`) and Area speed (area shading from modelled speed). Which views and layers exist for a role, the default view and the thresholds come from `settings.map`, delivered in `GET /api/me`; the Control app re-reads `/me` about every 4 ticks, so an Admin change reaches open sessions within minutes without a deploy. This is a presentation control, not an access boundary: `/api/crash` and `/api/state` are readable by every signed-in role, so hiding a view does not hide its data. Writes and jurisdiction are still enforced by the API.
 
 ## Runtime configuration contract
 

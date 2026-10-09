@@ -1,8 +1,8 @@
 # Bengaluru Traffic Control Room
 
-A map-based control room for Bengaluru traffic operations: whole city plus North, East, Central, West and South regions, 53 police-station territories, real OpenStreetMap roads, role-scoped actions, road-closure planner, works-clash analysis, English and Kannada. A separate Admin site manages users, data connectors, API keys, AI budget, system checks and audit. Built for Google Cloud, sized for a proof of concept.
+A map-based control room for Bengaluru traffic operations: the whole area, the Urban city (North, East, Central, West, South regions, 53 police-station territories) and the outer Rural area (9 taluk units), on real OpenStreetMap roads. Three admin-controlled map views, role-scoped actions, road-closure planner, works-clash analysis, English and Kannada. A separate Admin site manages users, data connectors, API keys, AI budget, system checks and audit. Built for Google Cloud, sized for a proof of concept.
 
-> **Honest status.** Traffic state is **modelled** (BPR link times, assignment, gravity demand) and is labelled "LIVE (modelled)" only when calibrated against probe observations. Crash statistics are real (BTP 2018–2025 via OpenCity). Station territories are approximate (Voronoi, clipped to the boundary). Kannada text needs native review. Nothing here has been run against real Firestore, Vertex AI, Secret Manager, Firebase Auth or Cloud Run; see [Validation status](#validation-status).
+> **Honest status.** Traffic state is **modelled** (BPR link times, assignment, gravity demand) and is labelled "LIVE (modelled)" only when calibrated against probe observations. Crash statistics are real (BTP 2018–2025 via OpenCity). Station territories are approximate (Voronoi, clipped to the boundary). The 9 outer units are taluks, not police stations, and have no crash data. Kannada text needs native review. Automated tests run against in-memory and mock backends, not real Firestore, Vertex AI, Secret Manager, Firebase Auth or Cloud Run; see [Validation status](#validation-status).
 
 ## Why this exists
 
@@ -11,12 +11,15 @@ Dashboards over monthly crash data are easy to rebuild in a BI tool. What a city
 ## Scope
 
 **In scope (built):**
-- Whole-city map plus North, East, Central, West and South regions, 53 station territories, about 10,000 real OpenStreetMap road segments.
+- One map, 62 areas: 53 police-station territories in five Urban regions plus 9 outer taluk units (Nelamangala, Doddaballapura, Devanahalli, Hoskote, Anekal, Bengaluru South/North/East, Yelahanka). Scope chips (keys 1 to 8): Whole area, Urban, North, East, Central, West, South, Rural. Choosing Urban or Rural dims the other.
+- About 15,000 routable road segments (motorway to secondary) and about 117,000 drawn segments including tertiary roads and, as you zoom in, residential streets in the city and the link zone around it. Outer roads connect to city roads.
+- Three map views with a legend and a "use it to" hint each: **Live traffic** (modelled congestion), **Crash hotspots** (2025 fatal crashes per station area), **Area speed** (average modelled speed per area).
+- Admin control of the map without a deploy: default view, which roles see which view, which data layers exist (local roads, stations, incidents, works, Google live traffic), speed-colour thresholds and the crash shading scale.
 - Role-scoped access: Commissioner (city), DCP (one region), station (own station, sees its region), viewer (read only), admin.
 - Action workflow (new, acknowledged, in progress, done) with escalation and verification timers.
 - Road-closure and works planner that quantifies city-wide impact by time of day, plus works-clash detection.
 - Replay of a typical day in the browser; English and Kannada.
-- Admin site for users, connectors, API keys, probes, AI budget, system checks, audit log.
+- Admin site for users, stations and territories, connectors, API keys, probes, works, map views and layers, AI budget, system checks, audit log.
 - Cost-bounded AI (Gemini tiers, quotas, caches, kill switch) and Terraform for the full GCP stack.
 
 **Out of scope (not built):** camera or video analytics, e-challan, ANPR processing, citizen-facing features, mobile apps, any integration with real police systems (the connector framework is ready; access is not).
@@ -27,12 +30,18 @@ All images are real screenshots of the running app (Control from the local dev s
 
 | | |
 |---|---|
-| ![Commissioner, whole city, 09:00 replay](docs/images/control-commissioner.png) | ![Station user: map locked to North, own station highlighted](docs/images/control-station.png) |
-| **Commissioner**: whole city with regions, KPIs, typical-day timeline and replay | **Station user (Yalahanka)**: sees only its region, own station highlighted |
+| ![Commissioner, whole area, 09:00 replay](docs/images/control-commissioner.png) | ![Crash hotspots view with legend](docs/images/control-crash-view.png) |
+| **Live traffic** (default): whole area with Urban regions and Rural, KPIs, typical-day timeline and replay | **Crash hotspots**: station areas shaded by 2025 fatal crashes; legend says what the colours mean and what to do with them |
+| ![Area speed view](docs/images/control-speed-view.png) | ![Rural scope](docs/images/control-rural.png) |
+| **Area speed**: areas shaded by average modelled speed, slowest areas listed | **Rural scope**: outer taluk units and their roads, Urban dimmed; no crash data (shown as a dash) |
+| ![Map panel](docs/images/control-layers.png) | ![Station user: map locked to North, own station highlighted](docs/images/control-station.png) |
+| **Map panel**: views and layers; only what the admin allows for your role appears | **Station user (Yalahanka)**: sees its region, own station highlighted |
 | ![Closure planner](docs/images/control-planner.png) | ![Dark theme](docs/images/control-dark.png) |
 | **Planner**: closure impact by time of day, diversion shifts with crash history | **Dark theme** |
 | ![Admin overview](docs/images/admin-overview.png) | ![Admin connectors](docs/images/admin-connectors.png) |
 | **Admin overview**: system checks, connector health, feed and AI status | **Connectors**: REST, webhook, CSV, Google Routes, TomTom, GBA/BMRCL, OpenCity |
+| ![Map views and layers settings](docs/images/admin-settings-map.png) | ![Stations and territories](docs/images/admin-stations.png) |
+| **Settings, Map views and layers**: default view, per-role views, layers, speed thresholds | **Stations and territories**: coordinate overrides, official boundary upload |
 | ![AI and cost](docs/images/admin-ai-cost.png) | ![Users and roles](docs/images/admin-users.png) |
 | **AI and cost**: calls by tier, spend, cache hit rate, kill switch | **Users and roles**: allowlist with region and station scope |
 
@@ -54,7 +63,7 @@ Two static sites on Firebase Hosting (Control, Admin) call one Cloud Run API thr
 | `packages/core` | Store (Firestore / in-memory), auth, connectors, AI router, ingest, checks |
 | `packages/shared` | Roles, permissions, jurisdiction, workflow |
 | `packages/ui` | Shared design system |
-| `packages/mapdata`, `tools/mapdata` | Packaged map and the pipeline that builds it |
+| `packages/mapdata`, `tools/mapdata` | Packaged map (`map.json`, crash data) and the Python pipeline that builds it from OpenStreetMap and KGIS (see [docs/data-sources.md](docs/data-sources.md)) |
 | `infra/terraform` | All GCP resources |
 | `scripts` | bootstrap, deploy, doctor, seed, set-secret, smoke, rollback, teardown |
 | `docs` | Architecture, API contract, security, cost and AI, model, integration guide, runbook, data sources, roadmap |
@@ -82,11 +91,13 @@ You run these; no credentials ever go to anyone else.
 6. `scripts/seed.sh --env dev --admin-email you@example.com` creates the first admin. Everything after that is done in the Admin site.
 7. `scripts/doctor.sh --env dev` for a read-only health check.
 
+Or deploy from GitHub Actions: set the GitHub environment variables `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT`, `TF_STATE_BUCKET` and `TFVARS` (the full contents of your tfvars file), then run **Deploy** (Terraform, images, Cloud Run, Hosting). **Deploy web only** publishes just the two static sites and runs automatically on pushes to `main` that touch them. Details in [docs/runbook.md](docs/runbook.md).
+
 Details: [docs/runbook.md](docs/runbook.md). Costs and AI caps: [docs/cost-and-ai.md](docs/cost-and-ai.md). Every price in that page is an assumption to verify.
 
 ## Access model
 
-Google sign-in through Identity Platform, then an email allowlist in Firestore (`users/{email}`). Roles: `admin`, `commissioner` (whole city), `dcp` (one region), `station` (own station, sees region map), `viewer` (read only). Every check is enforced server-side; the UI only dims. See [docs/security.md](docs/security.md).
+Google sign-in through Identity Platform, then an email allowlist in Firestore (`users/{email}`). Roles: `admin`, `commissioner` (whole area), `dcp` (one region), `station` (own station, sees region map), `viewer` (read only). Every check is enforced server-side; the UI only dims. See [docs/security.md](docs/security.md).
 
 ## AI and cost control
 
@@ -98,10 +109,12 @@ Generic REST and webhook connectors, CSV upload, inbound `x-api-key` ingest, Goo
 
 ## Validation status
 
-Verified here: unit tests (core 45, api 23, worker 4, model 6, shared 6), Control Playwright suite (22 scenarios) and Admin Playwright suite (38) against mock and in-memory servers, repo lint, shellcheck, Terraform syntax parse.
+Verified here: unit tests (core 45, api 26, worker 4, model 6, shared 6), Control suite (37 tests incl. Playwright scenarios) and Admin suite (41 tests incl. Playwright scenarios) against mock and in-memory servers, repo lint, shellcheck, Terraform syntax parse.
 
-**Not verified:** `terraform validate/plan/apply`, Docker image builds, real Firestore, Vertex AI, Secret Manager, Identity Platform, Cloud Scheduler OIDC, billing budget. Read the plan before the first apply. Open items before real operational use: independent VAPT, MFA enforced at the Google tenant, calibration against real probe data, native Kannada review, verification of approximate station coordinates (6 are approximate).
+CI (`.github/workflows/ci.yml`) also runs Terraform fmt/validate and container builds on GitHub; those were not run in the authoring sandbox.
+
+**Not verified by automated tests:** `terraform plan/apply` results, real Firestore, Vertex AI, Secret Manager, Identity Platform, Cloud Scheduler OIDC, billing budget. Read the plan before the first apply. Open items before real operational use: independent VAPT, MFA enforced at the Google tenant, calibration against real probe data, native Kannada review, verification of approximate station coordinates (6 are approximate), confirmation that the Commissionerate's jurisdiction covers the outer taluks.
 
 ## Data and licences
 
-Roads © OpenStreetMap contributors (ODbL), crash data from BTP via OpenCity, see [docs/data-sources.md](docs/data-sources.md). Code is released under the licence in [LICENSE](LICENSE).
+Roads © OpenStreetMap contributors (ODbL), taluk boundaries from KGIS (Karnataka GIS), crash data from BTP via OpenCity, see [docs/data-sources.md](docs/data-sources.md). Code is released under the licence in [LICENSE](LICENSE).

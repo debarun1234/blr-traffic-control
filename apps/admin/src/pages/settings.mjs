@@ -32,7 +32,7 @@ export async function mount(root, ctx) {
     const crashF = num('map.crashScale', 'Darkest shade at (fatal crashes / year)', { hint: 'An area with this many fatal crashes or more gets the darkest colour in Crash hotspots. Lower it to separate small areas.' });
     const mapCard = h('section.card', { id: 'map-card' }, h('div.card-h', h('h2', 'Map views and layers')),
       h('p.hint', 'Controls what the Control room map offers. Live traffic is always on for everyone; the views and layers below can be switched off and the map hides them everywhere, including the legend.'),
-      h('div.fgrid', fields['map.defaultView']),
+      h('div.fgrid', { style: { marginTop: '10px' } }, fields['map.defaultView']),
       h('h3', { style: { margin: '14px 0 6px' } }, 'Who sees which view'),
       h('div.tbl-wrap', h('table.tbl.compact', { id: 'map-roles' }, h('thead', h('tr', h('th', 'View'), ...ROLES.map((r) => h('th', r)))),
         h('tbody', h('tr', h('td', h('b', 'Live traffic'), h('div.hint', 'Congestion on roads. Always on.')), ...ROLES.map(() => h('td', h('span.faint', 'on')))),

@@ -100,7 +100,7 @@ export function createMapPane() {
       rows.push(lg(C['--nofeed'], t('legend.nofeed')));
     } else if (v === 'safety') {
       const cs = cfg.crashScale, steps = [0, 0.25, 0.5, 0.75, 1];
-      rows = steps.map((q) => h('div.cc-lg', h('i', { style: { background: C['--c4'], opacity: 0.07 + 0.55 * q, height: '10px' } }), h('span', q === 0 ? t('legend.safety.none') : q === 1 ? t('legend.safety.max', { n: cs }) : ''), h('span.mono.faint', q === 0 ? '0' : q === 1 ? `≥${cs}` : `≥${Math.round(q * cs)}`)));
+      rows = steps.map((q) => h('div.cc-lg', h('i', { style: { background: C['--c4'], opacity: 0.07 + 0.55 * q, height: '10px' } }), h('span', q === 0 ? t('legend.safety.none') : ''), h('span.mono.faint', q === 0 ? '0' : q === 1 ? `≥${cs}` : `≥${Math.round(q * cs)}`)));
       rows.push(lg(C['--nofeed'], t('legend.nodata')));
       const t3 = scopeStations().filter((s) => hasCrash(s.i)).sort((a, b) => fatal2025(b.i) - fatal2025(a.i)).slice(0, 3);
       top = t3.length ? t('legend.top', { list: t3.map((s) => `${s.n} ${fatal2025(s.i)}`).join(' · ') }) : null;
