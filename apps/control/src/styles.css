@@ -15,9 +15,9 @@ small{font-size:11px;font-weight:500;color:var(--ink-2)}
 .shell.cc{grid-template-rows:auto minmax(0,1fr)}
 .cc-top{min-height:56px;gap:var(--sp-3);flex-wrap:nowrap}
 .cc-top .brand{flex:none}.cc-brandtxt{line-height:1.2;font-size:14px;white-space:nowrap}
-.cc-scope{display:flex;align-items:center;gap:6px;margin-left:var(--sp-3);min-width:0}
+.cc-scope{display:flex;align-items:center;gap:4px;margin-left:var(--sp-3);min-width:0;flex:0 1 auto;overflow-x:auto;scrollbar-width:none}.cc-scope::-webkit-scrollbar{display:none}
 .cc-scope>svg{color:var(--ink-3);flex:none}
-.cc-scope .chip{padding:4px 12px;font-size:13px}
+.cc-scope .chip{padding:4px 10px;font-size:13px;flex:none}
 .cc-scope .chip[aria-pressed=true]{cursor:default}
 .cc-status{display:flex;align-items:center;gap:8px;flex:none}
 .cc-pill{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;padding:3px 10px}
@@ -69,13 +69,16 @@ body.kn .cc-pill{text-transform:none;letter-spacing:0}
 .cc-opt[aria-selected=true],.cc-opt:hover{background:var(--accent-soft)}.cc-opt.empty{color:var(--ink-2);cursor:default}
 .cc-layers{position:relative}
 .cc-layersbtn{box-shadow:var(--shadow-1);height:100%;padding:7px 12px}
-.cc-pop{position:absolute;top:calc(100% + 6px);left:0;width:236px;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-2);padding:12px;display:flex;flex-direction:column;gap:9px;z-index:8}
+.cc-pop{position:absolute;top:calc(100% + 6px);left:0;width:min(300px,calc(100vw - 32px));max-height:calc(100dvh - 140px);overflow:auto;background:var(--surface);border:1px solid var(--line);border-radius:12px;box-shadow:var(--shadow-2);padding:12px;display:flex;flex-direction:column;gap:9px;z-index:8}
 .cc-pop[hidden]{display:none}
-.cc-chk{display:flex;gap:9px;align-items:center;cursor:pointer;font-weight:550}
+.cc-chk,.cc-opt{display:flex;gap:9px;align-items:flex-start;cursor:pointer}.cc-chk b,.cc-opt b{display:block;font-weight:600;font-size:13px}.cc-chk small,.cc-opt small{display:block;color:var(--ink-3);font-size:11.5px;line-height:1.35;margin-top:1px}
+.cc-opt input{width:16px;height:16px;margin-top:2px;accent-color:var(--accent)}.cc-chk input{margin-top:2px}
+.cc-sec{font-size:11px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--ink-3);margin-top:4px}.cc-sec:first-child{margin-top:0}
 .cc-chk input{width:16px;height:16px;accent-color:var(--accent)}
 .cc-zoom{position:absolute;right:10px;top:10px;display:flex;flex-direction:column;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-1);overflow:hidden;z-index:5}
 .cc-zoom button{width:38px;height:38px;border:0;border-bottom:1px solid var(--line);background:var(--surface);color:var(--ink);cursor:pointer;display:grid;place-items:center}
 .cc-zoom button:last-child{border:0}.cc-zoom button:hover{background:var(--surface-2)}
+.cc-lgd{font-size:11px;line-height:1.35;margin:2px 0 4px;max-width:220px}.cc-lgt{margin-top:6px;font-size:11px;color:var(--ink);max-width:220px}.cc-lgu{margin-top:6px;padding-top:6px;border-top:1px solid var(--line);font-size:11px;color:var(--ink-2);max-width:220px;line-height:1.35}
 .cc-legend{position:absolute;left:10px;bottom:10px;background:var(--surface);border:1px solid var(--line);border-radius:10px;box-shadow:var(--shadow-1);padding:8px 10px;font-size:11px;min-width:168px;z-index:4}
 .cc-lg{display:grid;grid-template-columns:22px 1fr auto;gap:8px;align-items:center;margin-top:4px;color:var(--ink-2)}
 .cc-lg i{display:block;height:6px;border-radius:3px}
@@ -174,7 +177,7 @@ body.kn .cc-pill{text-transform:none;letter-spacing:0}
 @media (max-width:860px){.cc-welcome{left:30px;top:30px}.cc-logo,.cc-logo img{width:64px;height:64px}.cc-greet{font-size:20px;height:26px;min-width:110px}.cc-simtag{display:none}}
 
 /* ---- mobile ---- */
-@media (max-width:1180px){.cc-updated{display:none}.cc-brandtxt small{display:none}}
+@media (max-width:1500px){.cc-updated{display:none}.cc-brandtxt small{display:none}}
 @media (max-width:1020px){.cc-clock{display:none}}
 @media (max-width:860px){
   .cc-top{flex-wrap:wrap;padding:8px 12px;gap:8px}

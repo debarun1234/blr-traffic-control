@@ -51,3 +51,15 @@ Terms caveat: Routes API durations are used only to calibrate the model; the app
 Rural is covered by Google's own live traffic, not by our model. With a Google basemap selected, Layers → "Google live traffic" draws Google's Traffic layer over the whole visible area (zoom out beyond the city). It is Google's data on Google's map, which keeps within the Maps terms. Rural has no modelled congestion, actions, station territories or crash statistics because the road graph and stations come from the offline pipeline in `tools/mapdata` (OpenStreetMap roads plus the BTP station list), and Google data cannot be bulk-extracted into that graph under its terms.
 
 Extending the modelled network to Rural means re-running that pipeline with OpenStreetMap road extracts and a Rural station list added as a separate zone. Confirm first that the Commissionerate's jurisdiction includes Rural stations; as far as I know Rural has its own district police.
+
+## Map views and layers (admin-controlled)
+
+The Control map's **Map** panel offers three views, each with an on-screen legend and a "use it to" line:
+
+| View | Colours | Source | Use it to |
+|---|---|---|---|
+| Live traffic | Roads by modelled load ÷ capacity | Simulator, calibrated by probes | Spot building congestion, place units |
+| Crash hotspots | Station areas by 2025 fatal crashes | BTP crash dataset (`tools/mapdata`) | Focus enforcement, patrols, signage. Outer taluks have no records (grey) |
+| Area speed | Station areas by average modelled speed | Same model as Live traffic | Compare areas, prioritise signal retiming |
+
+Admin → Settings → "Map views and layers" controls, for everyone and without a deploy: the default view; which roles may open Crash hotspots and Area speed (Live traffic is always on); data layers (Local roads, Police stations, Incidents, Road works, Google live traffic); the five speed-colour boundaries (km/h, strictly rising); and the crash count that gives the darkest shade. Settings live in `settings.map` and reach the Control app through `GET /api/me` (re-read every ~4 ticks). A view or layer switched off is hidden from the panel, the legend and the map; a user's saved choice falls back to the default if it is no longer allowed.

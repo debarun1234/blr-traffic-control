@@ -14,3 +14,5 @@ service-account*.json
 tools/mapdata/stage*.json
 __pycache__/
 tools/mapdata/data/raw/
+infra/terraform/envs/dev.tfvars
+infra/terraform/envs/dev.backend.hcl

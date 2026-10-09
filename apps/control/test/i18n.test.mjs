@@ -30,7 +30,7 @@ test('dynamic key families are fully covered', () => {
     'state.': ['new', 'ack', 'prog', 'done', 'cleared', 'persist'], 'mode.': ['live.long', 'sim.long', 'blend.long'], 'cls.': ['arterial', 'subArterial', 'collector'],
     'win.': ['peakAM', 'mid', 'peakPM', 'night'], 'wk.hours.': ['all', 'peak', 'night'], 'wk.kind.': ['Metro', 'Drain', 'Bridge', 'Road', 'Utility', 'Other'], 'wk.src.': ['csv', 'connector', 'ingest', 'manual'],
     'src.': ['sim', 'user', 'connector', 'ingest'], 'ai.tierHint.': ['t0', 't1', 't2', 't3'], 'ai.tier.': ['t0', 't1', 't2', 't3'], 'signin.scope.': ['admin', 'commissioner', 'dcp', 'station', 'viewer'],
-    'act.f.': ['open', 'all'], 'layers.shade.': ['none', 'crash', 'speed'], 'tab.': ['overview', 'station', 'actions', 'planner', 'works'], 'role.': ['admin', 'commissioner', 'dcp', 'station', 'viewer'], 'reg.': ['North', 'East', 'Central', 'West', 'South'],
+    'act.f.': ['open', 'all'], 'layers.': ['minor', 'stn', 'inc', 'works', 'gtraffic'], 'view.': ['traffic.t', 'traffic.d', 'traffic.use', 'safety.t', 'safety.d', 'safety.use', 'speed.t', 'speed.d', 'speed.use'], 'tab.': ['overview', 'station', 'actions', 'planner', 'works'], 'role.': ['admin', 'commissioner', 'dcp', 'station', 'viewer'], 'reg.': ['North', 'East', 'Central', 'West', 'South'],
     'plan.': ['close', 'half'], 'act.': ['ack', 'start', 'done', 'reopen', 'resume'], 'ago.': ['s', 'm', 'h', 'd'], 'kbd.': ['scope1', 'scope26', 'search', 'zoom', 'replay', 'esc', 'help'], 'legend.': ['free', 'light', 'busy', 'slow', 'jam', 'grid'],
   };
   for (const [p, xs] of Object.entries(fam)) for (const x of xs) assert.ok(DICT[p + x], `missing ${p}${x}`);

@@ -98,7 +98,7 @@ export function mountApp(root, { onSignOut }) {
       return parts.join(' · ');
     };
     function renderTop() {
-      const lr = lockedRegion(), opts = lr ? [lr] : ['All', ...REGIONS];
+      const lr = lockedRegion(), opts = lr ? [lr] : ['All', 'Urban', ...REGIONS];
       fill(scopeBox, ...opts.map((r, i) => h('button.chip', { 'aria-pressed': String(S.scope === r), 'data-scope': r, title: lr ? t('scope.locked') : `${i + 1}`, onclick: () => { setScope(r); } }, r === 'All' ? t('scope.all') : regionName(r))));
       if (lr) scopeBox.prepend(ic('shield', 14));
       const p = statusPill(); pill.className = `badge cc-pill ${p.kind}`; fill(pill, h('span.dot' + (p.kind === 'good' ? '.good' : p.kind === 'bad' ? '.bad' : '.warn') + (p.live ? '.live' : '')), p.text); pill.title = p.title ?? '';
@@ -155,7 +155,7 @@ export function mountApp(root, { onSignOut }) {
 }
 
 export function openShortcuts() {
-  const rows = [['1', 'kbd.scope1'], ['2 – 6', 'kbd.scope26'], ['/', 'kbd.search'], ['[  ]', 'kbd.zoom'], ['R', 'kbd.replay'], ['Esc', 'kbd.esc'], ['?', 'kbd.help']];
+  const rows = [['1', 'kbd.scope1'], ['2 – 8', 'kbd.scope26'], ['/', 'kbd.search'], ['[  ]', 'kbd.zoom'], ['R', 'kbd.replay'], ['Esc', 'kbd.esc'], ['?', 'kbd.help']];
   openDialog({ title: t('kbd.title'), testid: 'shortcuts', body: h('table.tbl', h('tbody', rows.map(([k, d]) => h('tr', h('td', ...k.split(' ').filter((x) => x !== '–' && x).map((x) => h('span.kbd', { style: { marginRight: '4px' } }, x)), k.includes('–') ? ' ' : null), h('td', t(d)))))) });
 }
 
@@ -166,7 +166,7 @@ export function installShortcuts() {
     const el = e.target, typing = el && (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
     if (typing || document.querySelector('.modal-bg') || !S.me || !S.mapRef) return;
     const k = e.key;
-    if (/^[1-7]$/.test(k)) { const lr = lockedRegion(); if (lr) return; setScope(['All', ...REGIONS][+k - 1]); }
+    if (/^[1-8]$/.test(k)) { const lr = lockedRegion(); if (lr) return; setScope(['All', 'Urban', ...REGIONS][+k - 1]); }
     else if (k === '/') { e.preventDefault(); S.mapRef.focusSearch(); }
     else if (k === '[') S.mapRef.zoomBy(1 / 1.6);
     else if (k === ']') S.mapRef.zoomBy(1.6);

@@ -31,6 +31,17 @@ test('projection round-trips and nearestNode finds the closest node', () => {
   const hub = MAP.hubs[0]; const r = L.nearestNode(MAP.nxy, hub.x, hub.y); assert.ok(r.dist < 600);
   assert.ok(L.estimateFreeMin([0, 0], [10000, 0]) > 10);
 });
+test('validateSettings checks map views, speed bands and crash scale', () => {
+  const base = { feed: { mode: 'blend', tickMin: 10, staleAfterMin: 25 }, workflow: { escalateAfterMin: 15, verifyAfterMin: 30 }, caps: { routesCallsPerDay: 1, tomtomCallsPerDay: 1 } };
+  const roles = (v) => Object.fromEntries(['admin', 'commissioner', 'dcp', 'station', 'viewer'].map((r) => [r, v]));
+  const map = { defaultView: 'safety', views: { safety: roles(true), speed: roles(true) }, speedBands: { slow: 14, moderate: 20, good: 27, fast: 34 }, crashScale: 26 };
+  assert.deepEqual(L.validateSettings({ ...base, map }), {});
+  assert.ok(L.validateSettings({ ...base, map: { ...map, speedBands: { slow: 20, moderate: 20, good: 27, fast: 34 } } })['map.speedBands.moderate']);
+  assert.ok(L.validateSettings({ ...base, map: { ...map, crashScale: 0 } })['map.crashScale']);
+  assert.ok(L.validateSettings({ ...base, map: { ...map, defaultView: 'x' } })['map.defaultView']);
+  assert.ok(L.validateSettings({ ...base, map: { ...map, views: { safety: roles(false), speed: roles(true) } } })['map.defaultView'], 'default view off for all roles');
+});
+
 test('validateSettings enforces ranges and stale >= 2x tick', () => {
   const ok = { feed: { mode: 'blend', tickMin: 10, staleAfterMin: 25 }, workflow: { escalateAfterMin: 15, verifyAfterMin: 30 }, caps: { routesCallsPerDay: 100, tomtomCallsPerDay: 0 } };
   assert.deepEqual(L.validateSettings(ok), {});
@@ -54,7 +65,7 @@ const sq = (x, y) => [[x, y], [x + 0.01, y], [x + 0.01, y + 0.01], [x, y + 0.01]
 const feat = (station, ring) => ({ type: 'Feature', properties: { station }, geometry: { type: 'Polygon', coordinates: [ring] } });
 test('validateGeoJSON accepts valid, flags missing stations as warning', () => {
   const r = L.validateGeoJSON({ type: 'FeatureCollection', features: [feat(NAMES[0], sq(77.6, 12.9))] }, NAMES);
-  assert.deepEqual(r.errors, []); assert.equal(r.covered.length, 1); assert.equal(r.missing.length, 52); assert.equal(r.warnings.length, 1);
+  assert.deepEqual(r.errors, []); assert.equal(r.covered.length, 1); assert.equal(r.missing.length, 61); assert.equal(r.warnings.length, 1);
 });
 test('validateGeoJSON rejects bad input with specific messages', () => {
   const bad = (g) => L.validateGeoJSON(g, NAMES).errors.join('|');

@@ -35,7 +35,7 @@ test('summarizeApprox is consistent with the model summary on the same result', 
   const r = assign(net, { t: 9, iters: 3 }), s = summarizeApprox(net, r.vc, r.spd);
   assert.equal(s.per.length, map.st.length);
   assert.ok(s.city.speed > 5 && s.city.speed < 60); assert.ok(s.city.congPct >= 0 && s.city.congPct <= 100);
-  assert.deepEqual(Object.keys(s.reg), ['North', 'East', 'Central', 'West', 'South']);
+  assert.deepEqual(Object.keys(s.reg), ['North', 'East', 'Central', 'West', 'South', 'Rural']);
   assert.equal(scopeSum(s, 'All'), s.city); assert.equal(scopeSum(s, 'East'), s.reg.East); assert.equal(scopeSum(null, 'All'), null);
   const tr = topRoads(net, r.vc, r.spd, { n: 5 }); assert.equal(tr.length, 5); assert.ok(tr[0].vc >= tr[4].vc);
 });

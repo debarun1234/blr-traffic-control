@@ -6,7 +6,7 @@ import { createNetwork, assign, summarize, encodeState, decodeState, simIncident
 const net = createNetwork(loadMap());
 
 test('network is built from the real map', () => {
-  assert.equal(net.nc, 60);
+  assert.equal(net.nc, 69);
   assert.ok(net.ne > 9000 && net.nn > 3000);
 });
 test('peak is slower than night, and flow is conserved-ish', () => {

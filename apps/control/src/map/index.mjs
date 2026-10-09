@@ -1,6 +1,6 @@
 // Assembles the map pane: canvas + overlays (search, layers, zoom, legend, tooltip, replay chip).
 import { h } from '/vendor/ui.mjs';
-import { S, on, emit, setSel, setTab, setReplay, lockedRegion, fatal2025, hasCrash, scopeStations } from '../state.mjs';
+import { S, on, emit, setSel, setTab, setReplay, lockedRegion, fatal2025, hasCrash, scopeStations, mapCfg, allowedViews, curView, setView, layerAllowed, layerOn } from '../state.mjs';
 import { t, regionName } from '../i18n.mjs';
 import { ic } from '../icons.mjs';
 import { createRenderer } from './renderer.mjs';
@@ -8,7 +8,7 @@ import { createGoogleBase } from './gmaps.mjs';
 import { lsSet } from '../util.mjs';
 import { toast } from '/vendor/ui.mjs';
 import { attachInteraction } from './interaction.mjs';
-import { edgesBox } from '../analytics.mjs';
+import { edgesBox, speedBucket } from '../analytics.mjs';
 import { fmtH } from '/vendor/ui.mjs';
 import { frame, fill } from '../util.mjs';
 
@@ -61,16 +61,21 @@ export function createMapPane() {
   });
   input.addEventListener('blur', () => setTimeout(() => { results.hidden = true; input.setAttribute('aria-expanded', 'false'); }, 120));
 
-  // layers popover
-  const layerRow = (key, label) => h('label.cc-chk', h('input', { type: 'checkbox', checked: S.layers[key], onchange: (e) => { S.layers[key] = e.target.checked; R.dirty = true; } }), h('span', label));
-  const shadeSel = h('select.select', { 'aria-label': t('layers.shade'), onchange: (e) => { S.layers.shade = e.target.value; R.dirty = true; } },
-    ...['none', 'crash', 'speed'].map((v) => h('option', { value: v, selected: S.layers.shade === v }, t(`layers.shade.${v}`))));
+  // layers popover: one "view" (what the map is for) + the overlays on top of it. What is offered is set by the admin (settings.map).
+  const layerRow = (key) => (!layerAllowed(key) ? null : h('label.cc-chk', h('input', { type: 'checkbox', 'data-testid': 'layer-' + key, checked: S.layers[key], onchange: (e) => { S.layers[key] = e.target.checked; R.dirty = true; } }), h('span', h('b', t(`layers.${key}`)), h('small', t(`layers.${key}.d`)))));
   if (gbase) baseSel = h('select.select', { 'aria-label': t('layers.base'), 'data-testid': 'base-select', onchange: (e) => { S.layers.base = e.target.value; lsSet('blr-base', e.target.value); gbase.set(e.target.value); } },
     ...['plain', 'roadmap', 'hybrid'].map((v) => h('option', { value: v, selected: S.layers.base === v }, t(`layers.base.${v}`))));
-  const gtRow = h('label.cc-chk', { 'data-testid': 'gtraffic-row' }, h('input', { type: 'checkbox', 'data-testid': 'gtraffic', checked: S.layers.gtraffic, onchange: (e) => { S.layers.gtraffic = e.target.checked; lsSet('blr-gtraffic', e.target.checked ? '1' : '0'); gbase?.setTraffic(e.target.checked); } }), h('span', t('layers.gtraffic')));
-  const layersPop = h('div.cc-pop', { id: 'cc-layers', hidden: true, role: 'group', 'aria-label': t('layers.title') },
-    ...(baseSel ? [h('div.field', h('label', t('layers.base')), baseSel), gtRow] : []), layerRow('cong', t('layers.cong')), layerRow('minor', t('layers.minor')), layerRow('stn', t('layers.stn')), layerRow('inc', t('layers.inc')), layerRow('works', t('layers.works')),
-    h('div.field', h('label', t('layers.shade')), shadeSel));
+  const gtRow = () => (!layerAllowed('gtraffic') ? null : h('label.cc-chk', { 'data-testid': 'gtraffic-row' }, h('input', { type: 'checkbox', 'data-testid': 'gtraffic', checked: S.layers.gtraffic, onchange: (e) => { S.layers.gtraffic = e.target.checked; lsSet('blr-gtraffic', e.target.checked ? '1' : '0'); gbase?.setTraffic(e.target.checked); } }), h('span', h('b', t('layers.gtraffic')), h('small', t('layers.gtraffic.d')))));
+  const layersPop = h('div.cc-pop', { id: 'cc-layers', hidden: true, role: 'group', 'aria-label': t('layers.title') });
+  let popSig = '';
+  const viewOpt = (v, cur) => h('label.cc-opt', { 'data-testid': 'view-' + v }, h('input', { type: 'radio', name: 'cc-view', value: v, checked: cur === v, onchange: () => { setView(v); popSig = sigOf(); drawLegend(); R.dirty = true; } }), h('span', h('b', t(`view.${v}.t`)), h('small', t(`view.${v}.d`))));
+  const sigOf = () => JSON.stringify([S.lang, allowedViews(), curView(), mapCfg().layers, !!baseSel]);
+  function renderLayers() {
+    const cur = curView(); popSig = sigOf();
+    fill(layersPop, h('div.cc-sec', t('view.title')), ...allowedViews().map((v) => viewOpt(v, cur)),
+      h('div.cc-sec', t('layers.show')), layerRow('minor'), layerRow('stn'), layerRow('inc'), layerRow('works'),
+      ...(baseSel ? [h('div.cc-sec', t('layers.base')), baseSel, gtRow()] : []));
+  }
   const layersBtn = h('button.btn.sm.cc-layersbtn', { 'aria-expanded': 'false', 'aria-controls': 'cc-layers', onclick: () => { layersPop.hidden = !layersPop.hidden; layersBtn.setAttribute('aria-expanded', String(!layersPop.hidden)); } }, ic('layers', 16), h('span.lbl', t('layers.title')));
   const outside = (e) => { if (!layersPop.hidden && !layersPop.contains(e.target) && !layersBtn.contains(e.target)) { layersPop.hidden = true; layersBtn.setAttribute('aria-expanded', 'false'); } };
   document.addEventListener('pointerdown', outside);
@@ -88,11 +93,25 @@ export function createMapPane() {
   wrap.append(tools, zoom, legend, note, replayChip, loading, tip);
 
   function drawLegend() {
-    const C = R.colours(), rows = [['<0.50', 'legend.free'], ['0.50–0.75', 'legend.light'], ['0.75–0.95', 'legend.busy'], ['0.95–1.15', 'legend.slow'], ['1.15–1.50', 'legend.jam'], ['>1.50', 'legend.grid']];
-    fill(legend, h('b.xs', t('legend.title')),
-      ...rows.map((r, i) => h('div.cc-lg', h('i', { style: { background: C.cls[i] } }), h('span', t(r[1])), h('span.mono.faint', r[0]))),
-      h('div.cc-lg', h('i', { style: { background: C['--nofeed'] } }), h('span', t('legend.nofeed'))),
-      h('div.cc-lg', h('i.inc', '!'), h('span', t('legend.inc'))), h('div.cc-lg', h('i.wk'), h('span', t('legend.works'))));
+    const C = R.colours(), v = curView(), cfg = mapCfg(), lg = (col, label, val) => h('div.cc-lg', h('i', { style: { background: col } }), h('span', label), h('span.mono.faint', val ?? ''));
+    let rows = [], top = null;
+    if (v === 'traffic') {
+      rows = [['<0.50', 'legend.free'], ['0.50–0.75', 'legend.light'], ['0.75–0.95', 'legend.busy'], ['0.95–1.15', 'legend.slow'], ['1.15–1.50', 'legend.jam'], ['>1.50', 'legend.grid']].map((r, i) => lg(C.cls[i], t(r[1]), r[0]));
+      rows.push(lg(C['--nofeed'], t('legend.nofeed')));
+    } else if (v === 'safety') {
+      const cs = cfg.crashScale, steps = [0, 0.25, 0.5, 0.75, 1];
+      rows = steps.map((q) => h('div.cc-lg', h('i', { style: { background: C['--c4'], opacity: 0.07 + 0.55 * q, height: '10px' } }), h('span', q === 0 ? t('legend.safety.none') : q === 1 ? t('legend.safety.max', { n: cs }) : ''), h('span.mono.faint', q === 0 ? '0' : q === 1 ? `≥${cs}` : `≥${Math.round(q * cs)}`)));
+      rows.push(lg(C['--nofeed'], t('legend.nodata')));
+      const t3 = scopeStations().filter((s) => hasCrash(s.i)).sort((a, b) => fatal2025(b.i) - fatal2025(a.i)).slice(0, 3);
+      top = t3.length ? t('legend.top', { list: t3.map((s) => `${s.n} ${fatal2025(s.i)}`).join(' · ') }) : null;
+    } else {
+      const b = cfg.speedBands, ramp = [C['--c4'], C['--c3'], C['--c2'], C['--c1'], C['--c0']], lab = [`<${b.slow}`, `${b.slow}–${b.moderate}`, `${b.moderate}–${b.good}`, `${b.good}–${b.fast}`, `≥${b.fast}`];
+      rows = ramp.map((c, i) => h('div.cc-lg', h('i', { style: { background: c, opacity: 0.7, height: '10px' } }), h('span', t(['legend.speed.crawl', 'legend.slow', 'legend.speed.ok', 'legend.speed.good', 'legend.speed.fast'][i])), h('span.mono.faint', lab[i])));
+      const sl = scopeStations().filter((s) => S.sum?.per[s.i]?.speed != null).sort((a, c) => S.sum.per[a.i].speed - S.sum.per[c.i].speed).slice(0, 3);
+      top = sl.length ? t('legend.slowest', { list: sl.map((s) => `${s.n} ${Math.round(S.sum.per[s.i].speed)}`).join(' · ') }) : null;
+    }
+    const marks = [layerOn('inc') ? h('div.cc-lg', h('i.inc', '!'), h('span', t('legend.inc'))) : null, layerOn('works') ? h('div.cc-lg', h('i.wk'), h('span', t('legend.works'))) : null];
+    fill(legend, h('b.xs', t(`view.${v}.t`)), h('div.faint.cc-lgd', t(`view.${v}.d`)), ...rows, top ? h('div.cc-lgt', top) : null, h('div.cc-lgu', t(`view.${v}.use`)), ...marks);
   }
 
   // ---- tooltip ----
@@ -103,7 +122,8 @@ export function createMapPane() {
       const st = MD.ST[net.stn[e]]; if (R.regAlpha(st.ri) < 0.5) return hideTip();
       body = [h('b', MD.edgeName(e, t('road.unnamed'))), h('div.mono.sm', `${Math.round(res.spd[e])} km/h · v/c ${res.vc[e].toFixed(2)}`), h('div.faint.xs', `${st.n} · ${regionName(st.r)}`), incident ? h('div.xs.bad', t('tip.incident')) : null];
     } else if (si >= 0 && R.regAlpha(MD.ST[si].ri) > 0.5) {
-      body = [h('b', MD.ST[si].n), h('div.faint.xs', `${regionName(MD.ST[si].r)} · ${t('kpi.fatal')}: ${hasCrash(si) ? fatal2025(si) : '–'}`)];
+      const sp = S.sum?.per[si]?.speed;
+      body = [h('b', MD.ST[si].n), h('div.faint.xs', `${regionName(MD.ST[si].r)} · ${t('kpi.fatal')}: ${hasCrash(si) ? fatal2025(si) : '–'}${curView() === 'speed' && sp != null ? ` · ${Math.round(sp)} km/h` : ''}`)];
     }
     if (!body) return hideTip();
     fill(tip, ...body); tip.hidden = false;
@@ -124,13 +144,17 @@ export function createMapPane() {
   });
   on(['result', 'view', 'incidents', 'works', 'crash', 'live', 'me', 'lang'], () => { redraw(); refreshOverlays(); });
   on('scope', () => R.fitScope());
-  on('lang', () => { drawLegend(); input.setAttribute('aria-label', t('map.search')); });
+  on('lang', () => { renderLayers(); drawLegend(); input.setAttribute('aria-label', t('map.search')); });
+  // admin changes (views, layers, thresholds) arrive with /me; rebuild the popover only when something it shows has changed so focus is not lost
+  on(['me', 'view'], () => { if (sigOf() !== popSig) renderLayers(); gbase?.setTraffic(layerOn('gtraffic')); drawLegend(); R.dirty = true; });
+  on(['result', 'scope', 'crash'], () => { if (curView() !== 'traffic') drawLegend(); });
+  renderLayers();
   const recolour = () => { R.refreshColours(); drawLegend(); };
   const mo = new MutationObserver(recolour); mo.observe(document.documentElement, { attributes: true, attributeFilter: ['data-theme'] });
   const mq = matchMedia('(prefers-color-scheme: dark)'); mq.addEventListener?.('change', recolour);
   (function loop() { if (R.dead) return; if (R.dirty && R.W) { R.draw(); gbase?.sync(); } requestAnimationFrame(loop); })();
   R.destroy = () => { R.dead = true; gbase?.destroy(); ro.disconnect(); mo.disconnect(); mq.removeEventListener?.('change', recolour); document.removeEventListener('pointerdown', outside); };
-  drawLegend(); refreshOverlays(); if (gbase && S.layers.base !== 'plain') { gbase.setTraffic(S.layers.gtraffic); gbase.set(S.layers.base); }
+  drawLegend(); refreshOverlays(); if (gbase && S.layers.base !== 'plain') { gbase.setTraffic(layerOn('gtraffic')); gbase.set(S.layers.base); }
   R.pane = wrap; R.canvas = canvas; R.focusSearch = () => { search.classList.add('open'); input.focus(); input.select(); };
   R.zoomBy = (f) => R.zoomAt(R.W / 2, R.H / 2, f);
   return R;

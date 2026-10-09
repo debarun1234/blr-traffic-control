@@ -19,7 +19,7 @@ export function actionContext({ net, state, action, incident, question }) {
 }
 /** Aggregate (non-personal) facts for the brief. */
 export function briefContext({ net, state, actions = [], scope }) {
-  const regionOf = (si) => net.map.st[si]?.r, inScope = (si) => scope === 'city' || regionOf(si) === scope;
+  const regionOf = (si) => net.map.st[si]?.r, inScope = (si) => scope === 'city' || regionOf(si) === scope || (scope === 'Urban' && regionOf(si) !== 'Rural');
   const d = decodeState({ vc: state.vc, spd: state.spd, n: net.ne });
   const worst = new Map();
   for (let e = 0; e < net.ne; e++) {
@@ -28,7 +28,7 @@ export function briefContext({ net, state, actions = [], scope }) {
   }
   const sts = state.stations.filter((s) => inScope(s.i) && s.speed != null);
   const avg = (f) => (sts.length ? r2(sts.reduce((a, s) => a + s[f], 0) / sts.length) : null);
-  const scoped = actions.filter((a) => scope === 'city' || a.region === scope);
+  const scoped = actions.filter((a) => scope === 'city' || a.region === scope || (scope === 'Urban' && a.region !== 'Rural'));
   return {
     scope, hour: fmtHour(state.hour), date: state.date, mode: state.mode, simulated: state.mode !== 'live', stale: !!state.stale,
     avgSpeedKmh: scope === 'city' ? state.city.speed : avg('speed'), congestedPct: scope === 'city' ? state.city.congPct : avg('cong'),

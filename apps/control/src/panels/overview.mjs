@@ -58,7 +58,7 @@ export function createOverview(map) {
       res ? kpi(t('kpi.inc'), String(incs.length), { id: 'inc' }) : kpiSkeleton(t('kpi.inc')),
       S.conn.loaded ? kpi(t('kpi.open'), String(oa.length), { id: 'open', sub: rep ? t('kpi.liveOnly') : '' }) : kpiSkeleton(t('kpi.open')),
       S.conn.loaded ? kpi(t('kpi.esc'), String(es.length), { tone: es.length ? 'bad' : '', id: 'esc' }) : kpiSkeleton(t('kpi.esc')),
-      kpi(t('kpi.fatal'), String(fat), { id: 'fatal' }));
+      kpi(t('kpi.fatal'), scopeStations().some((s) => hasCrash(s.i)) ? String(fat) : '–', { id: 'fatal' }));
     // data quality
     const L = S.live, cal = L?.calibration;
     fill(dq, h('span.dot' + (L && !L.stale && S.conn.ok ? '.good' : '.warn')),
@@ -67,12 +67,12 @@ export function createOverview(map) {
     slider.value = String(Math.round(h0 * 4)); slider.setAttribute('aria-valuetext', `${fmtH(h0)} IST`);
     back.hidden = !rep; tlCard.querySelector('[data-testid=replay-note]').textContent = rep ? t('replay.note') : t('tl.live');
     // table
-    const lr = S.scope !== 'All';
+    const lr = S.scope !== 'All' && S.scope !== 'Urban';
     fill(thead, h('tr', h('th', lr ? t('col.station') : t('col.region')), h('th.n', t('col.speed')), h('th.n', t('col.cong')), h('th.n', lr ? t('col.fatal') : t('col.inc')), lr ? null : h('th.n', t('col.fatal'))));
     fill(tblTitle, sectionTitle(lr ? t('sec.stations', { n: scopeStations().length }) : t('sec.regions')));
     const perSt = (i) => (!rep && L?.stations?.[i]) ? { speed: L.stations[i].speed, cong: L.stations[i].cong } : (S.sum ? { speed: S.sum.per[i].speed, cong: S.sum.per[i].congPct } : null);
     if (!lr) {
-      const rows = REGIONS.map((r) => {
+      const rows = REGIONS.filter((r) => inScope(r)).map((r) => {
         const rs = S.sum?.reg[r], ic = incidentsAt(h0).filter((x) => MD.ST[x.stn]?.r === r).length, fa = MD.ST.filter((s) => s.r === r).reduce((a, s) => a + fatal2025(s.i), 0);
         return { key: r, sig: `${rs?.speed?.toFixed(1)}|${rs?.congPct?.toFixed(1)}|${ic}|${fa}|${S.lang}|${S.result?.kind}`, r, rs, ic, fa };
       });

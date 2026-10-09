@@ -2,7 +2,7 @@
  * Traffic model on the real Bengaluru arterial graph.
  *
  * Method: static user-equilibrium assignment (method of successive averages) with BPR link-performance
- * functions over a gravity-model demand between 64 centroids (7 employment hubs, 53 station nodes and 4 Rural taluk units).
+ * functions over a gravity-model demand between 69 centroids (7 employment hubs, 53 station nodes and 9 outer taluk units).
  * Environment-neutral ES module: runs in Node (worker/API) and in the browser (what-if planner).
  *
  * This is a planning-grade model. It is NOT calibrated to observed travel times until `calibrate()` is fed

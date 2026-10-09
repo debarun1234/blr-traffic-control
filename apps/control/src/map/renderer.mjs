@@ -1,11 +1,11 @@
 // Canvas map renderer: zoom/pan LOD, region dimming, congestion colouring, shading layers, markers.
-import { S, lockedRegion, myStation, curHour, incidentsAt, today, fatal2025 } from '../state.mjs';
-import { REGIONS, REGION_INDEX, colourClass, speedBucket, worksEdges, worksActiveAt } from '../analytics.mjs';
+import { S, lockedRegion, myStation, curHour, incidentsAt, today, fatal2025, hasCrash, curView, layerOn, mapCfg } from '../state.mjs';
+import { REGIONS, REGION_INDEX, URBAN, colourClass, speedBucket, worksEdges, worksActiveAt } from '../analytics.mjs';
 import { UNIT_M } from './data.mjs';
 import { t } from '../i18n.mjs';
 
 const VARS = ['--map', '--land', '--ink', '--ink-2', '--line', '--accent', '--road-major', '--road-minor', '--nofeed', '--bad', '--warn', '--surface', '--c0', '--c1', '--c2', '--c3', '--c4', '--c5', '--font'];
-const WD = [3.1, 2.3, 1.5, 0.8];
+const WD = [3.1, 2.3, 1.5, 0.8, 0.6]; // class 4 = residential streets, drawn only when zoomed in
 
 export function createRenderer(canvas) {
   const MD = S.MD, { map, net, DX, DB, DREG, ST, REGBOX, RT, N } = MD;
@@ -30,7 +30,7 @@ export function createRenderer(canvas) {
   const sx = (x) => (x - R.view.cx) * R.view.k + R.W / 2, sy = (y) => R.H / 2 - (y - R.view.cy) * R.view.k;
   const wx = (px) => (px - R.W / 2) / R.view.k + R.view.cx, wy = (py) => (R.H / 2 - py) / R.view.k + R.view.cy;
   Object.assign(R, { sx, sy, wx, wy });
-  R.regAlpha = (ri) => (S.scope === 'All' ? 1 : ri === REGION_INDEX[S.scope] ? 1 : lockedRegion() ? 0.07 : 0.2);
+  R.regAlpha = (ri) => (S.scope === 'All' ? 1 : S.scope === 'Urban' ? (ri !== REGION_INDEX.Rural ? 1 : 0.16) : ri === REGION_INDEX[S.scope] ? 1 : lockedRegion() ? 0.07 : 0.2);
   const regAlpha = R.regAlpha;
   const visItem = (i, x0, y0, x1, y1) => !(DB[4 * i + 2] < x0 || DB[4 * i] > x1 || DB[4 * i + 3] < y0 || DB[4 * i + 1] > y1);
   R.visItem = visItem;
@@ -68,19 +68,19 @@ export function createRenderer(canvas) {
 
   R.draw = () => {
     R.dirty = false;
-    const C = colours(), k = R.view.k, W = R.W, H = R.H, vc = S.result?.vc, hasFeed = !!vc && S.layers.cong;
+    const C = colours(), k = R.view.k, W = R.W, H = R.H, vc = S.result?.vc, view = curView(), cfg = mapCfg(), hasFeed = !!vc && view === 'traffic';
     const mini = W < 560;
     ctx.setTransform(R.DPR, 0, 0, R.DPR, 0, 0);
     if (R.baseOn?.()) ctx.clearRect(0, 0, W, H); // Google basemap shows through
     else { ctx.fillStyle = C['--map']; ctx.fillRect(0, 0, W, H); ctx.beginPath(); ringPath(map.city); ctx.fillStyle = C['--land']; ctx.fill(); }
 
     // territory shading
-    if (S.layers.shade !== 'none') {
+    if (view !== 'traffic') {
       const ramp = [C['--c4'], C['--c3'], C['--c2'], C['--c1'], C['--c0']];
       ST.forEach((s, i) => {
         let col, al;
-        if (S.layers.shade === 'crash') { col = C['--c4']; al = Math.min(0.6, (fatal2025(i) / 26) * 0.6); }
-        else { const b = speedBucket(S.sum?.per[i]?.speed); col = b == null ? null : ramp[b]; al = 0.38; }
+        if (view === 'safety') { if (hasCrash(i)) { col = C['--c4']; al = 0.07 + 0.55 * Math.min(1, fatal2025(i) / cfg.crashScale); } else { col = C['--nofeed']; al = 0.12; } }
+        else { const b = speedBucket(S.sum?.per[i]?.speed, cfg.speedBands); col = b == null ? null : ramp[b]; al = 0.38; }
         if (!col) return;
         ctx.globalAlpha = al * regAlpha(s.ri); ctx.beginPath(); ringPath(s.poly); ctx.fillStyle = col; ctx.fill();
       });
@@ -90,7 +90,7 @@ export function createRenderer(canvas) {
     const my = myStation();
     if (my >= 0) { ctx.globalAlpha = 0.16; ctx.beginPath(); ringPath(ST[my].poly); ctx.fillStyle = C['--accent']; ctx.fill(); ctx.globalAlpha = 1; }
     // dim outside the scope region
-    if (S.scope !== 'All') { ctx.beginPath(); ringPath(map.city); ringPath(map.reg[S.scope]); ctx.fillStyle = C['--map']; ctx.globalAlpha = lockedRegion() ? 0.78 : 0.6; ctx.fill('evenodd'); ctx.globalAlpha = 1; }
+    if (S.scope !== 'All') { ctx.beginPath(); ringPath(map.city); if (S.scope === 'Urban') for (const r of URBAN) ringPath(map.reg[r]); else ringPath(map.reg[S.scope]); ctx.fillStyle = C['--map']; ctx.globalAlpha = lockedRegion() ? 0.78 : 0.6; ctx.fill('evenodd'); ctx.globalAlpha = 1; }
     // station boundaries
     ctx.lineWidth = 0.7; ctx.strokeStyle = C['--line'];
     for (const s of ST) { ctx.globalAlpha = 0.95 * regAlpha(s.ri); ctx.beginPath(); ringPath(s.poly); ctx.stroke(); }
@@ -98,34 +98,34 @@ export function createRenderer(canvas) {
 
     // roads (level of detail by zoom)
     const x0 = wx(0), x1 = wx(W), y0 = wy(H), y1 = wy(0), sc = Math.min(2.4, Math.max(0.8, Math.pow(k / 0.06, 0.4)));
-    const showMinor = S.layers.minor && k > 0.11;
+    const showMinor = layerOn('minor') && k > 0.11, showStreets = layerOn('minor') && k > 0.4;
     for (const bk of [1, 0]) {
-      const B = [[], [], [], []].map(() => [[], [], [], [], [], [], []]);
+      const B = [[], [], [], [], []].map(() => [[], [], [], [], [], [], []]);
       for (let i = 0; i < N; i++) {
         if (!visItem(i, x0, y0, x1, y1)) continue;
-        const d = map.d[i], c = d[0]; if (c === 3 && !showMinor) continue;
+        const d = map.d[i], c = d[0]; if ((c === 3 && !showMinor) || (c === 4 && !showStreets)) continue;
         const ra = DREG[i], al = ra < 0 ? 1 : regAlpha(ra); if ((al >= 1 ? 0 : 1) !== bk) continue;
         B[c][d[4] >= 0 && hasFeed ? colourClass(vc[d[4]]) : 6].push(i);
       }
       ctx.globalAlpha = bk ? (lockedRegion() ? 0.14 : 0.22) : 1; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
-      for (let c = 3; c >= 0; c--) for (let b = 0; b < 7; b++) {
+      for (let c = 4; c >= 0; c--) for (let b = 0; b < 7; b++) {
         const L = B[c][b]; if (!L.length) continue;
         ctx.beginPath(); for (const i of L) polyline(DX[i]);
-        ctx.strokeStyle = b < 6 ? C.cls[b] : c === 3 ? C['--road-minor'] : (c <= 2 && S.layers.cong ? C['--nofeed'] : C['--road-major']);
+        ctx.strokeStyle = b < 6 ? C.cls[b] : c >= 3 ? C['--road-minor'] : (c <= 2 && view === 'traffic' ? C['--nofeed'] : C['--road-major']);
         ctx.lineWidth = WD[c] * sc * (b >= 3 && b < 6 ? 1.25 : 1); ctx.stroke();
       }
     }
     ctx.globalAlpha = 1;
 
     // works overlay (dashed amber over affected edges)
-    if (S.layers.works) {
+    if (layerOn('works')) {
       const es = activeWorksEdges();
       if (es.length) { ctx.setLineDash([5, 4]); ctx.strokeStyle = C['--warn']; ctx.lineWidth = 3.2 * sc; ctx.lineCap = 'butt'; ctx.beginPath(); for (const e of es) polyline(DX[net.draw[e]]); ctx.stroke(); ctx.setLineDash([]); }
     }
 
     // region + city borders
     ctx.lineWidth = 2; ctx.strokeStyle = C['--accent'];
-    for (const r of REGIONS) { ctx.globalAlpha = S.scope === 'All' || S.scope === r ? 0.75 : 0.25; ctx.beginPath(); ringPath(map.reg[r]); ctx.stroke(); }
+    for (const r of REGIONS) { ctx.globalAlpha = S.scope === 'All' || S.scope === r || (S.scope === 'Urban' && r !== 'Rural') ? 0.75 : 0.25; ctx.beginPath(); ringPath(map.reg[r]); ctx.stroke(); }
     ctx.globalAlpha = 1; ctx.lineWidth = 1.6; ctx.strokeStyle = C['--ink']; ctx.beginPath(); ringPath(map.city); ctx.stroke();
 
     // selection
@@ -157,7 +157,7 @@ export function createRenderer(canvas) {
       }
     }
     // stations
-    if (S.layers.stn) {
+    if (layerOn('stn')) {
       const big = S.scope !== 'All' || k > 0.1; ctx.textAlign = 'left';
       ST.forEach((s, i) => {
         const a = regAlpha(s.ri); if (a < 0.5) return;
@@ -182,7 +182,7 @@ export function createRenderer(canvas) {
     for (const h of map.hubs) { ctx.save(); ctx.translate(sx(h.x), sy(h.y)); ctx.rotate(Math.PI / 4); ctx.fillStyle = C['--warn']; ctx.fillRect(-3.5, -3.5, 7, 7); ctx.restore(); }
     // incidents
     R.markers = [];
-    if (S.layers.inc) {
+    if (layerOn('inc')) {
       ctx.textAlign = 'center';
       for (const x of incidentsAt(curHour())) {
         const [mx, my2] = MD.edgeMid(x.e), px = sx(mx), py = sy(my2); if (px < -20 || px > W + 20 || py < -20 || py > H + 20) continue;

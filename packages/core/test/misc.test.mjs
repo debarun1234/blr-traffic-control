@@ -37,6 +37,9 @@ test('settings: defaults, deep merge, unknown keys and bad values rejected, pers
   const store = createMemoryStore();
   assert.deepEqual(validateSettings(defaultSettings()), []);
   assert.ok(validateSettings({ feed: { mode: 'weird' } })[0].includes('feed.mode'));
+  const d = defaultSettings(); assert.equal(d.map.defaultView, 'traffic'); assert.equal(d.map.views.safety.viewer, false);
+  assert.ok(validateSettings({ ...d, map: { ...d.map, speedBands: { slow: 20, moderate: 20, good: 27, fast: 34 } } }).some((m) => m.includes('speedBands')));
+  assert.ok(validateSettings({ ...d, map: { ...d.map, defaultView: 'x' } }).some((m) => m.includes('map.defaultView')));
   assert.ok(validateSettings({ nope: 1 })[0].includes('unknown key')); assert.ok(validateSettings({ ai: { tiers: { t1: { model: 'bad model!' } } } }).length);
   assert.ok(validateSettings({ feed: { tickMin: 0 } }).length); assert.ok(validateSettings({ caps: { routesCallsPerDay: 1.5 } }).length);
   const bad = await putSettings(store, { workflow: { escalateAfterMin: 'x' } }); assert.ok(bad.errors.length); assert.equal(await store.get('settings', 'app'), null);

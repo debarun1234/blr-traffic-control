@@ -6,7 +6,7 @@ import sys, os, json, time, zlib, struct, array, glob, argparse
 import numpy as np
 from multiprocessing import Pool
 
-CLS = {'motorway': 0, 'motorway_link': 0, 'trunk': 0, 'trunk_link': 0, 'primary': 1, 'primary_link': 1, 'secondary': 2, 'secondary_link': 2, 'tertiary': 3, 'tertiary_link': 3}
+CLS = {'motorway': 0, 'motorway_link': 0, 'trunk': 0, 'trunk_link': 0, 'primary': 1, 'primary_link': 1, 'secondary': 2, 'secondary_link': 2, 'tertiary': 3, 'tertiary_link': 3, 'unclassified': 3, 'residential': 4, 'living_street': 4}
 
 def varint(buf, i):
     r = s = 0
@@ -85,7 +85,7 @@ def decode_chunk(args):
 
 def main():
     ap = argparse.ArgumentParser(); ap.add_argument('src'); ap.add_argument('work'); ap.add_argument('--budget', type=float, default=150)
-    ap.add_argument('--bbox', nargs=4, type=float, default=[12.85, 77.15, 13.55, 78.10]); ap.add_argument('--finish')
+    ap.add_argument('--bbox', nargs=4, type=float, default=[12.55, 77.15, 13.55, 78.10]); ap.add_argument('--finish')
     a = ap.parse_args(); os.makedirs(a.work, exist_ok=True); W_ = lambda n: os.path.join(a.work, n); t0 = time.time()
     log = lambda m: print(f'{time.time()-t0:6.0f}s {m}', flush=True)
     import osmium as o

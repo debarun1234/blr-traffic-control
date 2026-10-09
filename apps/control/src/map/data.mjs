@@ -16,7 +16,7 @@ export function buildMapData(map) {
     const s = map.d[i][2]; DREG[i] = s >= 0 ? REGION_INDEX[ST[s].r] : -1;
   }
   const bb = (rings) => { let a = 1e9, b = 1e9, c = -1e9, d = -1e9; for (const r of rings) for (const p of r) { if (p[0] < a) a = p[0]; if (p[0] > c) c = p[0]; if (p[1] < b) b = p[1]; if (p[1] > d) d = p[1]; } return [a, b, c, d]; };
-  const REGBOX = { All: bb(map.city) }; for (const r of REGIONS) REGBOX[r] = bb(map.reg[r]);
+  const REGBOX = { All: bb(map.city) }; for (const r of REGIONS) REGBOX[r] = bb(map.reg[r]); REGBOX.Urban = bb(['North', 'East', 'Central', 'West', 'South'].flatMap((r) => map.reg[r]));
   const stIdx = new Map();
   ST.forEach((s, i) => { s.box = bb(s.poly); s.i = i; s.ri = REGION_INDEX[s.r]; stIdx.set(s.n, i); });
   // label anchors: the region's bbox centre, except Rural (an arc round the north of the city) which is labelled at its largest unit

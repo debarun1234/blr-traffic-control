@@ -3,12 +3,14 @@
 
 export const REGIONS = ['North', 'East', 'Central', 'West', 'South', 'Rural'];
 export const REGION_INDEX = { North: 0, East: 1, Central: 2, West: 3, South: 4, Rural: 5 };
+export const URBAN = ['North', 'East', 'Central', 'West', 'South'];
 export const CLASS_NAMES = ['arterial', 'subArterial', 'collector'];
 
 /** v/c -> colour bucket 0..5 (matches --c0..--c5). */
 export const colourClass = (vc) => (vc < 0.5 ? 0 : vc < 0.75 ? 1 : vc < 0.95 ? 2 : vc < 1.15 ? 3 : vc < 1.5 ? 4 : 5);
 /** speed -> shading colour bucket for the territory "speed" layer (0 worst .. 4 best), null when unknown. */
-export const speedBucket = (v) => (v == null ? null : v < 14 ? 0 : v < 20 ? 1 : v < 27 ? 2 : v < 34 ? 3 : 4);
+export const DEFAULT_MAP = { defaultView: 'traffic', views: { safety: { viewer: false }, speed: {} }, layers: { minorRoads: true, stations: true, incidents: true, works: true, googleTraffic: true }, speedBands: { slow: 14, moderate: 20, good: 27, fast: 34 }, crashScale: 26 };
+export const speedBucket = (v, b = DEFAULT_MAP.speedBands) => (v == null ? null : v < b.slow ? 0 : v < b.moderate ? 1 : v < b.good ? 2 : v < b.fast ? 3 : 4);
 
 /**
  * Per-station / per-region / city summary from a v/c + speed pair. The wire format has no flows, so flow is
@@ -20,13 +22,13 @@ export function summarizeApprox(net, vc, spd) {
     const l = net.len[e] / 1000, w = vc[e] * net.cap[e] * l, P = per[net.stn[e]];
     P.vk += w; P.sp += w * spd[e]; P.L += l; if (vc[e] > 0.95) P.c += l;
   }
-  const agg = () => ({ vk: 0, sp: 0, L: 0, c: 0 }), city = agg(), reg = {};
+  const agg = () => ({ vk: 0, sp: 0, L: 0, c: 0 }), city = agg(), urban = agg(), reg = {};
   for (const r of REGIONS) reg[r] = agg();
-  per.forEach((p, i) => { for (const A of [city, reg[net.map.st[i].r]]) { A.vk += p.vk; A.sp += p.sp; A.L += p.L; A.c += p.c; } });
+  per.forEach((p, i) => { const rr = net.map.st[i].r; for (const A of rr === 'Rural' ? [city, reg[rr]] : [city, urban, reg[rr]]) { A.vk += p.vk; A.sp += p.sp; A.L += p.L; A.c += p.c; } });
   const fin = (p) => ({ speed: p.vk ? p.sp / p.vk : null, congPct: p.L ? (100 * p.c) / p.L : 0, km: p.L });
-  return { city: fin(city), reg: Object.fromEntries(REGIONS.map((r) => [r, fin(reg[r])])), per: per.map(fin) };
+  return { city: fin(city), urban: fin(urban), reg: Object.fromEntries(REGIONS.map((r) => [r, fin(reg[r])])), per: per.map(fin) };
 }
-export const scopeSum = (sum, scope) => (!sum ? null : scope === 'All' ? sum.city : sum.reg[scope]);
+export const scopeSum = (sum, scope) => (!sum ? null : scope === 'All' ? sum.city : scope === 'Urban' ? sum.urban : sum.reg[scope]);
 
 /** Busiest named roads (grouped by road name + station), by max v/c. `filter(stIdx)` limits stations. */
 export function topRoads(net, vc, spd, { stn = null, filter = () => true, n = 8, minLen = 600 } = {}) {

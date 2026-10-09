@@ -30,7 +30,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
   const mkInc = (id, type, e, sh, eh, src = 'sim', by) => ({ id, src, type, edge: e, station: map.st[net.stn[e]].n, date, startHour: sh, endHour: eh, cap: (INCIDENT_TYPES.find((x) => x.type === type) ?? { cap: 0.5 }).cap, by, createdAt: FIXED_NOW });
   function init() {
     S = {
-      now: FIXED_NOW, hour, date, boost: 1.12, mode: 'sim', stale: false, staleBy: 0, maintenance: false, aiEnabled: true, aiLimit: 50, aiUsed: 0, down: null, latency: 0, version: 1, seq: 100,
+      now: FIXED_NOW, hour, date, boost: 1.12, mode: 'sim', stale: false, staleBy: 0, maintenance: false, map: null, aiEnabled: true, aiLimit: 50, aiUsed: 0, down: null, latency: 0, version: 1, seq: 100,
       users: new Map(DEFAULT_USERS.map((u) => [u.email, { active: true, ...u }])), actions: new Map(), aiCache: new Map(), calls: [],
       incidents: [...simIncidents(net, date).map((x) => mkInc(x.id, x.type, x.e, x.sh, x.eh)),
         mkInc(`${date}-s1`, 'Vehicle breakdown', edgeIn('Yalahanka'), hour - 0.1, hour + 0.7), mkInc(`${date}-s2`, 'Accident', edgeIn('Indiranagar'), hour - 0.5, hour + 0.8),
@@ -83,7 +83,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     const u = S.users.get(e); if (!u || !u.active) return { status: 403, email: e };
     return { u };
   };
-  const meOf = (u) => ({ email: u.email, name: u.name, role: u.role, region: u.region ?? null, station: u.station ?? null, active: u.active, permissions: PERMISSIONS[u.role] ?? [], lockedRegion: lockedRegion(u, stations), jurisdiction: [...jurisdiction(u, stations)], flags: { aiEnabled: S.aiEnabled, maintenance: S.maintenance } });
+  const meOf = (u) => ({ email: u.email, name: u.name, role: u.role, region: u.region ?? null, station: u.station ?? null, active: u.active, permissions: PERMISSIONS[u.role] ?? [], lockedRegion: lockedRegion(u, stations), jurisdiction: [...jurisdiction(u, stations)], flags: { aiEnabled: S.aiEnabled, maintenance: S.maintenance }, ...(S.map ? { map: S.map } : {}) });
   const actionsFor = (u) => [...S.actions.values()].filter((a) => (u.role === 'station' || u.role === 'dcp') ? a.region === lockedRegion(u, stations) : true).sort((a, b) => (b.escalated - a.escalated) || (b.raisedAt - a.raisedAt));
 
   async function api(req, res, url) {
@@ -166,7 +166,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     if (p === '/__mock/reset') { init(); return json(res, 200, { ok: true }); }
     if (p === '/__mock/set') {
       let re = false;
-      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration', 'noPreflight', 'mapsKey']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
+      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration', 'noPreflight', 'mapsKey', 'map']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
       if (b.addUser) S.users.set(b.addUser.email, { active: true, ...b.addUser });
       if (b.addIncident) { const i = b.addIncident; S.incidents.push(mkInc(i.id ?? `x-${++S.seq}`, i.type ?? 'Accident', i.edge ?? edgeIn(i.station), i.sh ?? S.hour - 0.2, i.eh ?? S.hour + 0.8)); re = true; }
       syncActions(); if (re) recompute(3); else S.version++;

@@ -6,7 +6,7 @@
 const D = {
   // ---- app / generic ----
   'app.name': ['Bengaluru Traffic Control', 'ಬೆಂಗಳೂರು ಸಂಚಾರ ನಿಯಂತ್ರಣ'],
-  'app.sub': ['Modelled traffic · 53 station territories + 4 Rural taluks', 'ಮಾದರಿ ಸಂಚಾರ · 53 ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳು + 4 ಗ್ರಾಮಾಂತರ ತಾಲ್ಲೂಕುಗಳು'],
+  'app.sub': ['Modelled traffic · 53 station territories + 9 outer taluks', 'ಮಾದರಿ ಸಂಚಾರ · 53 ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳು + 9 ಹೊರ ತಾಲ್ಲೂಕುಗಳು'],
   'loading': ['Loading…', 'ಲೋಡ್ ಆಗುತ್ತಿದೆ…'],
   'computing': ['Computing…', 'ಲೆಕ್ಕಹಾಕಲಾಗುತ್ತಿದೆ…'],
   'retry': ['Retry', 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ'],
@@ -18,7 +18,8 @@ const D = {
   'road.unnamed': ['(unnamed road)', '(ಹೆಸರಿಲ್ಲದ ರಸ್ತೆ)'],
 
   // ---- scope / roles ----
-  'scope.all': ['Whole city', 'ಇಡೀ ನಗರ'],
+  'scope.all': ['Whole area', 'ಇಡೀ ಪ್ರದೇಶ'],
+  'reg.Urban': ['Urban', 'ನಗರ'],
   'scope.aria': ['Region scope', 'ವಿಭಾಗ ವ್ಯಾಪ್ತಿ'],
   'scope.locked': ['Your view is locked to this region', 'ನಿಮ್ಮ ವೀಕ್ಷಣೆ ಈ ವಿಭಾಗಕ್ಕೆ ಸೀಮಿತವಾಗಿದೆ'],
   'lock.note': ['Your view is locked to the {region} region.', 'ನಿಮ್ಮ ವೀಕ್ಷಣೆ {region} ವಿಭಾಗಕ್ಕೆ ಸೀಮಿತವಾಗಿದೆ.'],
@@ -59,7 +60,7 @@ const D = {
   'theme.toggle': ['Switch light / dark theme', 'ಬೆಳಕು / ಕತ್ತಲೆ ಥೀಮ್ ಬದಲಿಸಿ'],
   'kbd.title': ['Keyboard shortcuts', 'ಕೀಬೋರ್ಡ್ ಶಾರ್ಟ್‌ಕಟ್‌ಗಳು'],
   'kbd.scope1': ['Whole city', 'ಇಡೀ ನಗರ'],
-  'kbd.scope26': ['North, East, Central, West, South', 'ಉತ್ತರ, ಪೂರ್ವ, ಕೇಂದ್ರ, ಪಶ್ಚಿಮ, ದಕ್ಷಿಣ'],
+  'kbd.scope26': ['Urban, North, East, Central, West, South, Rural', 'ನಗರ, ಉತ್ತರ, ಪೂರ್ವ, ಕೇಂದ್ರ, ಪಶ್ಚಿಮ, ದಕ್ಷಿಣ, ಗ್ರಾಮಾಂತರ'],
   'kbd.search': ['Search station or road', 'ಠಾಣೆ ಅಥವಾ ರಸ್ತೆ ಹುಡುಕಿ'],
   'kbd.zoom': ['Zoom out / zoom in', 'ಜೂಮ್ ಕಡಿಮೆ / ಹೆಚ್ಚು'],
   'kbd.replay': ['Toggle replay', 'ಮರುಪ್ರಸಾರ ಆನ್/ಆಫ್'],
@@ -73,9 +74,18 @@ const D = {
   'map.zoom': ['Zoom', 'ಜೂಮ್'], 'map.zoomIn': ['Zoom in', 'ಜೂಮ್ ಹೆಚ್ಚಿಸಿ'], 'map.zoomOut': ['Zoom out', 'ಜೂಮ್ ಕಡಿಮೆ ಮಾಡಿ'], 'map.fit': ['Fit to scope', 'ವ್ಯಾಪ್ತಿಗೆ ಹೊಂದಿಸಿ'],
   'map.loading': ['Loading modelled feed…', 'ಮಾದರಿ ಮಾಹಿತಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ…'],
   'map.note': ['Modelled traffic on real road geometry, not sensor data. Crash figures are real (BTP 2018–2025).', 'ನೈಜ ರಸ್ತೆ ಜ್ಯಾಮಿತಿಯ ಮೇಲೆ ಮಾದರಿ ಸಂಚಾರ, ಸೆನ್ಸರ್ ಮಾಹಿತಿಯಲ್ಲ. ಅಪಘಾತ ಅಂಕಿಅಂಶಗಳು ನೈಜ (BTP 2018–2025).'],
-  'layers.title': ['Layers', 'ಪದರಗಳು'], 'layers.cong': ['Congestion', 'ದಟ್ಟಣೆ'], 'layers.minor': ['Minor roads', 'ಸಣ್ಣ ರಸ್ತೆಗಳು'], 'layers.stn': ['Stations', 'ಠಾಣೆಗಳು'], 'layers.inc': ['Incidents', 'ಘಟನೆಗಳು'], 'layers.works': ['Works', 'ಕಾಮಗಾರಿ'],
-  'layers.base': ['Basemap', 'ಬೇಸ್‌ಮ್ಯಾಪ್'], 'layers.gtraffic': ['Google live traffic (whole area, incl. Rural)', 'ಗೂಗಲ್ ಲೈವ್ ಟ್ರಾಫಿಕ್ (ಗ್ರಾಮಾಂತರ ಸೇರಿ)'], 'layers.base.plain': ['Plain (built-in)', 'ಸರಳ (ಅಂತರ್ನಿರ್ಮಿತ)'], 'layers.base.roadmap': ['Google Maps', 'ಗೂಗಲ್ ಮ್ಯಾಪ್ಸ್'], 'layers.base.hybrid': ['Google satellite', 'ಗೂಗಲ್ ಉಪಗ್ರಹ'],
-  'layers.shade': ['Territory shading', 'ವ್ಯಾಪ್ತಿ ಛಾಯೆ'], 'layers.shade.none': ['None', 'ಇಲ್ಲ'], 'layers.shade.crash': ['Fatal crashes 2025', 'ಮರಣಾಂತಿಕ ಅಪಘಾತ 2025'], 'layers.shade.speed': ['Modelled speed', 'ಮಾದರಿ ವೇಗ'],
+  'layers.title': ['Map', 'ನಕ್ಷೆ'], 'view.title': ['What do you want to see?', 'ನೀವು ಏನು ನೋಡಲು ಬಯಸುತ್ತೀರಿ?'], 'layers.show': ['Also show', 'ಇದನ್ನೂ ತೋರಿಸಿ'],
+  'layers.base': ['Basemap', 'ಬೇಸ್‌ಮ್ಯಾಪ್'], 'layers.gtraffic': ['Google live traffic', 'ಗೂಗಲ್ ಲೈವ್ ಟ್ರಾಫಿಕ್'], 'layers.base.plain': ['Plain (built-in)', 'ಸರಳ (ಅಂತರ್ನಿರ್ಮಿತ)'], 'layers.base.roadmap': ['Google Maps', 'ಗೂಗಲ್ ಮ್ಯಾಪ್ಸ್'], 'layers.base.hybrid': ['Google satellite', 'ಗೂಗಲ್ ಉಪಗ್ರಹ'],
+  'view.traffic.t': ['Live traffic', 'ಲೈವ್ ಸಂಚಾರ'], 'view.traffic.d': ['Roads coloured by how full they are now (modelled load ÷ capacity).', 'ರಸ್ತೆಗಳು ಈಗ ಎಷ್ಟು ತುಂಬಿವೆ ಎಂಬುದರ ಬಣ್ಣ (ಮಾದರಿ ಭಾರ ÷ ಸಾಮರ್ಥ್ಯ).'], 'view.traffic.use': ['Use it to spot where congestion is building and where to send units.', 'ದಟ್ಟಣೆ ಎಲ್ಲಿ ಹೆಚ್ಚುತ್ತಿದೆ ಮತ್ತು ಎಲ್ಲಿಗೆ ಸಿಬ್ಬಂದಿ ಕಳುಹಿಸಬೇಕು ಎಂದು ತಿಳಿಯಲು ಬಳಸಿ.'],
+  'view.safety.t': ['Crash hotspots', 'ಅಪಘಾತ ಹಾಟ್‌ಸ್ಪಾಟ್‌ಗಳು'], 'view.safety.d': ['Station areas shaded by fatal crashes recorded in 2025 (BTP data). Roads are muted.', '2025ರಲ್ಲಿ ದಾಖಲಾದ ಮರಣಾಂತಿಕ ಅಪಘಾತಗಳ ಆಧಾರದ ಮೇಲೆ ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳ ಛಾಯೆ (BTP ದತ್ತಾಂಶ). ರಸ್ತೆಗಳು ಮಂದ.'], 'view.safety.use': ['Use it to decide where to focus enforcement, patrols and signage. Outer taluks have no crash records.', 'ಜಾರಿ, ಗಸ್ತು ಮತ್ತು ಫಲಕಗಳನ್ನು ಎಲ್ಲಿ ಕೇಂದ್ರೀಕರಿಸಬೇಕು ಎಂದು ನಿರ್ಧರಿಸಲು ಬಳಸಿ. ಹೊರ ತಾಲ್ಲೂಕುಗಳಿಗೆ ದಾಖಲೆ ಇಲ್ಲ.'],
+  'view.speed.t': ['Area speed', 'ಪ್ರದೇಶ ವೇಗ'], 'view.speed.d': ['Station areas shaded by average modelled speed over their roads. Roads are muted.', 'ಠಾಣೆ ವ್ಯಾಪ್ತಿಯ ರಸ್ತೆಗಳ ಸರಾಸರಿ ಮಾದರಿ ವೇಗದ ಛಾಯೆ. ರಸ್ತೆಗಳು ಮಂದ.'], 'view.speed.use': ['Use it to compare areas and find where delay is worst across the day.', 'ಪ್ರದೇಶಗಳನ್ನು ಹೋಲಿಸಲು ಮತ್ತು ದಿನದಲ್ಲಿ ವಿಳಂಬ ಹೆಚ್ಚಿರುವ ಸ್ಥಳ ಕಂಡುಹಿಡಿಯಲು ಬಳಸಿ.'],
+  'layers.minor': ['Local roads', 'ಸ್ಥಳೀಯ ರಸ್ತೆಗಳು'], 'layers.minor.d': ['Neighbourhood streets. Appear as you zoom in.', 'ಬಡಾವಣೆ ರಸ್ತೆಗಳು. ಜೂಮ್ ಮಾಡಿದಾಗ ಕಾಣುತ್ತವೆ.'],
+  'layers.stn': ['Police stations', 'ಪೊಲೀಸ್ ಠಾಣೆಗಳು'], 'layers.stn.d': ['Station locations and names.', 'ಠಾಣೆಗಳ ಸ್ಥಳ ಮತ್ತು ಹೆಸರು.'],
+  'layers.inc': ['Incidents', 'ಘಟನೆಗಳು'], 'layers.inc.d': ['Active crashes, breakdowns and closures.', 'ಸಕ್ರಿಯ ಅಪಘಾತ, ಕೆಟ್ಟುನಿಂತ ವಾಹನ ಮತ್ತು ಮುಚ್ಚುವಿಕೆ.'],
+  'layers.works': ['Road works', 'ರಸ್ತೆ ಕಾಮಗಾರಿ'], 'layers.works.d': ['Planned works that cut road capacity.', 'ರಸ್ತೆ ಸಾಮರ್ಥ್ಯ ಕಡಿಮೆ ಮಾಡುವ ಯೋಜಿತ ಕಾಮಗಾರಿ.'],
+  'layers.gtraffic.d': ['Google’s own traffic colours on the Google basemap. Separate from our model.', 'ಗೂಗಲ್ ಬೇಸ್‌ಮ್ಯಾಪ್ ಮೇಲೆ ಗೂಗಲ್‌ನ ಸ್ವಂತ ಸಂಚಾರ ಬಣ್ಣಗಳು. ನಮ್ಮ ಮಾದರಿಯಿಂದ ಬೇರೆ.'],
+  'legend.safety.none': ['None recorded', 'ದಾಖಲೆ ಇಲ್ಲ'], 'legend.safety.max': ['{n} or more', '{n} ಅಥವಾ ಹೆಚ್ಚು'], 'legend.nodata': ['No crash data', 'ಅಪಘಾತ ದತ್ತಾಂಶ ಇಲ್ಲ'], 'legend.top': ['Highest: {list}', 'ಅತಿ ಹೆಚ್ಚು: {list}'], 'legend.slowest': ['Slowest: {list}', 'ಅತಿ ನಿಧಾನ: {list}'],
+  'legend.speed.crawl': ['Crawling', 'ತೆವಳುತ್ತಿದೆ'], 'legend.speed.ok': ['Moderate', 'ಮಧ್ಯಮ'], 'legend.speed.good': ['Good', 'ಉತ್ತಮ'], 'legend.speed.fast': ['Fast', 'ವೇಗ'],
   'legend.title': ['Road load (v/c)', 'ರಸ್ತೆ ಭಾರ (v/c)'],
   'legend.free': ['Free', 'ಸುಗಮ'], 'legend.light': ['Light', 'ಹಗುರ'], 'legend.busy': ['Busy', 'ಕಾರ್ಯನಿರತ'], 'legend.slow': ['Slow', 'ನಿಧಾನ'], 'legend.jam': ['Jammed', 'ಜಾಮ್'], 'legend.grid': ['Gridlock', 'ಸ್ಥಗಿತ'],
   'legend.nofeed': ['No feed', 'ಮಾಹಿತಿ ಇಲ್ಲ'], 'legend.inc': ['Incident', 'ಘಟನೆ'], 'legend.works': ['Works', 'ಕಾಮಗಾರಿ'],
@@ -164,7 +174,7 @@ const D = {
 
   // ---- sign-in / gates / errors ----
   'signin.title': ['Sign in to the control room', 'ನಿಯಂತ್ರಣ ಕೊಠಡಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ'],
-  'signin.purpose': ['Operational view of modelled road congestion, incidents, works and actions across Bengaluru’s 53 police-station territories and the four Bengaluru Rural taluks.', 'ಬೆಂಗಳೂರಿನ 53 ಪೊಲೀಸ್ ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳ ಮಾದರಿ ರಸ್ತೆ ದಟ್ಟಣೆ, ಘಟನೆಗಳು, ಕಾಮಗಾರಿಗಳು ಮತ್ತು ಕ್ರಮಗಳ ಕಾರ್ಯಾಚರಣೆ ನೋಟ.'],
+  'signin.purpose': ['Operational view of modelled road congestion, incidents, works and actions across Bengaluru’s 53 police-station territories and the nine surrounding Bengaluru Rural and Urban-district taluks.', 'ಬೆಂಗಳೂರಿನ 53 ಪೊಲೀಸ್ ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳ ಮಾದರಿ ರಸ್ತೆ ದಟ್ಟಣೆ, ಘಟನೆಗಳು, ಕಾಮಗಾರಿಗಳು ಮತ್ತು ಕ್ರಮಗಳ ಕಾರ್ಯಾಚರಣೆ ನೋಟ.'],
   'signin.google': ['Sign in with Google', 'Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ'],
   'signin.honest': ['Access is allowlist-only. Everything shown is modelled or simulated unless the banner says LIVE (modelled), and even then not every road is measured.', 'ಪ್ರವೇಶ ಅನುಮತಿ ಪಟ್ಟಿಯಲ್ಲಿರುವವರಿಗೆ ಮಾತ್ರ. ಇಲ್ಲಿ ತೋರಿಸುವುದೆಲ್ಲವೂ ಮಾದರಿ ಅಥವಾ ಅನುಕರಣೆ; ಬ್ಯಾನರ್ “ನೇರ (ಮಾದರಿ)” ಎಂದರೂ ಪ್ರತಿ ರಸ್ತೆಯನ್ನೂ ಅಳೆಯಲಾಗಿಲ್ಲ.'],
   'signin.devNote': ['Development sign-in: pick a test user. This is disabled in production.', 'ಅಭಿವೃದ್ಧಿ ಸೈನ್-ಇನ್: ಪರೀಕ್ಷಾ ಬಳಕೆದಾರರನ್ನು ಆರಿಸಿ. ಉತ್ಪಾದನೆಯಲ್ಲಿ ಇದು ನಿಷ್ಕ್ರಿಯ.'],

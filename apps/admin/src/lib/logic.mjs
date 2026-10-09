@@ -79,6 +79,15 @@ export function validateSettings(s) {
   if (!isInt(s.workflow?.escalateAfterMin) || s.workflow.escalateAfterMin < 1 || s.workflow.escalateAfterMin > 240) e['workflow.escalateAfterMin'] = 'Whole minutes, 1 to 240.';
   if (!isInt(s.workflow?.verifyAfterMin) || s.workflow.verifyAfterMin < 5 || s.workflow.verifyAfterMin > 480) e['workflow.verifyAfterMin'] = 'Whole minutes, 5 to 480.';
   for (const k of ['routesCallsPerDay', 'tomtomCallsPerDay']) if (!isInt(s.caps?.[k]) || s.caps[k] < 0 || s.caps[k] > 100000) e[`caps.${k}`] = 'Whole number, 0 to 100,000.';
+  const m = s.map;
+  if (m) {
+    if (!['traffic', 'safety', 'speed'].includes(m.defaultView)) e['map.defaultView'] = 'Choose traffic, safety or speed.';
+    else if (m.defaultView !== 'traffic' && Object.values(m.views?.[m.defaultView] ?? {}).every((x) => !x)) e['map.defaultView'] = 'This view is off for every role, so it cannot be the default.';
+    const b = m.speedBands ?? {}; const ks = ['slow', 'moderate', 'good', 'fast'];
+    for (const k of ks) if (!isInt(b[k]) || b[k] < 3 || b[k] > 80) e[`map.speedBands.${k}`] = 'Whole km/h, 3 to 80.';
+    if (!ks.some((k) => e[`map.speedBands.${k}`])) ks.slice(1).forEach((k, i) => { if (!(b[ks[i]] < b[k]) && !e[`map.speedBands.${k}`]) e[`map.speedBands.${k}`] = `Must be higher than ${ks[i]} (${b[ks[i]]}).`; });
+    if (!isInt(m.crashScale) || m.crashScale < 1 || m.crashScale > 500) e['map.crashScale'] = 'Whole number, 1 to 500.';
+  }
   return e;
 }
 export function validateAiLimits(ai) {

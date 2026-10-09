@@ -23,7 +23,7 @@ for ei,(c,ni,ow,j,xs,ys,wi) in enumerate(edges):
         r=len(route);route.append([a,b,round(plen(xs,ys)),c,j,di])
     draw.append([c,ni,j,flat(xs,ys),r])
 for (c,ni,ow,j,xs,ys) in st['ways']:
-    if c==3:draw.append([3,-1,j,flat(xs,ys),-1])
+    if c>=3:draw.append([c,-1,j,flat(xs,ys),-1])  # 3 = tertiary/unclassified, 4 = residential streets (drawn only when zoomed in)
 import numpy as np
 from scipy.spatial import cKDTree
 ks=sorted(nxy);arr=np.array([nxy[k] for k in ks],float);kt=cKDTree(arr)

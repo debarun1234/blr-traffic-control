@@ -1,7 +1,7 @@
 // Central client state: a plain object + topic pub/sub (coalesced per microtask), selectors and replay logic.
 import { istParts } from '/vendor/shared.mjs';
 import { runAssign } from './sim.mjs';
-import { summarizeApprox, capMulFor, incidentActiveAt } from './analytics.mjs';
+import { summarizeApprox, capMulFor, incidentActiveAt, DEFAULT_MAP } from './analytics.mjs';
 import { debounce, lsGet, lsSet } from './util.mjs';
 import { setI18nLang } from './i18n.mjs';
 
@@ -9,7 +9,7 @@ export const S = {
   cfg: null, api: null, auth: null, MD: null, me: null,
   lang: lsGet('blr-lang', 'en') === 'kn' ? 'kn' : 'en',
   scope: 'All', sel: null, tab: 'overview',
-  layers: { cong: true, minor: true, stn: true, inc: true, works: true, shade: 'none', gtraffic: lsGet('blr-gtraffic', '0') === '1', base: ['roadmap', 'hybrid'].includes(lsGet('blr-base', 'plain')) ? lsGet('blr-base', 'plain') : 'plain' },
+  layers: { minor: true, stn: true, inc: true, works: true, view: ['traffic', 'safety', 'speed'].includes(lsGet('blr-view', '')) ? lsGet('blr-view', '') : null, gtraffic: lsGet('blr-gtraffic', '0') === '1', base: ['roadmap', 'hybrid'].includes(lsGet('blr-base', 'plain')) ? lsGet('blr-base', 'plain') : 'plain' },
   replay: null, replayBusy: false, replayRes: null,
   live: null, result: null, sum: null,
   incidents: [], works: [], actions: [], crash: null, quota: null,
@@ -45,7 +45,16 @@ export const isCmd = () => S.me?.role === 'admin' || S.me?.role === 'commissione
 export const isAdmin = () => S.me?.role === 'admin';
 export const myStation = () => (S.me?.role === 'station' && S.MD ? S.MD.stIdx.get(S.me.station) ?? -1 : -1);
 export const canActOn = (stIdx) => !!S.me && stIdx >= 0 && S.me.jurisdiction.includes(S.MD.ST[stIdx].n);
-export const inScope = (region) => S.scope === 'All' || region === S.scope;
+// ---- map views and layers: what exists is decided by the admin (settings.map); what is on is the user's choice within that ----
+const LAYER_KEY = { minor: 'minorRoads', stn: 'stations', inc: 'incidents', works: 'works', gtraffic: 'googleTraffic' };
+export function mapCfg() { const m = S.me?.map ?? {}; return { ...DEFAULT_MAP, ...m, views: { ...DEFAULT_MAP.views, ...m.views }, layers: { ...DEFAULT_MAP.layers, ...m.layers }, speedBands: { ...DEFAULT_MAP.speedBands, ...m.speedBands } }; }
+export const allowedViews = () => ['traffic', ...['safety', 'speed'].filter((v) => mapCfg().views[v]?.[S.me?.role] !== false)];
+export function curView() { const a = allowedViews(); return a.includes(S.layers.view) ? S.layers.view : a.includes(mapCfg().defaultView) ? mapCfg().defaultView : 'traffic'; }
+export function setView(v) { S.layers.view = v; lsSet('blr-view', v); emit('view'); }
+export const layerAllowed = (k) => mapCfg().layers[LAYER_KEY[k]] !== false;
+export const layerOn = (k) => layerAllowed(k) && !!S.layers[k];
+
+export const inScope = (region) => S.scope === 'All' || region === S.scope || (S.scope === 'Urban' && region !== 'Rural');
 export const curHour = () => (S.replay != null ? S.replay : istParts().h);
 export const today = () => S.live?.date ?? istParts().date;
 /** Rural taluk units have no BTP crash records (f/t are null): 0 for sums and sorting, hasCrash() to show a dash instead. */

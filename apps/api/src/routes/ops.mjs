@@ -16,7 +16,7 @@ export function registerOps(api, ctx) {
   api.get('/me', async (req) => {
     const u = req.user, s = await ctx.settings();
     return { email: u.email, name: u.name ?? '', role: u.role, region: u.region ?? lockedRegion(u, stations), station: u.station ?? null, active: u.active !== false,
-      permissions: [...(PERMISSIONS[u.role] ?? [])], lockedRegion: lockedRegion(u, stations), jurisdiction: [...jurisdiction(u, stations)], flags: { aiEnabled: !!s.ai.enabled, maintenance: !!s.maintenance } };
+      permissions: [...(PERMISSIONS[u.role] ?? [])], lockedRegion: lockedRegion(u, stations), jurisdiction: [...jurisdiction(u, stations)], flags: { aiEnabled: !!s.ai.enabled, maintenance: !!s.maintenance }, map: s.map };
   });
 
   api.get('/state', async (req, reply) => {
@@ -143,7 +143,7 @@ export function registerOps(api, ctx) {
   });
   api.post('/ai/brief', async (req) => {
     const b = only(body(req), ['scope', 'lang']), ai = needAi(); const lang = b.lang === 'kn' ? 'kn' : 'en'; if (b.lang !== undefined && b.lang !== 'en' && b.lang !== 'kn') bad('lang must be en or kn'); need(req.user, 'ai.brief'); aiLimit(req);
-    const scope = b.scope ?? 'city'; if (scope !== 'city' && !REGIONS.includes(scope)) bad('scope must be city or a region');
+    const scope = b.scope ?? 'city'; if (scope !== 'city' && scope !== 'Urban' && !REGIONS.includes(scope)) bad('scope must be city, Urban or a region');
     const st = await store.get('state', 'current'); if (!st) throw err('unavailable', 'No state has been computed yet');
     const actions = await store.list('actions', { where: [['state', 'in', OPEN]] });
     return ai.brief({ user: req.user, scope, context: { ...briefContext({ net, state: st, actions, scope }), lang } });

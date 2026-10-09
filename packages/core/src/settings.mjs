@@ -21,6 +21,17 @@ export function defaultSettings(env = process.env) {
       killReason: '',
     },
     caps: { routesCallsPerDay: 500, tomtomCallsPerDay: 500 },
+    // What the Control map offers. `traffic` (live road congestion) is always available; the other views and every layer can be switched here.
+    map: {
+      defaultView: 'traffic',
+      views: {
+        safety: { admin: true, commissioner: true, dcp: true, station: true, viewer: false },
+        speed: { admin: true, commissioner: true, dcp: true, station: true, viewer: true },
+      },
+      layers: { minorRoads: true, stations: true, incidents: true, works: true, googleTraffic: true },
+      speedBands: { slow: 14, moderate: 20, good: 27, fast: 34 }, // km/h boundaries between the five speed colours
+      crashScale: 26, // fatal crashes in a year that map to the darkest shade in the safety view
+    },
     maintenance: false,
   };
 }
@@ -32,6 +43,7 @@ const E = (...v) => ({ t: 'enum', v });
 const S = (max, re) => ({ t: 'str', max, re });
 const O = (props) => ({ t: 'obj', props });
 const perRole = O(Object.fromEntries(ROLES.map((r) => [r, I(0, 100000)])));
+const roleFlags = O(Object.fromEntries(ROLES.map((r) => [r, B()])));
 const tier = O({ enabled: B(), model: S(100, /^[A-Za-z0-9._\-/]+$/) });
 const tierNum = (a, b) => O({ t1: I(a, b), t2: I(a, b), t3: I(a, b) });
 const price = O({ inPerM: N(0, 1000), outPerM: N(0, 1000) });
@@ -44,6 +56,11 @@ export const SCHEMA = O({
     prices: O({ t1: price, t2: price, t3: price }), killReason: S(300),
   }),
   caps: O({ routesCallsPerDay: I(0, 1e6), tomtomCallsPerDay: I(0, 1e6) }),
+  map: O({
+    defaultView: E('traffic', 'safety', 'speed'), views: O({ safety: roleFlags, speed: roleFlags }),
+    layers: O({ minorRoads: B(), stations: B(), incidents: B(), works: B(), googleTraffic: B() }),
+    speedBands: O({ slow: I(3, 80), moderate: I(3, 80), good: I(3, 80), fast: I(3, 80) }), crashScale: I(1, 500),
+  }),
   maintenance: B(),
 });
 
@@ -64,7 +81,12 @@ function check(sch, v, path, errors) {
   }
 }
 /** Validate a (possibly partial) settings object. Unknown keys are errors. */
-export function validateSettings(obj) { const errors = []; check(SCHEMA, obj, '', errors); return errors; }
+export function validateSettings(obj) {
+  const errors = []; check(SCHEMA, obj, '', errors);
+  const b = obj?.map?.speedBands;
+  if (b && ['slow', 'moderate', 'good', 'fast'].every((k) => Number.isInteger(b[k])) && !(b.slow < b.moderate && b.moderate < b.good && b.good < b.fast)) errors.push('map.speedBands: must increase slow < moderate < good < fast');
+  return errors;
+}
 
 /** Stored settings over defaults. Unknown stored keys are dropped silently on read. */
 export async function getSettings(store, env = process.env) {

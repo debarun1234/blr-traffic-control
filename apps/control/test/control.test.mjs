@@ -53,12 +53,25 @@ test('maintenance flag: non-admin sees maintenance screen, admin sees banner', a
 
 test('commissioner: whole city + region chips, role badge, briefing, no admin link', async () => {
   await run('commissioner', async (page) => {
-    assert.deepEqual(await texts(page, '[data-scope]'), ['Whole city', 'North', 'East', 'Central', 'West', 'South']);
+    assert.deepEqual(await texts(page, '[data-scope]'), ['Whole area', 'Urban', 'North', 'East', 'Central', 'West', 'South', 'Rural']);
     assert.equal(await page.getByTestId('role-badge').innerText(), 'Commissioner');
     assert.equal(await page.getByTestId('brief').isVisible(), true);
     await page.getByTestId('menu-btn').click(); assert.equal(await page.getByTestId('admin-link').count(), 0);
     await page.getByTestId('row-East').click();
     assert.equal(await page.evaluate(() => window.__blr.S.scope), 'East');
+  });
+});
+
+test('rural: 9 outer units, Urban/Rural scopes (keys 2, 8), no invented crash figures', async () => {
+  await run('commissioner', async (page) => {
+    const info = await page.evaluate(async () => { const m = await (await fetch('/assets/map.json')).json(); const u = m.st.filter((x) => x.r === 'Rural'); return { n: u.length, noCrash: u.every((x) => x.t === null && x.f === null), poly: u.every((x) => x.poly?.length), reg: !!m.reg.Rural }; });
+    assert.deepEqual(info, { n: 9, noCrash: true, poly: true, reg: true });
+    await page.locator('[data-scope="Rural"]').click(); assert.equal(await page.evaluate(() => window.__blr.S.scope), 'Rural');
+    await page.keyboard.press('1'); assert.equal(await page.evaluate(() => window.__blr.S.scope), 'All');
+    await page.keyboard.press('8'); assert.equal(await page.evaluate(() => window.__blr.S.scope), 'Rural');
+    await page.keyboard.press('2'); assert.equal(await page.evaluate(() => window.__blr.S.scope), 'Urban');
+    await page.waitForFunction(() => document.querySelectorAll('[data-testid^=row-]').length === 5 && !document.querySelector('[data-testid=row-Rural]'));
+    await page.keyboard.press('8'); await page.locator('.cc-insp', { hasText: 'Anekal (taluk)' }).waitFor();
   });
 });
 
@@ -212,11 +225,11 @@ test('replay: R toggles, REPLAY pill, in-browser model recolours, back to live',
   });
 });
 
-test('keyboard: ? sheet, 2-6 scope, / search, [ ] zoom, Esc', async () => {
+test('keyboard: ? sheet, 2-8 scope, / search, [ ] zoom, Esc', async () => {
   await run('commissioner', async (page) => {
     await page.keyboard.press('?'); await page.waitForSelector('[role=dialog]'); assert.match(await page.locator('[role=dialog]').innerText(), /Keyboard shortcuts/);
     await page.keyboard.press('Escape'); await page.waitForSelector('[role=dialog]', { state: 'detached' });
-    await page.keyboard.press('3'); assert.equal(await page.evaluate(() => window.__blr.S.scope), 'East');
+    await page.keyboard.press('4'); assert.equal(await page.evaluate(() => window.__blr.S.scope), 'East');
     await page.keyboard.press('1'); assert.equal(await page.evaluate(() => window.__blr.S.scope), 'All');
     const k0 = await page.evaluate(() => window.__blr.S.mapRef.view.k); await page.keyboard.press(']'); assert.ok(await page.evaluate((k) => window.__blr.S.mapRef.view.k > k, k0));
     await page.keyboard.press('/'); assert.equal(await page.evaluate(() => document.activeElement.id), 'cc-search');
@@ -242,6 +255,36 @@ test('Google basemap: option only with a key; selecting it loads Maps, follows t
     assert.ok(await page.evaluate(() => document.querySelector('.cc-map').classList.contains('gm')));
     await page.evaluate(() => window.gm_authFailure()); await page.waitForFunction(() => !document.querySelector('.cc-map').classList.contains('gm'));
     assert.equal(await page.getByTestId('base-select').inputValue(), 'plain');
+  });
+});
+
+test('map views: each view explains itself, changes the map, and what is offered follows the admin settings per role', async () => {
+  await run('commissioner', async (page) => {
+    await page.locator('.cc-layersbtn').click();
+    assert.deepEqual(await page.locator('.cc-opt input').evaluateAll((e) => e.map((x) => x.value)), ['traffic', 'safety', 'speed']);
+    assert.match(await page.getByTestId('view-safety').innerText(), /fatal crashes recorded in 2025/i);
+    assert.match(await page.locator('.cc-legend').innerText(), /Live traffic[\s\S]*Use it to spot where congestion/);
+    const h0 = await canvasHash(page);
+    await page.getByTestId('view-safety').click(); await page.waitForFunction(() => /Crash hotspots/.test(document.querySelector('.cc-legend').innerText));
+    const lg = await page.locator('.cc-legend').innerText(); assert.match(lg, /No crash data/); assert.match(lg, /Highest: /); assert.match(lg, /enforcement, patrols and signage/);
+    await page.waitForTimeout(400); assert.notEqual(await canvasHash(page), h0); assert.equal(await page.evaluate(() => localStorage.getItem('blr-view')), 'safety');
+    await page.getByTestId('view-speed').click(); await page.waitForFunction(() => /Area speed/.test(document.querySelector('.cc-legend').innerText));
+    assert.match(await page.locator('.cc-legend').innerText(), /<14[\s\S]*≥34[\s\S]*Slowest: /);
+  });
+  const cfg = { defaultView: 'speed', views: { safety: { admin: true, commissioner: false, dcp: true, station: true, viewer: false }, speed: { admin: true, commissioner: true, dcp: true, station: true, viewer: true } }, layers: { minorRoads: true, stations: true, incidents: true, works: false, googleTraffic: true }, speedBands: { slow: 10, moderate: 18, good: 25, fast: 40 }, crashScale: 10 };
+  await run('commissioner', { mock: { map: cfg } }, async (page) => {
+    await page.waitForFunction(() => /Area speed/.test(document.querySelector('.cc-legend').innerText)); // admin default applies when the user has not chosen
+    assert.match(await page.locator('.cc-legend').innerText(), /<10[\s\S]*≥40/, 'admin speed bands drive the legend');
+    await page.locator('.cc-layersbtn').click();
+    assert.deepEqual(await page.locator('.cc-opt input').evaluateAll((e) => e.map((x) => x.value)), ['traffic', 'speed'], 'commissioner has the crash view switched off by the admin');
+    assert.equal(await page.getByTestId('layer-works').count(), 0, 'admin switched Road works off'); assert.equal(await page.getByTestId('layer-inc').count(), 1);
+  });
+  await run('viewer', { mock: { map: cfg } }, async (page) => {
+    await page.locator('.cc-layersbtn').click();
+    assert.equal(await page.getByTestId('view-safety').count(), 0, 'viewers never get the crash view');
+  });
+  await run('viewer', async (page) => { // built-in defaults when the admin has not changed anything: crash data is not offered to viewers
+    await page.locator('.cc-layersbtn').click(); assert.equal(await page.getByTestId('view-safety').count(), 0); assert.equal(await page.getByTestId('view-speed').count(), 1);
   });
 });
 
@@ -286,7 +329,7 @@ test('AI: tier + cached badges, label, inert HTML, quota, 429 and disabled handl
 
 test('language switch EN <-> KN persists and keeps state', async () => {
   await run('commissioner', async (page) => {
-    await page.keyboard.press('3');
+    await page.keyboard.press('4');
     await page.getByTestId('lang').click();
     assert.equal(await page.evaluate(() => document.documentElement.lang), 'kn');
     assert.equal(await page.getByTestId('tab-overview').innerText(), 'ಸಾರಾಂಶ');
@@ -311,7 +354,7 @@ test('mobile (390x844): map above inspector, scope row, no horizontal overflow, 
     const m = await page.locator('.cc-map').boundingBox(), i = await page.locator('.cc-insp').boundingBox();
     assert.ok(m.y + m.height <= i.y + 1, 'map above inspector'); assert.ok(m.height > 220);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
-    assert.equal(await page.locator('[data-scope]').count(), 6);
+    assert.equal(await page.locator('[data-scope]').count(), 8);
     await page.locator('.cc-searchbtn').click(); assert.equal(await page.locator('.cc-q').isVisible(), true);
     await tab(page, 'actions'); assert.ok(await page.locator('[data-testid=action-list] article').count() > 0);
     assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);

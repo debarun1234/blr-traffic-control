@@ -23,7 +23,7 @@ test('GET /api/state: contract shape, ETag + 304, stale flag derived from age', 
 test('GET /api/me returns role, permissions, jurisdiction and flags', async () => {
   const me = (await T.call('yalahanka', 'GET', '/api/me')).body;
   assert.deepEqual([me.email, me.role, me.station, me.region, me.lockedRegion], ['yalahanka@example.test', 'station', 'Yalahanka', 'North', 'North']);
-  assert.deepEqual(me.jurisdiction, ['Yalahanka']); assert.ok(me.permissions.includes('incident.report') && !me.permissions.includes('works.write')); assert.deepEqual(me.flags, { aiEnabled: true, maintenance: false });
+  assert.deepEqual(me.jurisdiction, ['Yalahanka']); assert.ok(me.permissions.includes('incident.report') && !me.permissions.includes('works.write')); assert.deepEqual(me.flags, { aiEnabled: true, maintenance: false }); assert.equal(me.map.defaultView, 'traffic'); assert.equal(me.map.speedBands.fast, 34);
   const a = (await T.call('admin', 'GET', '/api/me')).body; assert.equal(a.lockedRegion, null); assert.equal(a.jurisdiction.length, net.map.st.length); assert.ok(a.permissions.includes('admin.access'));
   assert.equal((await T.call('north.dcp', 'GET', '/api/me')).body.jurisdiction.length, net.map.st.filter((s) => s.r === 'North').length);
 });
@@ -87,6 +87,7 @@ test('AI endpoints: template advice from an action, brief cached per hour, quota
   const quota = (await T.call('commissioner', 'GET', '/api/ai/quota')).body; assert.deepEqual([quota.used, quota.limit, quota.aiEnabled], [1, 60, true]); assert.ok(quota.resetsAt > T0);
   const kill = await T.call('admin', 'POST', '/api/admin/ai/kill', { enabled: false, reason: 'cost spike' }); assert.equal(kill.status, 200);
   assert.equal((await T.call('commissioner', 'POST', '/api/ai/brief', { scope: 'South' })).status, 503);
+  assert.equal((await T.call('commissioner', 'POST', '/api/ai/brief', { scope: 'Urban' })).status, 503); // valid scope: passes validation, then the kill switch applies
   assert.equal((await T.call('viewer', 'GET', '/api/me')).body.flags.aiEnabled, false); assert.equal((await T.call('viewer', 'GET', '/api/ai/quota')).body.aiEnabled, false);
   assert.equal((await T.call('admin', 'POST', '/api/admin/ai/kill', { enabled: false })).status, 400, 'reason required when disabling');
   await T.call('admin', 'POST', '/api/admin/ai/kill', { enabled: true });

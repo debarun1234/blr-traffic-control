@@ -9,7 +9,7 @@ export async function loadMe() {
   const r = await S.api.get('/me');
   const prev = S.me;
   S.me = { ...EMPTY_ME, ...r.data, flags: { ...EMPTY_ME.flags, ...(r.data.flags ?? {}) } };
-  if (!prev || prev.role !== S.me.role || prev.station !== S.me.station || prev.region !== S.me.region || prev.flags?.maintenance !== S.me.flags.maintenance || prev.flags?.aiEnabled !== S.me.flags.aiEnabled) emit('me', 'view');
+  if (!prev || prev.role !== S.me.role || prev.station !== S.me.station || prev.region !== S.me.region || prev.flags?.maintenance !== S.me.flags.maintenance || prev.flags?.aiEnabled !== S.me.flags.aiEnabled || JSON.stringify(prev.map) !== JSON.stringify(S.me.map)) emit('me', 'view');
   return S.me;
 }
 

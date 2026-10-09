@@ -274,6 +274,19 @@ test('settings: validation, diff before save, confirm persists', async () => {
   await page.click('#settings-save'); await toast('No changes to save');
 });
 
+test('settings: map views and layers are saved and validated', async () => {
+  await open('settings');
+  await page.getByLabel('Slow below (km/h)').fill('10'); await page.click('#settings-save');
+  assert.match(await page.locator('#map-card').innerText(), /Must be higher than/);
+  await page.getByLabel('Slow below (km/h)').fill('20');
+  await page.locator('[aria-label="safety for viewer"]').check({ force: true }); await page.locator('[aria-label="Road works"]').uncheck({ force: true });
+  await page.getByLabel('Default view').selectOption('speed');
+  await page.click('#settings-save'); await dlg().waitFor();
+  assert.match(await dlg().innerText(), /Map: default view/); assert.match(await dlg().innerText(), /Map layer: Road works/);
+  await page.click('#settings-confirm'); await toast('Settings saved');
+  const m = (await serverState()).settings.map; assert.deepEqual([m.defaultView, m.views.safety.viewer, m.layers.works, m.speedBands.moderate], ['speed', true, false, 20]);
+});
+
 test('overview: quick actions (checks, pause feed, AI kill) work', async () => {
   await open('overview');
   assert.match(await page.locator('[data-kpi=checks]').innerText(), /3\/5/); assert.match(await page.locator('[data-kpi=esc] .v').innerText(), /1/); assert.match(await page.locator('[data-kpi=online]').innerText(), /^Users online\s+2/);
@@ -313,7 +326,7 @@ test('mutations are written to the audit log', async () => {
 
 test('stations: edit coordinates + verify; territories upload validates, previews, publishes and reverts', async () => {
   await open('stations');
-  assert.equal(await page.locator('tbody tr[data-station]').count(), 53); assert.match(await page.locator('.kpi', { hasText: 'Verified stations' }).innerText(), /0 \/ 53/);
+  assert.equal(await page.locator('tbody tr[data-station]').count(), 62); assert.match(await page.locator('.kpi', { hasText: 'Verified stations' }).innerText(), /0 \/ 62/);
   assert.ok((await page.locator('tbody tr[data-station]', { hasText: 'Approximate' }).count()) >= 6, 'approx sources are flagged');
   await page.locator('tr[data-station=Indiranagar]').getByRole('button', { name: 'Edit Indiranagar' }).click();
   await dlg().getByLabel('Latitude').fill('50'); await dlg().locator('#station-save').click(); assert.match(await dlg().locator('.errsum').innerText(), /Latitude/);
@@ -321,7 +334,7 @@ test('stations: edit coordinates + verify; territories upload validates, preview
   await dlg().locator('#station-save').click(); await toast('Saved Indiranagar');
   await page.waitForFunction(() => document.querySelector('tr[data-station=Indiranagar]')?.innerText.includes('Verified'));
   assert.match(await page.locator('tr[data-station=Indiranagar]').innerText(), /12\.9784, 77\.6408/); assert.match(await page.locator('tr[data-station=Indiranagar]').innerText(), /Indira Nagar/);
-  await page.getByLabel('Unverified only').check(); assert.equal(await page.locator('tbody tr[data-station]').count(), 52);
+  await page.getByLabel('Unverified only').check(); assert.equal(await page.locator('tbody tr[data-station]').count(), 61);
   // territories: invalid file
   const bad = { type: 'FeatureCollection', features: [{ type: 'Feature', properties: { station: 'Atlantis' }, geometry: { type: 'Polygon', coordinates: [[[77.6, 12.9], [77.61, 12.9], [77.61, 12.91], [77.6, 12.9]]] } }] };
   await page.setInputFiles('#terr-file', { name: 'bad.geojson', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(bad)) });
@@ -330,7 +343,7 @@ test('stations: edit coordinates + verify; territories upload validates, preview
   // valid file derived from built-in polygons (first 10 stations)
   const gj = { type: 'FeatureCollection', features: MAP.st.slice(0, 10).map((s) => ({ type: 'Feature', properties: { station: s.n }, geometry: { type: 'Polygon', coordinates: s.poly.map((r) => r.map(([x, y]) => [77.4 + x / 50000, 12.8 + y / 50000])) } })) };
   await page.setInputFiles('#terr-file', { name: 'official.geojson', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify(gj)) });
-  await page.locator('#territories .banner.info').waitFor(); assert.match(await page.locator('#territories').innerText(), /10 stations/); assert.match(await page.locator('#territories').innerText(), /43 stations have no polygon/);
+  await page.locator('#territories .banner.info').waitFor(); assert.match(await page.locator('#territories').innerText(), /10 stations/); assert.match(await page.locator('#territories').innerText(), /52 stations have no polygon/);
   await page.locator('#territories').scrollIntoViewIfNeeded(); await page.waitForTimeout(300); await shot('_territory-preview');
   await page.click('#terr-publish'); await dlg().getByRole('button', { name: 'Publish' }).click(); await toast('Boundaries published');
   await page.locator('#territories .badge', { hasText: 'Official boundaries active' }).waitFor();
