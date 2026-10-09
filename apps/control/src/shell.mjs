@@ -166,7 +166,7 @@ export function installShortcuts() {
     const el = e.target, typing = el && (/^(INPUT|SELECT|TEXTAREA)$/.test(el.tagName) || el.isContentEditable);
     if (typing || document.querySelector('.modal-bg') || !S.me || !S.mapRef) return;
     const k = e.key;
-    if (/^[1-6]$/.test(k)) { const lr = lockedRegion(); if (lr) return; setScope(['All', ...REGIONS][+k - 1]); }
+    if (/^[1-7]$/.test(k)) { const lr = lockedRegion(); if (lr) return; setScope(['All', ...REGIONS][+k - 1]); }
     else if (k === '/') { e.preventDefault(); S.mapRef.focusSearch(); }
     else if (k === '[') S.mapRef.zoomBy(1 / 1.6);
     else if (k === ']') S.mapRef.zoomBy(1.6);

@@ -9,7 +9,7 @@ export const S = {
   cfg: null, api: null, auth: null, MD: null, me: null,
   lang: lsGet('blr-lang', 'en') === 'kn' ? 'kn' : 'en',
   scope: 'All', sel: null, tab: 'overview',
-  layers: { cong: true, minor: true, stn: true, inc: true, works: true, shade: 'none', base: ['roadmap', 'hybrid'].includes(lsGet('blr-base', 'plain')) ? lsGet('blr-base', 'plain') : 'plain' },
+  layers: { cong: true, minor: true, stn: true, inc: true, works: true, shade: 'none', gtraffic: lsGet('blr-gtraffic', '0') === '1', base: ['roadmap', 'hybrid'].includes(lsGet('blr-base', 'plain')) ? lsGet('blr-base', 'plain') : 'plain' },
   replay: null, replayBusy: false, replayRes: null,
   live: null, result: null, sum: null,
   incidents: [], works: [], actions: [], crash: null, quota: null,
@@ -48,8 +48,10 @@ export const canActOn = (stIdx) => !!S.me && stIdx >= 0 && S.me.jurisdiction.inc
 export const inScope = (region) => S.scope === 'All' || region === S.scope;
 export const curHour = () => (S.replay != null ? S.replay : istParts().h);
 export const today = () => S.live?.date ?? istParts().date;
-export const fatal2025 = (i) => S.crash?.stations?.[S.MD.ST[i].n]?.y2025?.fatal ?? S.MD.ST[i].f;
-export const nonfatal2025 = (i) => S.crash?.stations?.[S.MD.ST[i].n]?.y2025?.nonfatal ?? S.MD.ST[i].t;
+/** Rural taluk units have no BTP crash records (f/t are null): 0 for sums and sorting, hasCrash() to show a dash instead. */
+export const hasCrash = (i) => S.crash?.stations?.[S.MD.ST[i].n]?.y2025 != null || S.MD.ST[i].f != null;
+export const fatal2025 = (i) => S.crash?.stations?.[S.MD.ST[i].n]?.y2025?.fatal ?? S.MD.ST[i].f ?? 0;
+export const nonfatal2025 = (i) => S.crash?.stations?.[S.MD.ST[i].n]?.y2025?.nonfatal ?? S.MD.ST[i].t ?? 0;
 export const crashHist = (i) => S.crash?.stations?.[S.MD.ST[i].n]?.hist ?? null;
 export const scopeStations = () => S.MD.ST.filter((s) => inScope(s.r));
 

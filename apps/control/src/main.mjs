@@ -42,7 +42,7 @@ function showWelcome(my) {
     welcome?.destroy();
     welcome = renderWelcome(root, {
       variant, lang: S.lang, user: { name: auth.user?.name || me.name, email: auth.user?.email ?? me.email }, kicker: t(`wl.k.${variant}`, { region, station }), region, station,
-      stations: me.jurisdiction?.length || 53, logo: '/assets/btp-logo.png', preflight: pf, util: utilBar(),
+      stations: me.jurisdiction?.length || S.MD.ST.length, logo: '/assets/btp-logo.png', preflight: pf, util: utilBar(),
       onEnter: () => { if (my !== token) return; welcome = null; S.justSignedIn = false; S.scope = lockedRegion() ?? 'All'; S.gate = null; mount(); startPolling(); },
       onSignOut: signOut, art: (cv) => startArt(cv, mapJson, { focus }),
     });

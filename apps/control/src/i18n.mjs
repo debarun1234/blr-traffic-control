@@ -6,7 +6,7 @@
 const D = {
   // ---- app / generic ----
   'app.name': ['Bengaluru Traffic Control', 'ಬೆಂಗಳೂರು ಸಂಚಾರ ನಿಯಂತ್ರಣ'],
-  'app.sub': ['Modelled traffic · 53 station territories', 'ಮಾದರಿ ಸಂಚಾರ · 53 ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳು'],
+  'app.sub': ['Modelled traffic · 53 station territories + 4 Rural taluks', 'ಮಾದರಿ ಸಂಚಾರ · 53 ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳು + 4 ಗ್ರಾಮಾಂತರ ತಾಲ್ಲೂಕುಗಳು'],
   'loading': ['Loading…', 'ಲೋಡ್ ಆಗುತ್ತಿದೆ…'],
   'computing': ['Computing…', 'ಲೆಕ್ಕಹಾಕಲಾಗುತ್ತಿದೆ…'],
   'retry': ['Retry', 'ಮತ್ತೆ ಪ್ರಯತ್ನಿಸಿ'],
@@ -22,7 +22,7 @@ const D = {
   'scope.aria': ['Region scope', 'ವಿಭಾಗ ವ್ಯಾಪ್ತಿ'],
   'scope.locked': ['Your view is locked to this region', 'ನಿಮ್ಮ ವೀಕ್ಷಣೆ ಈ ವಿಭಾಗಕ್ಕೆ ಸೀಮಿತವಾಗಿದೆ'],
   'lock.note': ['Your view is locked to the {region} region.', 'ನಿಮ್ಮ ವೀಕ್ಷಣೆ {region} ವಿಭಾಗಕ್ಕೆ ಸೀಮಿತವಾಗಿದೆ.'],
-  'reg.North': ['North', 'ಉತ್ತರ'], 'reg.East': ['East', 'ಪೂರ್ವ'], 'reg.Central': ['Central', 'ಕೇಂದ್ರ'], 'reg.West': ['West', 'ಪಶ್ಚಿಮ'], 'reg.South': ['South', 'ದಕ್ಷಿಣ'],
+  'reg.North': ['North', 'ಉತ್ತರ'], 'reg.East': ['East', 'ಪೂರ್ವ'], 'reg.Central': ['Central', 'ಕೇಂದ್ರ'], 'reg.West': ['West', 'ಪಶ್ಚಿಮ'], 'reg.Rural': ['Rural', 'ಗ್ರಾಮಾಂತರ'], 'reg.South': ['South', 'ದಕ್ಷಿಣ'],
   'role.admin': ['Admin', 'ನಿರ್ವಾಹಕ'], 'role.commissioner': ['Commissioner', 'ಆಯುಕ್ತರು'], 'role.dcp': ['DCP', 'ಡಿಸಿಪಿ'], 'role.station': ['Station', 'ಠಾಣೆ'], 'role.viewer': ['Viewer (read-only)', 'ವೀಕ್ಷಕ (ಓದಲು ಮಾತ್ರ)'],
   'role.readonly': ['Read-only access: you can view but not change anything.', 'ಓದಲು ಮಾತ್ರ ಪ್ರವೇಶ: ನೀವು ನೋಡಬಹುದು, ಬದಲಾಯಿಸಲಾಗದು.'],
   'role.readonlyPlan': ['Your role is read-only, so the planner is disabled.', 'ನಿಮ್ಮ ಪಾತ್ರ ಓದಲು ಮಾತ್ರ, ಆದ್ದರಿಂದ ಯೋಜಕ ನಿಷ್ಕ್ರಿಯವಾಗಿದೆ.'],
@@ -74,7 +74,7 @@ const D = {
   'map.loading': ['Loading modelled feed…', 'ಮಾದರಿ ಮಾಹಿತಿ ಲೋಡ್ ಆಗುತ್ತಿದೆ…'],
   'map.note': ['Modelled traffic on real road geometry, not sensor data. Crash figures are real (BTP 2018–2025).', 'ನೈಜ ರಸ್ತೆ ಜ್ಯಾಮಿತಿಯ ಮೇಲೆ ಮಾದರಿ ಸಂಚಾರ, ಸೆನ್ಸರ್ ಮಾಹಿತಿಯಲ್ಲ. ಅಪಘಾತ ಅಂಕಿಅಂಶಗಳು ನೈಜ (BTP 2018–2025).'],
   'layers.title': ['Layers', 'ಪದರಗಳು'], 'layers.cong': ['Congestion', 'ದಟ್ಟಣೆ'], 'layers.minor': ['Minor roads', 'ಸಣ್ಣ ರಸ್ತೆಗಳು'], 'layers.stn': ['Stations', 'ಠಾಣೆಗಳು'], 'layers.inc': ['Incidents', 'ಘಟನೆಗಳು'], 'layers.works': ['Works', 'ಕಾಮಗಾರಿ'],
-  'layers.base': ['Basemap', 'ಬೇಸ್‌ಮ್ಯಾಪ್'], 'layers.base.plain': ['Plain (built-in)', 'ಸರಳ (ಅಂತರ್ನಿರ್ಮಿತ)'], 'layers.base.roadmap': ['Google Maps', 'ಗೂಗಲ್ ಮ್ಯಾಪ್ಸ್'], 'layers.base.hybrid': ['Google satellite', 'ಗೂಗಲ್ ಉಪಗ್ರಹ'],
+  'layers.base': ['Basemap', 'ಬೇಸ್‌ಮ್ಯಾಪ್'], 'layers.gtraffic': ['Google live traffic (whole area, incl. Rural)', 'ಗೂಗಲ್ ಲೈವ್ ಟ್ರಾಫಿಕ್ (ಗ್ರಾಮಾಂತರ ಸೇರಿ)'], 'layers.base.plain': ['Plain (built-in)', 'ಸರಳ (ಅಂತರ್ನಿರ್ಮಿತ)'], 'layers.base.roadmap': ['Google Maps', 'ಗೂಗಲ್ ಮ್ಯಾಪ್ಸ್'], 'layers.base.hybrid': ['Google satellite', 'ಗೂಗಲ್ ಉಪಗ್ರಹ'],
   'layers.shade': ['Territory shading', 'ವ್ಯಾಪ್ತಿ ಛಾಯೆ'], 'layers.shade.none': ['None', 'ಇಲ್ಲ'], 'layers.shade.crash': ['Fatal crashes 2025', 'ಮರಣಾಂತಿಕ ಅಪಘಾತ 2025'], 'layers.shade.speed': ['Modelled speed', 'ಮಾದರಿ ವೇಗ'],
   'legend.title': ['Road load (v/c)', 'ರಸ್ತೆ ಭಾರ (v/c)'],
   'legend.free': ['Free', 'ಸುಗಮ'], 'legend.light': ['Light', 'ಹಗುರ'], 'legend.busy': ['Busy', 'ಕಾರ್ಯನಿರತ'], 'legend.slow': ['Slow', 'ನಿಧಾನ'], 'legend.jam': ['Jammed', 'ಜಾಮ್'], 'legend.grid': ['Gridlock', 'ಸ್ಥಗಿತ'],
@@ -164,7 +164,7 @@ const D = {
 
   // ---- sign-in / gates / errors ----
   'signin.title': ['Sign in to the control room', 'ನಿಯಂತ್ರಣ ಕೊಠಡಿಗೆ ಸೈನ್ ಇನ್ ಮಾಡಿ'],
-  'signin.purpose': ['Operational view of modelled road congestion, incidents, works and actions across Bengaluru’s 53 police-station territories.', 'ಬೆಂಗಳೂರಿನ 53 ಪೊಲೀಸ್ ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳ ಮಾದರಿ ರಸ್ತೆ ದಟ್ಟಣೆ, ಘಟನೆಗಳು, ಕಾಮಗಾರಿಗಳು ಮತ್ತು ಕ್ರಮಗಳ ಕಾರ್ಯಾಚರಣೆ ನೋಟ.'],
+  'signin.purpose': ['Operational view of modelled road congestion, incidents, works and actions across Bengaluru’s 53 police-station territories and the four Bengaluru Rural taluks.', 'ಬೆಂಗಳೂರಿನ 53 ಪೊಲೀಸ್ ಠಾಣೆ ವ್ಯಾಪ್ತಿಗಳ ಮಾದರಿ ರಸ್ತೆ ದಟ್ಟಣೆ, ಘಟನೆಗಳು, ಕಾಮಗಾರಿಗಳು ಮತ್ತು ಕ್ರಮಗಳ ಕಾರ್ಯಾಚರಣೆ ನೋಟ.'],
   'signin.google': ['Sign in with Google', 'Google ಮೂಲಕ ಸೈನ್ ಇನ್ ಮಾಡಿ'],
   'signin.honest': ['Access is allowlist-only. Everything shown is modelled or simulated unless the banner says LIVE (modelled), and even then not every road is measured.', 'ಪ್ರವೇಶ ಅನುಮತಿ ಪಟ್ಟಿಯಲ್ಲಿರುವವರಿಗೆ ಮಾತ್ರ. ಇಲ್ಲಿ ತೋರಿಸುವುದೆಲ್ಲವೂ ಮಾದರಿ ಅಥವಾ ಅನುಕರಣೆ; ಬ್ಯಾನರ್ “ನೇರ (ಮಾದರಿ)” ಎಂದರೂ ಪ್ರತಿ ರಸ್ತೆಯನ್ನೂ ಅಳೆಯಲಾಗಿಲ್ಲ.'],
   'signin.devNote': ['Development sign-in: pick a test user. This is disabled in production.', 'ಅಭಿವೃದ್ಧಿ ಸೈನ್-ಇನ್: ಪರೀಕ್ಷಾ ಬಳಕೆದಾರರನ್ನು ಆರಿಸಿ. ಉತ್ಪಾದನೆಯಲ್ಲಿ ಇದು ನಿಷ್ಕ್ರಿಯ.'],

@@ -1,6 +1,6 @@
 // Assembles the map pane: canvas + overlays (search, layers, zoom, legend, tooltip, replay chip).
 import { h } from '/vendor/ui.mjs';
-import { S, on, emit, setSel, setTab, setReplay, lockedRegion, fatal2025, scopeStations } from '../state.mjs';
+import { S, on, emit, setSel, setTab, setReplay, lockedRegion, fatal2025, hasCrash, scopeStations } from '../state.mjs';
 import { t, regionName } from '../i18n.mjs';
 import { ic } from '../icons.mjs';
 import { createRenderer } from './renderer.mjs';
@@ -67,8 +67,9 @@ export function createMapPane() {
     ...['none', 'crash', 'speed'].map((v) => h('option', { value: v, selected: S.layers.shade === v }, t(`layers.shade.${v}`))));
   if (gbase) baseSel = h('select.select', { 'aria-label': t('layers.base'), 'data-testid': 'base-select', onchange: (e) => { S.layers.base = e.target.value; lsSet('blr-base', e.target.value); gbase.set(e.target.value); } },
     ...['plain', 'roadmap', 'hybrid'].map((v) => h('option', { value: v, selected: S.layers.base === v }, t(`layers.base.${v}`))));
+  const gtRow = h('label.cc-chk', { 'data-testid': 'gtraffic-row' }, h('input', { type: 'checkbox', 'data-testid': 'gtraffic', checked: S.layers.gtraffic, onchange: (e) => { S.layers.gtraffic = e.target.checked; lsSet('blr-gtraffic', e.target.checked ? '1' : '0'); gbase?.setTraffic(e.target.checked); } }), h('span', t('layers.gtraffic')));
   const layersPop = h('div.cc-pop', { id: 'cc-layers', hidden: true, role: 'group', 'aria-label': t('layers.title') },
-    ...(baseSel ? [h('div.field', h('label', t('layers.base')), baseSel)] : []), layerRow('cong', t('layers.cong')), layerRow('minor', t('layers.minor')), layerRow('stn', t('layers.stn')), layerRow('inc', t('layers.inc')), layerRow('works', t('layers.works')),
+    ...(baseSel ? [h('div.field', h('label', t('layers.base')), baseSel), gtRow] : []), layerRow('cong', t('layers.cong')), layerRow('minor', t('layers.minor')), layerRow('stn', t('layers.stn')), layerRow('inc', t('layers.inc')), layerRow('works', t('layers.works')),
     h('div.field', h('label', t('layers.shade')), shadeSel));
   const layersBtn = h('button.btn.sm.cc-layersbtn', { 'aria-expanded': 'false', 'aria-controls': 'cc-layers', onclick: () => { layersPop.hidden = !layersPop.hidden; layersBtn.setAttribute('aria-expanded', String(!layersPop.hidden)); } }, ic('layers', 16), h('span.lbl', t('layers.title')));
   const outside = (e) => { if (!layersPop.hidden && !layersPop.contains(e.target) && !layersBtn.contains(e.target)) { layersPop.hidden = true; layersBtn.setAttribute('aria-expanded', 'false'); } };
@@ -102,7 +103,7 @@ export function createMapPane() {
       const st = MD.ST[net.stn[e]]; if (R.regAlpha(st.ri) < 0.5) return hideTip();
       body = [h('b', MD.edgeName(e, t('road.unnamed'))), h('div.mono.sm', `${Math.round(res.spd[e])} km/h · v/c ${res.vc[e].toFixed(2)}`), h('div.faint.xs', `${st.n} · ${regionName(st.r)}`), incident ? h('div.xs.bad', t('tip.incident')) : null];
     } else if (si >= 0 && R.regAlpha(MD.ST[si].ri) > 0.5) {
-      body = [h('b', MD.ST[si].n), h('div.faint.xs', `${regionName(MD.ST[si].r)} · ${t('kpi.fatal')}: ${fatal2025(si)}`)];
+      body = [h('b', MD.ST[si].n), h('div.faint.xs', `${regionName(MD.ST[si].r)} · ${t('kpi.fatal')}: ${hasCrash(si) ? fatal2025(si) : '–'}`)];
     }
     if (!body) return hideTip();
     fill(tip, ...body); tip.hidden = false;
@@ -129,7 +130,7 @@ export function createMapPane() {
   const mq = matchMedia('(prefers-color-scheme: dark)'); mq.addEventListener?.('change', recolour);
   (function loop() { if (R.dead) return; if (R.dirty && R.W) { R.draw(); gbase?.sync(); } requestAnimationFrame(loop); })();
   R.destroy = () => { R.dead = true; gbase?.destroy(); ro.disconnect(); mo.disconnect(); mq.removeEventListener?.('change', recolour); document.removeEventListener('pointerdown', outside); };
-  drawLegend(); refreshOverlays(); if (gbase && S.layers.base !== 'plain') gbase.set(S.layers.base);
+  drawLegend(); refreshOverlays(); if (gbase && S.layers.base !== 'plain') { gbase.setTraffic(S.layers.gtraffic); gbase.set(S.layers.base); }
   R.pane = wrap; R.canvas = canvas; R.focusSearch = () => { search.classList.add('open'); input.focus(); input.select(); };
   R.zoomBy = (f) => R.zoomAt(R.W / 2, R.H / 2, f);
   return R;

@@ -1,8 +1,8 @@
 // Pure analytics over the routable network (no DOM, no /vendor imports) so it is unit-testable in Node.
 // `net` is the object returned by createNetwork() in @blr/model.
 
-export const REGIONS = ['North', 'East', 'Central', 'West', 'South'];
-export const REGION_INDEX = { North: 0, East: 1, Central: 2, West: 3, South: 4 };
+export const REGIONS = ['North', 'East', 'Central', 'West', 'South', 'Rural'];
+export const REGION_INDEX = { North: 0, East: 1, Central: 2, West: 3, South: 4, Rural: 5 };
 export const CLASS_NAMES = ['arterial', 'subArterial', 'collector'];
 
 /** v/c -> colour bucket 0..5 (matches --c0..--c5). */

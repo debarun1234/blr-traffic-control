@@ -225,6 +225,37 @@ test('keyboard: ? sheet, 2-6 scope, / search, [ ] zoom, Esc', async () => {
   });
 });
 
+test('Google basemap: option only with a key; selecting it loads Maps, follows the canvas camera and falls back on auth failure', async () => {
+  await run('north.dcp', async (page) => {
+    assert.equal(await page.getByTestId('base-select').count(), 0, 'hidden when no key is configured');
+  });
+  const stub = `window.__moves=[];window.google={maps:{Map:function(el,o){this.moveCamera=(c)=>window.__moves.push(c);this.setMapTypeId=(t)=>{window.__type=t;};},TrafficLayer:function(){this.setMap=(m)=>{window.__traffic=!!m;};}}};window.__gmReady&&window.__gmReady();`;
+  await run('north.dcp', { mock: { mapsKey: 'TESTKEY' } }, async (page) => {
+    await page.route('https://maps.googleapis.com/**', (r) => r.fulfill({ contentType: 'text/javascript', body: stub }));
+    await page.locator('.cc-layersbtn').click();
+    await page.getByTestId('base-select').selectOption('hybrid');
+    await page.waitForFunction(() => window.__type === 'hybrid' && window.__moves.length > 0);
+    const m = await page.evaluate(() => window.__moves.at(-1)); assert.ok(m.center.lat > 12.8 && m.center.lat < 13.3 && m.center.lng > 77.3 && m.center.lng < 77.9, 'camera centred on Bengaluru'); assert.ok(m.zoom > 9 && m.zoom < 13);
+    await page.getByTestId('gtraffic').check(); await page.waitForFunction(() => window.__traffic === true);
+    await page.locator('.cc-zoom button').first().click();
+    await page.waitForFunction((z) => window.__moves.at(-1).zoom > z, m.zoom);
+    assert.ok(await page.evaluate(() => document.querySelector('.cc-map').classList.contains('gm')));
+    await page.evaluate(() => window.gm_authFailure()); await page.waitForFunction(() => !document.querySelector('.cc-map').classList.contains('gm'));
+    assert.equal(await page.getByTestId('base-select').inputValue(), 'plain');
+  });
+});
+
+test('AI advice is regenerated in Kannada when the language is switched', async () => {
+  await run('north.dcp', async (page) => {
+    await tab(page, 'actions');
+    await page.waitForFunction(async () => !(await import('/sim.mjs')).simBusy());
+    await page.getByTestId('advise').first().click(); await page.waitForSelector('[data-testid=ai-result]');
+    assert.match(await page.locator('.cc-ai-b').first().innerText(), /Deploy staff/);
+    await page.getByTestId('lang').first().click();
+    await page.waitForFunction(() => /ಸಿಬ್ಬಂದಿಯನ್ನು ನಿಯೋಜಿಸಿ/.test(document.querySelector('.cc-ai-b')?.innerText || ''));
+  });
+});
+
 test('AI: tier + cached badges, label, inert HTML, quota, 429 and disabled handling', async () => {
   await run('north.dcp', { allow: /429/ }, async (page) => {
     await tab(page, 'actions');

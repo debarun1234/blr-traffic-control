@@ -19,6 +19,9 @@ export function buildMapData(map) {
   const REGBOX = { All: bb(map.city) }; for (const r of REGIONS) REGBOX[r] = bb(map.reg[r]);
   const stIdx = new Map();
   ST.forEach((s, i) => { s.box = bb(s.poly); s.i = i; s.ri = REGION_INDEX[s.r]; stIdx.set(s.n, i); });
+  // label anchors: the region's bbox centre, except Rural (an arc round the north of the city) which is labelled at its largest unit
+  const REGLAB = Object.fromEntries(REGIONS.map((r) => { const b = REGBOX[r]; return [r, [(b[0] + b[2]) / 2, (b[1] + b[3]) / 2]]; }));
+  { const ru = ST.filter((s) => s.r === 'Rural').sort((a, b) => (b.box?.[2] - b.box?.[0]) * (b.box?.[3] - b.box?.[1]) - (a.box?.[2] - a.box?.[0]) * (a.box?.[3] - a.box?.[1]))[0]; if (ru) REGLAB.Rural = [ru.x, ru.y]; }
   const RT = []; for (let i = 0; i < N; i++) if (map.d[i][4] >= 0) RT.push(i);
   const edgeName = (e, fallback = '') => { const n = net.name[e]; return n >= 0 ? map.n[n] : fallback; };
 
@@ -39,5 +42,5 @@ export function buildMapData(map) {
     for (const [n, byStn] of net.roads) { const es = byStn.get(si); if (!es) continue; let L = 0; for (const e of es) L += net.len[e]; if (L > minLen) out.push([n, L]); }
     return out.sort((a, b) => b[1] - a[1]);
   }
-  return { map, net, N, ST, DX, DB, DREG, REGBOX, RT, stIdx, edgeName, stAt, edgeMid, roadsIn, hubs: map.hubs, NAMES: map.n };
+  return { map, net, N, ST, DX, DB, DREG, REGBOX, REGLAB, RT, stIdx, edgeName, stAt, edgeMid, roadsIn, hubs: map.hubs, NAMES: map.n };
 }

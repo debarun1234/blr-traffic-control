@@ -154,8 +154,8 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       if (S.aiUsed >= S.aiLimit) return err(res, 'quota_exceeded', 429, 'daily AI quota exceeded');
       S.aiUsed++;
       const out = brief
-        ? { text: `Briefing for ${b.scope}\n- ${S.incidents.filter((x) => x.startHour <= S.hour && S.hour < x.endHour).length} incidents active; <img src=x onerror="window.__xss=1"> must stay inert text.\n- Escalated actions need acknowledgement first.\n- Morning peak speeds are modelled, not measured.`, tier: 't3', cached: false, generatedAt: S.now }
-        : { text: `Deploy staff at ${b.context?.road} (${b.context?.station}). ${b.context?.alternate ? `Divert via ${b.context.alternate.road}.` : 'No clear alternate found.'} <b>bold?</b> stays text.`, tier: b.context?.road ? 't2' : 't0', cached: false, model: 'mock-model' };
+        ? { text: `${b.lang === 'kn' ? 'ಸಂಕ್ಷಿಪ್ತ ವರದಿ' : 'Briefing for'} ${b.scope}\n- ${S.incidents.filter((x) => x.startHour <= S.hour && S.hour < x.endHour).length} incidents active; <img src=x onerror="window.__xss=1"> must stay inert text.\n- Escalated actions need acknowledgement first.\n- Morning peak speeds are modelled, not measured.`, tier: 't3', cached: false, generatedAt: S.now }
+        : { text: b.lang === 'kn' ? `ಸಿಬ್ಬಂದಿಯನ್ನು ನಿಯೋಜಿಸಿ: ${b.context?.road} (${b.context?.station})` : `Deploy staff at ${b.context?.road} (${b.context?.station}). ${b.context?.alternate ? `Divert via ${b.context.alternate.road}.` : 'No clear alternate found.'} <b>bold?</b> stays text.`, tier: b.context?.road ? 't2' : 't0', cached: false, model: 'mock-model' };
       S.aiCache.set(key, out); return json(res, 200, out);
     }
     return err(res, 'not_found', 404, 'unknown endpoint ' + m + ' ' + path);

@@ -1,7 +1,7 @@
 // Station / road detail: KPIs, crash sparklines, selected road, incident reporting, station actions.
 import { h, toast } from '/vendor/ui.mjs';
 import { INCIDENT_TYPES } from '/vendor/model.mjs';
-import { S, on, can, canActOn, setSel, setTab, scopeStations, fatal2025, nonfatal2025, crashHist, incidentsAt, curHour, myStation, openActions } from '../state.mjs';
+import { S, on, can, canActOn, setSel, setTab, scopeStations, fatal2025, nonfatal2025, hasCrash, crashHist, incidentsAt, curHour, myStation, openActions } from '../state.mjs';
 import { reportIncident } from '../feed.mjs';
 import { topRoads, colourClass, CLASS_NAMES } from '../analytics.mjs';
 import { t, regionName, typeName } from '../i18n.mjs';
@@ -53,7 +53,7 @@ export function createStation(map) {
       return void fill(root, ...kids);
     }
     const s = MD.ST[si], p = S.sum?.per[si], lv = !S.replay && S.live?.stations?.[si], spd = lv ? lv.speed : p?.speed, cong = lv ? lv.cong : p?.congPct;
-    const rank = MD.ST.slice().sort((a, b) => fatal2025(b.i) - fatal2025(a.i)).findIndex((x) => x.i === si) + 1;
+    const rank = hasCrash(si) ? MD.ST.filter((x) => hasCrash(x.i)).sort((a, b) => fatal2025(b.i) - fatal2025(a.i)).findIndex((x) => x.i === si) + 1 : 0;
     kids.push(h('div.cc-sec.cc-head', h('div', h('h2', { 'data-testid': 'stn-name' }, s.n), h('div.row', { style: { marginTop: '4px' } }, h('span.badge', regionName(s.r)), s.sub && s.sub !== s.r ? h('span.badge', s.sub) : null, myStation() === si ? h('span.badge.accent', t('badge.mine')) : null)),
       h('button.btn.sm.ghost', { onclick: () => setSel(null), 'aria-label': t('stn.clear') }, ic('x', 16))));
     if (e >= 0) {
@@ -68,7 +68,7 @@ export function createStation(map) {
           mayReport ? h('button.btn.sm', { 'data-testid': 'rep-open', 'aria-expanded': String(repEdge === e), onclick: () => { if (repEdge === e) { repEdge = null; repForm = null; } else { repEdge = e; repForm = buildReportForm(e, () => { repEdge = null; repForm = null; update(); }); } update(); } }, ic('alert', 14), t('rep.open')) : null),
         repEdge === e && repForm ? repForm : null));
     }
-    kids.push(h('div.cc-kpis', kpi(t('kpi.fatal'), String(fatal2025(si))), kpi(t('kpi.nonfatal'), String(nonfatal2025(si))), kpi(t('kpi.rank'), `#${rank}`, { sub: `/ ${MD.ST.length}` }),
+    kids.push(h('div.cc-kpis', kpi(t('kpi.fatal'), hasCrash(si) ? String(fatal2025(si)) : '–'), kpi(t('kpi.nonfatal'), hasCrash(si) ? String(nonfatal2025(si)) : '–'), kpi(t('kpi.rank'), rank ? `#${rank}` : '–', { sub: `/ ${MD.ST.filter((x) => hasCrash(x.i)).length}` }),
       kpi(t('kpi.speed'), spd != null ? h('span', Math.round(spd), h('small', ' km/h')) : '–'), kpi(t('kpi.cong'), cong != null ? h('span', Math.round(cong), h('small', '%')) : '–'), kpi(t('kpi.inc'), String(incidentsAt(curHour()).filter((x) => x.stn === si).length))));
     const hs = crashHist(si);
     if (hs) {

@@ -1,6 +1,6 @@
 // Overview: KPIs, typical-day timeline + replay, region / station tables, busiest roads.
 import { h, fmtH } from '/vendor/ui.mjs';
-import { S, on, setScope, setSel, setTab, setReplay, curHour, incidentsAt, openActions, inScope, scopeStations, fatal2025, myStation } from '../state.mjs';
+import { S, on, setScope, setSel, setTab, setReplay, curHour, incidentsAt, openActions, inScope, scopeStations, fatal2025, hasCrash, myStation } from '../state.mjs';
 import { scopeSum, topRoads, colourClass, REGIONS } from '../analytics.mjs';
 import { t, regionName, agoText } from '../i18n.mjs';
 import { reconcile, clear, fill } from '../util.mjs';
@@ -78,12 +78,12 @@ export function createOverview(map) {
       });
       reconcile(tbody, rows, (x) => x.key, (x) => x.sig, (x) => h('tr.click', { tabindex: 0, 'data-testid': 'row-' + x.r, onclick: () => setScope(x.r), onkeydown: (e) => { if (e.key === 'Enter') setScope(x.r); } },
         h('td', h('b', regionName(x.r)), ' ', h('span.faint.xs', MD.ST.filter((s) => s.r === x.r).length)),
-        h('td.n', x.rs?.speed != null ? Math.round(x.rs.speed) : '…'), h('td.n', x.rs ? Math.round(x.rs.congPct) + '%' : '…'), h('td.n', x.ic), h('td.n', x.fa)));
+        h('td.n', x.rs?.speed != null ? Math.round(x.rs.speed) : '…'), h('td.n', x.rs ? Math.round(x.rs.congPct) + '%' : '…'), h('td.n', x.ic), h('td.n', MD.ST.some((s) => s.r === x.r && hasCrash(s.i)) ? x.fa : '–')));
     } else {
       const st = scopeStations().sort((a, b) => fatal2025(b.i) - fatal2025(a.i)).map((s) => { const p = perSt(s.i); return { key: s.i, sig: `${p?.speed?.toFixed?.(1)}|${p?.cong?.toFixed?.(1)}|${fatal2025(s.i)}|${myStation() === s.i}`, s, p }; });
       reconcile(tbody, st, (x) => x.key, (x) => x.sig, (x) => h('tr.click', { tabindex: 0, onclick: () => { setSel({ t: 'st', i: x.s.i }); map.fitBox(x.s.box, 0.25); setTab('station'); }, onkeydown: (e) => { if (e.key === 'Enter') { setSel({ t: 'st', i: x.s.i }); setTab('station'); } } },
         h('td', x.s.n, myStation() === x.s.i ? h('span.badge.accent', { style: { marginLeft: '6px' } }, t('badge.mine')) : null),
-        h('td.n', x.p?.speed != null ? Math.round(x.p.speed) : '–'), h('td.n', x.p ? Math.round(x.p.cong) + '%' : '…'), h('td.n', fatal2025(x.s.i))));
+        h('td.n', x.p?.speed != null ? Math.round(x.p.speed) : '–'), h('td.n', x.p ? Math.round(x.p.cong) + '%' : '…'), h('td.n', hasCrash(x.s.i) ? fatal2025(x.s.i) : '–')));
     }
     // roads
     fill(roadsTitle, sectionTitle(t('sec.topRoads')));

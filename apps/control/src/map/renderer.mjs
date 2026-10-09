@@ -175,7 +175,7 @@ export function createRenderer(canvas) {
     // region labels in city view
     if (S.scope === 'All' && k < 0.1) {
       ctx.textAlign = 'center'; ctx.font = `700 ${mini ? 12 : 15}px ${FONT}`;
-      for (const r of REGIONS) { const b = REGBOX[r], lx = sx((b[0] + b[2]) / 2), ly = sy((b[1] + b[3]) / 2), txt = t(`reg.${r}`).toUpperCase(); ctx.globalAlpha = 0.9; ctx.lineWidth = 4; ctx.strokeStyle = C['--land']; ctx.strokeText(txt, lx, ly); ctx.fillStyle = C['--accent']; ctx.fillText(txt, lx, ly); }
+      for (const r of REGIONS) { const c = MD.REGLAB[r], lx = sx(c[0]), ly = sy(c[1]), txt = t(`reg.${r}`).toUpperCase(); ctx.globalAlpha = 0.9; ctx.lineWidth = 4; ctx.strokeStyle = C['--land']; ctx.strokeText(txt, lx, ly); ctx.fillStyle = C['--accent']; ctx.fillText(txt, lx, ly); }
       ctx.globalAlpha = 1;
     }
     // hubs

@@ -46,6 +46,8 @@ Behaviour: the basemap is a layer under the existing canvas; the model's roads, 
 
 Terms caveat: Routes API durations are used only to calibrate the model; the app does not draw Google traffic or route geometry on a non-Google map. Have your counsel confirm that calibration use fits the Maps Platform terms before relying on it operationally.
 
-## Bengaluru Rural coverage (not yet built)
+## Bengaluru Rural coverage
 
-The road graph, station territories and city boundary come from the offline pipeline in `tools/mapdata` (OpenStreetMap roads plus the police station list). Extending to Bengaluru Rural means re-running that pipeline over the larger area with Rural stations and boundary added as a separate zone, then regenerating `packages/mapdata/map.json`. Confirm first that the Commissionerate's jurisdiction includes the Rural stations; as far as I know Rural has its own district police.
+Rural is covered by Google's own live traffic, not by our model. With a Google basemap selected, Layers → "Google live traffic" draws Google's Traffic layer over the whole visible area (zoom out beyond the city). It is Google's data on Google's map, which keeps within the Maps terms. Rural has no modelled congestion, actions, station territories or crash statistics because the road graph and stations come from the offline pipeline in `tools/mapdata` (OpenStreetMap roads plus the BTP station list), and Google data cannot be bulk-extracted into that graph under its terms.
+
+Extending the modelled network to Rural means re-running that pipeline with OpenStreetMap road extracts and a Rural station list added as a separate zone. Confirm first that the Commissionerate's jurisdiction includes Rural stations; as far as I know Rural has its own district police.

@@ -1,6 +1,6 @@
 /** Roles, permissions and workflow rules shared by API, worker and both web apps. Pure, dependency-free. */
 
-export const REGIONS = Object.freeze(['North', 'East', 'Central', 'West', 'South']);
+export const REGIONS = Object.freeze(['North', 'East', 'Central', 'West', 'South', 'Rural']);
 export const ROLES = Object.freeze(['admin', 'commissioner', 'dcp', 'station', 'viewer']);
 export const ACTION_STATES = Object.freeze(['new', 'ack', 'prog', 'done', 'cleared', 'persist']);
 export const WORKFLOW = Object.freeze({ escalateAfterMin: 15, verifyAfterMin: 30, persistVcThreshold: 0.9 });
