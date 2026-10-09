@@ -121,3 +121,11 @@ test('AI output follows the requested language (Kannada templates, model prompt,
   assert.equal((await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id }, lang: 'fr' })).status, 400);
   const b = await T.call('commissioner', 'POST', '/api/ai/brief', { scope: 'city', lang: 'kn' }); assert.equal(b.status, 200); assert.match(T.calls.at(-1).prompt, /Kannada/);
 });
+
+test('using the app records activity for the idle-aware worker (throttled)', async () => {
+  T.clock.advance(24 * 3600000); await T.store.delete?.('state', 'activity');
+  await T.call('admin', 'GET', '/api/me'); await new Promise((r) => setTimeout(r, 20));
+  const a = await T.store.get('state', 'activity'); assert.ok(a?.lastSeenAt > 0, '/me records activity');
+  await T.store.set('state', 'activity', { id: 'activity', lastSeenAt: 1 }); await T.call('admin', 'GET', '/api/me'); await new Promise((r) => setTimeout(r, 20));
+  assert.equal((await T.store.get('state', 'activity')).lastSeenAt, 1, 'a second call inside the throttle window does not write again');
+});

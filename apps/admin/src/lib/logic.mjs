@@ -76,6 +76,11 @@ export function validateSettings(s) {
   if (!isInt(s.feed?.tickMin) || s.feed.tickMin < 1 || s.feed.tickMin > 60) e['feed.tickMin'] = 'Whole minutes, 1 to 60.';
   if (!isInt(s.feed?.staleAfterMin) || s.feed.staleAfterMin < 2 || s.feed.staleAfterMin > 360) e['feed.staleAfterMin'] = 'Whole minutes, 2 to 360.';
   else if (!e['feed.tickMin'] && s.feed.staleAfterMin < s.feed.tickMin * 2) e['feed.staleAfterMin'] = 'Must be at least 2x the tick interval, or the feed is stale between healthy ticks.';
+  if (s.feed && (s.feed.idleAfterMin !== undefined || s.feed.idleTickMin !== undefined)) {
+    if (!isInt(s.feed.idleAfterMin) || s.feed.idleAfterMin < 0 || s.feed.idleAfterMin > 1440) e['feed.idleAfterMin'] = 'Whole minutes, 0 (never idle) to 1440.';
+    if (!isInt(s.feed.idleTickMin) || s.feed.idleTickMin < 10 || s.feed.idleTickMin > 240) e['feed.idleTickMin'] = 'Whole minutes, 10 to 240.';
+    else if (isInt(s.feed.tickMin) && s.feed.idleTickMin < s.feed.tickMin) e['feed.idleTickMin'] = 'Must be at least the tick interval.';
+  }
   if (!isInt(s.workflow?.escalateAfterMin) || s.workflow.escalateAfterMin < 1 || s.workflow.escalateAfterMin > 240) e['workflow.escalateAfterMin'] = 'Whole minutes, 1 to 240.';
   if (!isInt(s.workflow?.verifyAfterMin) || s.workflow.verifyAfterMin < 5 || s.workflow.verifyAfterMin > 480) e['workflow.verifyAfterMin'] = 'Whole minutes, 5 to 480.';
   for (const k of ['routesCallsPerDay', 'tomtomCallsPerDay']) if (!isInt(s.caps?.[k]) || s.caps[k] < 0 || s.caps[k] > 100000) e[`caps.${k}`] = 'Whole number, 0 to 100,000.';

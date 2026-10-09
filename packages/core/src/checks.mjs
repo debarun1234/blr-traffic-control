@@ -36,13 +36,13 @@ export async function runChecks({ store, net, clock, env = process.env, timeSour
   const state = await store.get('state', 'current'), meta = await store.get('state', 'meta');
   await add('feed', 'Feed freshness', async () => {
     if (!state) return { status: 'fail', detail: 'no state yet' };
-    const age = Math.round((now - state.updatedAt) / 60000), lim = s.feed.staleAfterMin;
+    const age = Math.round((now - state.updatedAt) / 60000), lim = meta?.idle ? s.feed.idleTickMin + s.feed.tickMin : s.feed.staleAfterMin;
     return age > lim ? { status: 'fail', detail: `state is ${age} min old (limit ${lim})` } : state.stale ? { status: 'warn', detail: `mode ${state.mode}: ${state.calibration?.reason ?? 'feed stale'}` } : { detail: `${age} min old, mode ${state.mode}` };
   });
   await add('scheduler', 'Scheduler lag', async () => {
     if (!state) return { status: 'fail', detail: 'no tick has run' };
-    const lag = Math.round((now - state.updatedAt) / 60000) - s.feed.tickMin;
-    return lag > 3 * s.feed.tickMin ? { status: 'fail', detail: `${lag} min late` } : lag > s.feed.tickMin ? { status: 'warn', detail: `${lag} min late` } : { detail: `${Math.max(0, lag)} min late` };
+    const every = meta?.idle ? s.feed.idleTickMin : s.feed.tickMin, lag = Math.round((now - state.updatedAt) / 60000) - every;
+    return lag > 3 * every ? { status: 'fail', detail: `${lag} min late` } : lag > every ? { status: 'warn', detail: `${lag} min late` } : { detail: `${Math.max(0, lag)} min late` };
   });
   await add('tick_duration', 'Last tick duration', async () => {
     if (!meta) return { status: 'warn', detail: 'no tick recorded' };

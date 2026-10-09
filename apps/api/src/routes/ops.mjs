@@ -1,6 +1,6 @@
 import { decodeState } from '@blr/model';
 import { PERMISSIONS, REGIONS, hasPermission, canOnStation, canTransition, jurisdiction, lockedRegion, istParts } from '@blr/shared';
-import { err, rid, validDate, validateWork, simIncidentDocs, buildIncidentAction, capForType, stationName, roadName, actionContext, briefContext, round2 } from '@blr/core';
+import { createActivityTracker, err, rid, validDate, validateWork, simIncidentDocs, buildIncidentAction, capForType, stationName, roadName, actionContext, briefContext, round2 } from '@blr/core';
 import { bad, body, only, str, int, bool, limitParam } from '../http.mjs';
 
 const OPEN = ['new', 'ack', 'prog', 'persist'];
@@ -12,14 +12,17 @@ export function registerOps(api, ctx) {
   const { store, net, clock, audit } = ctx, stations = net.map.st;
   const aud = (req, kind, target, summary, meta) => audit.write({ actor: req.user.email, role: req.user.role, kind, target, summary, ip: req.ip, meta });
   const overrides = () => store.list('stations');
+  const touch = createActivityTracker({ store, clock });
 
   api.get('/me', async (req) => {
+    void touch();
     const u = req.user, s = await ctx.settings();
     return { email: u.email, name: u.name ?? '', role: u.role, region: u.region ?? lockedRegion(u, stations), station: u.station ?? null, active: u.active !== false,
       permissions: [...(PERMISSIONS[u.role] ?? [])], lockedRegion: lockedRegion(u, stations), jurisdiction: [...jurisdiction(u, stations)], flags: { aiEnabled: !!s.ai.enabled, maintenance: !!s.maintenance }, map: s.map };
   });
 
   api.get('/state', async (req, reply) => {
+    void touch();
     const st = await store.get('state', 'current');
     if (!st) throw err('unavailable', 'No state has been computed yet');
     const s = await ctx.settings();

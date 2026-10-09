@@ -11,7 +11,7 @@ const LAYERS = [['minorRoads', 'Local roads', 'Residential and service streets, 
 const BANDS = [['slow', 'Crawl below', 'Red: traffic is barely moving.'], ['moderate', 'Slow below', 'Orange.'], ['good', 'Moderate below', 'Yellow.'], ['fast', 'Free-flow from', 'Above this is green; between the last two is light green.']];
 const LABELS = {
   'map.defaultView': 'Map: default view', 'map.crashScale': 'Map: crash shading scale', ...Object.fromEntries(VIEWS.flatMap(([v, n]) => ROLES.map((r) => [`map.views.${v}.${r}`, `Map: ${n} for ${r}`]))),
-  ...Object.fromEntries(LAYERS.map(([k, n]) => [`map.layers.${k}`, `Map layer: ${n}`])), ...Object.fromEntries(BANDS.map(([k, n]) => [`map.speedBands.${k}`, `Map speed band: ${n}`])), 'feed.mode': 'Feed mode', 'feed.tickMin': 'Tick interval (min)', 'feed.staleAfterMin': 'Stale after (min)', 'workflow.escalateAfterMin': 'Escalate after (min)', 'workflow.verifyAfterMin': 'Verify after (min)', 'caps.routesCallsPerDay': 'Google Routes calls / day', 'caps.tomtomCallsPerDay': 'TomTom calls / day', maintenance: 'Maintenance mode' };
+  ...Object.fromEntries(LAYERS.map(([k, n]) => [`map.layers.${k}`, `Map layer: ${n}`])), ...Object.fromEntries(BANDS.map(([k, n]) => [`map.speedBands.${k}`, `Map speed band: ${n}`])), 'feed.mode': 'Feed mode', 'feed.tickMin': 'Tick interval (min)', 'feed.staleAfterMin': 'Stale after (min)', 'feed.idleAfterMin': 'Idle after (min)', 'feed.idleTickMin': 'Slow tick while idle (min)', 'workflow.escalateAfterMin': 'Escalate after (min)', 'workflow.verifyAfterMin': 'Verify after (min)', 'caps.routesCallsPerDay': 'Google Routes calls / day', 'caps.tomtomCallsPerDay': 'TomTom calls / day', maintenance: 'Maintenance mode' };
 
 export async function mount(root, ctx) {
   const host = h('div');
@@ -44,7 +44,7 @@ export async function mount(root, ctx) {
     const collect = () => {
       const val = (p) => { const e = fields[p]?.ctl; return e ? (e.value === '' ? NaN : Number(e.value)) : undefined; };
       const next = structuredClone(cur);
-      next.feed.mode = mode.value; next.feed.tickMin = val('feed.tickMin'); next.feed.staleAfterMin = val('feed.staleAfterMin');
+      next.feed.mode = mode.value; next.feed.tickMin = val('feed.tickMin'); next.feed.staleAfterMin = val('feed.staleAfterMin'); next.feed.idleAfterMin = val('feed.idleAfterMin'); next.feed.idleTickMin = val('feed.idleTickMin');
       next.workflow.escalateAfterMin = val('workflow.escalateAfterMin'); next.workflow.verifyAfterMin = val('workflow.verifyAfterMin');
       next.caps.routesCallsPerDay = val('caps.routesCallsPerDay'); next.caps.tomtomCallsPerDay = val('caps.tomtomCallsPerDay');
       next.map.defaultView = mapDefault.value; for (const [v] of VIEWS) for (const r of ROLES) next.map.views[v][r] = viewBox[`${v}.${r}`].input.checked;
@@ -52,7 +52,7 @@ export async function mount(root, ctx) {
       return { next, errors: validateSettings(next) };
     };
     const sections = h('div.stack', { style: { gap: '16px' } },
-      h('section.card', h('div.card-h', h('h2', 'Data feed')), h('div.stack', h('div.fgrid', fields['feed.mode']), modeHelp, grid(num('feed.tickMin', 'Tick interval (minutes)', { hint: 'How often the worker rebuilds state. 1 to 60.' }), num('feed.staleAfterMin', 'Stale after (minutes)', { hint: 'No tick for this long marks the feed stale. At least twice the tick interval.' })))),
+      h('section.card', h('div.card-h', h('h2', 'Data feed')), h('div.stack', h('div.fgrid', fields['feed.mode']), modeHelp, grid(num('feed.tickMin', 'Tick interval (minutes)', { hint: 'How often the worker rebuilds state. 1 to 60.' }), num('feed.staleAfterMin', 'Stale after (minutes)', { hint: 'No tick for this long marks the feed stale. At least twice the tick interval.' }), num('feed.idleAfterMin', 'Treat as idle after (minutes)', { hint: 'No one has used the app for this long: the feed slows down and paid connectors (Google Routes, TomTom) stop. 0 turns this off. Any use resumes normal ticks within one tick interval.' }), num('feed.idleTickMin', 'Slow tick while idle (minutes)', { hint: 'While idle, the model refreshes this often (10 to 240). Not less than the tick interval.' })))),
       h('section.card', h('div.card-h', h('h2', 'Action workflow')), grid(num('workflow.escalateAfterMin', 'Escalate after (minutes)', { hint: 'An action nobody acknowledged is escalated to the next level after this long.' }), num('workflow.verifyAfterMin', 'Verify after (minutes)', { hint: 'After an action is done, congestion is re-checked this long afterwards.' }))),
       h('section.card', h('div.card-h', h('h2', 'Paid API caps')), grid(num('caps.routesCallsPerDay', 'Google Routes calls per day'), num('caps.tomtomCallsPerDay', 'TomTom calls per day')), h('p.hint', { style: { marginTop: '8px' } }, 'Hard stop across all connectors of that type. Per-connector caps are set on each connector.')),
       mapCard,

@@ -38,13 +38,13 @@ export function workActive(w, date, h) {
  * One feed tick. Pure of wall-clock: everything derives from `now`.
  * @param {{store:any, net:any, now:number, connectors?:{runDue(o:{now:number}):Promise<any>}, settings?:any}} p
  */
-export async function runTick({ store, net, now, connectors, settings }) {
+export async function runTick({ store, net, now, connectors, settings, idle = false }) {
   const started = performance.now();
   settings ??= await getSettings(store);
   const audit = createAudit({ store, clock: { now: () => now } });
   const { date, h } = istParts(now), yesterday = shiftDate(date, -1), mode = settings.feed.mode;
 
-  const connectorRuns = connectors?.runDue ? await connectors.runDue({ now }) : null;
+  const connectorRuns = connectors?.runDue ? await connectors.runDue({ now, skipPaid: idle }) : null;
 
   // ---- incidents ----
   const stored = await store.list('incidents', { where: [['date', 'in', [yesterday, date]]] });
@@ -96,10 +96,10 @@ export async function runTick({ store, net, now, connectors, settings }) {
 
   const tickMs = Math.round(performance.now() - started);
   await store.set('state', 'current', state);
-  await store.set('state', 'meta', { id: 'meta', tickMs, lastTickAt: now, mode, activeIncidents: activeInc.length, activeWorks: works.length, calibrated: !!calibration && !calibration.skipped });
+  await store.set('state', 'meta', { id: 'meta', tickMs, lastTickAt: now, idle, mode, activeIncidents: activeInc.length, activeWorks: works.length, calibrated: !!calibration && !calibration.skipped });
   const key = istMinuteKey(now);
   await store.set('state_hist', key, { id: key, t: now, mode, summary: { speed: state.city.speed, congPct: state.city.congPct, incidents: activeInc.length, works: works.length, boost: state.boost }, expireAt: now + 72 * 3600000 });
-  return { ok: true, t: now, mode, stale, boost: state.boost, tickMs, calibration, connectors: connectorRuns, ...act };
+  return { ok: true, t: now, mode, idle, stale, boost: state.boost, tickMs, calibration, connectors: connectorRuns, ...act };
 }
 
 async function createIfAbsent(store, doc) {

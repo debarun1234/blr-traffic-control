@@ -9,6 +9,7 @@
 | Stale map ("stale since" pill) | Check the scheduler jobs and worker logs; fall back to the `sim` connector |
 | Lock-out (no admin) | `scripts/admins.mjs` lists admins; `scripts/seed.sh --admin-email <you>` creates one |
 | Leaked key or secret | Revoke the API key in Admin; `scripts/set-secret.sh --rotate`; rotate the Google OAuth secret |
+| Save money while idle | Admin > Settings > Data feed: set Treat as idle after / Slow tick while idle (default 2 h / 60 min). For a full stop set `scheduler_paused = true` in `TFVARS` and run Deploy; resume by setting it back to `false`. Lower Google Routes and TomTom per-day caps in Settings, or keep those connectors in shadow or disabled until a demo |
 | Maintenance | Set the maintenance flag in Admin > Settings (non-admins see a maintenance screen) |
 | Teardown | `scripts/teardown.sh --env <env>` (read the prompt; `delete_protection` guards Firestore) |
 

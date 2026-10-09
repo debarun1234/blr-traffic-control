@@ -37,6 +37,8 @@ test('settings: defaults, deep merge, unknown keys and bad values rejected, pers
   const store = createMemoryStore();
   assert.deepEqual(validateSettings(defaultSettings()), []);
   assert.ok(validateSettings({ feed: { mode: 'weird' } })[0].includes('feed.mode'));
+  assert.ok(validateSettings({ feed: { tickMin: 20, idleTickMin: 10 } }).some((m) => m.includes('idleTickMin')));
+  assert.equal(defaultSettings().feed.idleAfterMin, 120); assert.ok(validateSettings({ feed: { idleAfterMin: -1 } }).length);
   const d = defaultSettings(); assert.equal(d.map.defaultView, 'traffic'); assert.equal(d.map.views.safety.viewer, false);
   assert.ok(validateSettings({ ...d, map: { ...d.map, speedBands: { slow: 20, moderate: 20, good: 27, fast: 34 } } }).some((m) => m.includes('speedBands')));
   assert.ok(validateSettings({ ...d, map: { ...d.map, defaultView: 'x' } }).some((m) => m.includes('map.defaultView')));

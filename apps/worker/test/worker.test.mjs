@@ -64,3 +64,20 @@ test('a tick runs due connectors (circuit breaker applies); concurrent ticks are
   const conn = await s2.get('connectors', 'r'); assert.deepEqual([conn.enabled, conn.failures], [false, 3]);
   await w.close();
 });
+
+test('idle mode: no recent activity slows ticks to idleTickMin and skips paid connectors; activity resumes normal ticks', async () => {
+  const s = createMemoryStore(), c = fixedClock(T0);
+  const w = await buildWorker({ store: s, clock: c, net, verifier, logger: false, env: { NODE_ENV: 'test', INTERNAL_INVOKER_SA: SA }, fetch: async () => new Response('', { status: 500 }) });
+  const tick = async () => (await w.inject({ method: 'POST', url: '/internal/tick', headers: { authorization: 'Bearer sa' } })).json();
+  await s.set('connectors', 'gr', { id: 'gr', name: 'Routes', type: 'google_routes', enabled: true, intervalMin: 1, mode: 'live', config: {}, secretRef: 's' });
+  assert.equal((await tick()).idle, false, 'no activity recorded yet: treated as active');
+  await s.set('state', 'activity', { id: 'activity', lastSeenAt: T0 });
+  c.advance(10 * 60000); assert.equal((await tick()).idle, false, 'activity 10 min ago, idleAfterMin 120');
+  c.advance(130 * 60000); const t1 = await tick(); assert.equal(t1.idle, true); assert.equal(t1.skipped, undefined, 'idle but last tick is old enough: runs once');
+  assert.equal(t1.connectors.some((x) => x.id === 'gr'), false, 'paid connector skipped while idle'); assert.equal((await s.get('state', 'meta')).idle, true);
+  c.advance(10 * 60000); assert.deepEqual(await tick(), { ok: true, skipped: 'idle', idle: true }, 'next 10-min tick is skipped while idle');
+  c.advance(55 * 60000); assert.equal((await tick()).skipped, undefined, 'one tick per idleTickMin');
+  await s.set('state', 'activity', { id: 'activity', lastSeenAt: c.now() }); c.advance(10 * 60000);
+  const t2 = await tick(); assert.equal(t2.idle, false); assert.equal((await s.get('state', 'meta')).idle, false, 'back to normal ticks after activity');
+  await w.close();
+});

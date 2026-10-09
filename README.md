@@ -95,6 +95,10 @@ Or deploy from GitHub Actions: set the GitHub environment variables `WIF_PROVIDE
 
 Details: [docs/runbook.md](docs/runbook.md). Costs and AI caps: [docs/cost-and-ai.md](docs/cost-and-ai.md). Every price in that page is an assumption to verify.
 
+## Cost when idle
+
+Cloud Run (API and worker) scales to zero. Cloud Scheduler still fires, but when nobody has used the app for two hours (Admin > Settings > Data feed, `Treat as idle after`) the worker ticks once an hour instead of every ten minutes and stops calling the paid APIs (Google Routes, TomTom). For a full stop set `scheduler_paused = true` in `TFVARS` and run Deploy. Per-day paid caps are in Admin > Settings. Details: [docs/runbook.md](docs/runbook.md), [docs/cost-and-ai.md](docs/cost-and-ai.md), [docs/architecture.md](docs/architecture.md).
+
 ## Access model
 
 Google sign-in through Identity Platform, then an email allowlist in Firestore (`users/{email}`). Roles: `admin`, `commissioner` (whole area), `dcp` (one region), `station` (own station, sees region map), `viewer` (read only). Every check is enforced server-side; the UI only dims. See [docs/security.md](docs/security.md).

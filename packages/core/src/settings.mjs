@@ -4,7 +4,7 @@ import { ROLES } from '@blr/shared';
 /** Defaults. Model ids come from env overrides (AI_MODEL_T1..T3) and are editable at runtime; logic never names a model. */
 export function defaultSettings(env = process.env) {
   return {
-    feed: { mode: 'sim', tickMin: 10, staleAfterMin: 25 },
+    feed: { mode: 'sim', tickMin: 10, staleAfterMin: 25, idleAfterMin: 120, idleTickMin: 60 }, // idleAfterMin 0 = never idle
     workflow: { escalateAfterMin: 15, verifyAfterMin: 30 },
     ai: {
       enabled: true, dailyCallCap: 400, briefPerDay: 24,
@@ -48,7 +48,7 @@ const tier = O({ enabled: B(), model: S(100, /^[A-Za-z0-9._\-/]+$/) });
 const tierNum = (a, b) => O({ t1: I(a, b), t2: I(a, b), t3: I(a, b) });
 const price = O({ inPerM: N(0, 1000), outPerM: N(0, 1000) });
 export const SCHEMA = O({
-  feed: O({ mode: E('sim', 'live', 'blend'), tickMin: I(1, 60), staleAfterMin: I(5, 240) }),
+  feed: O({ mode: E('sim', 'live', 'blend'), tickMin: I(1, 60), staleAfterMin: I(5, 240), idleAfterMin: I(0, 1440), idleTickMin: I(10, 240) }),
   workflow: O({ escalateAfterMin: I(1, 240), verifyAfterMin: I(1, 480) }),
   ai: O({
     enabled: B(), dailyCallCap: I(0, 100000), briefPerDay: I(0, 1000), perUserDaily: perRole,
@@ -85,6 +85,7 @@ export function validateSettings(obj) {
   const errors = []; check(SCHEMA, obj, '', errors);
   const b = obj?.map?.speedBands;
   if (b && ['slow', 'moderate', 'good', 'fast'].every((k) => Number.isInteger(b[k])) && !(b.slow < b.moderate && b.moderate < b.good && b.good < b.fast)) errors.push('map.speedBands: must increase slow < moderate < good < fast');
+  const f = obj?.feed; if (f && Number.isInteger(f.idleTickMin) && Number.isInteger(f.tickMin) && f.idleTickMin < f.tickMin) errors.push('feed.idleTickMin: must be at least feed.tickMin');
   return errors;
 }
 

@@ -42,6 +42,14 @@ test('validateSettings checks map views, speed bands and crash scale', () => {
   assert.ok(L.validateSettings({ ...base, map: { ...map, views: { safety: roles(false), speed: roles(true) } } })['map.defaultView'], 'default view off for all roles');
 });
 
+test('validateSettings checks idle feed settings', () => {
+  const ok = { feed: { mode: 'blend', tickMin: 10, staleAfterMin: 25, idleAfterMin: 120, idleTickMin: 60 }, workflow: { escalateAfterMin: 15, verifyAfterMin: 30 }, caps: { routesCallsPerDay: 1, tomtomCallsPerDay: 1 } };
+  assert.deepEqual(L.validateSettings(ok), {});
+  assert.deepEqual(L.validateSettings({ ...ok, feed: { ...ok.feed, idleAfterMin: 0 } }), {}, '0 turns idle mode off');
+  assert.ok(L.validateSettings({ ...ok, feed: { ...ok.feed, idleAfterMin: 2000 } })['feed.idleAfterMin']);
+  assert.ok(L.validateSettings({ ...ok, feed: { ...ok.feed, idleTickMin: 5 } })['feed.idleTickMin']);
+});
+
 test('validateSettings enforces ranges and stale >= 2x tick', () => {
   const ok = { feed: { mode: 'blend', tickMin: 10, staleAfterMin: 25 }, workflow: { escalateAfterMin: 15, verifyAfterMin: 30 }, caps: { routesCallsPerDay: 100, tomtomCallsPerDay: 0 } };
   assert.deepEqual(L.validateSettings(ok), {});

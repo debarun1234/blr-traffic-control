@@ -113,6 +113,8 @@ sequenceDiagram
   Note over W: a failed tick logs event tick_failed, and no tick for staleAfterMin logs feed_stale
 ```
 
+**Idle mode.** The API records `state/activity` whenever someone calls `/me` or `/state` (an open Control tab polls `/state`). If nothing was seen for `feed.idleAfterMin` (default 120; 0 turns idle mode off), the worker runs one tick per `feed.idleTickMin` (default 60) instead of every scheduler tick, and skips paid connectors (`google_routes`, `tomtom`). Scheduler jobs still fire and wake the worker, which returns immediately. The first user after an idle spell can see a "stale" pill for up to one normal tick interval until the next full tick; the system checks use the idle interval while idle. Activity never recorded (a fresh deployment) counts as active.
+
 The state is modelled. Even in `live` mode it is a model calibrated against probe observations, not a sensor feed; the UI must say so ([model.md](model.md)).
 
 ### Action workflow

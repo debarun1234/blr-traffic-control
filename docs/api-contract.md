@@ -16,7 +16,7 @@ epoch milliseconds unless a field says `hour` (IST hour-of-day float, 0–24). B
 | collection / doc | shape |
 |---|---|
 | `users/{email}` | `{email,name?,role:'admin'|'commissioner'|'dcp'|'station'|'viewer',region?,station?,active:boolean,uid?,createdBy,createdAt,lastLogin?}` |
-| `state/current` | see **State** below (one doc, overwritten each tick) |
+| `state/current` | see **State** below (one doc, overwritten each tick). `state/meta` holds the last tick (`lastTickAt`, `idle`, …); `state/activity` `{lastSeenAt}` is written by `/me` and `/state` at most every 2 min per instance |
 | `state_hist/{yyyyMMddHHmm}` | `{t,mode,summary,expireAt}` (TTL 72 h; no per-edge arrays) |
 | `actions/{id}` | `{id,incidentId,type:'cong'|'inc'|'work',edge,station,region,title,detail,pri:'hi'|'md',state,raisedAt,raisedHour,ackAt?,ackBy?,progAt?,doneAt?,doneBy?,verifiedAt?,vc0?,vc1?,escalated:boolean,escalatedAt?,date}` — `id` = `A-{incidentId}` |
 | `incidents/{id}` | `{id,src:'sim'|'user'|'connector'|'ingest',type,edge,station,date,startHour,endHour,cap,by?,connectorId?,createdAt}` |
@@ -29,7 +29,7 @@ epoch milliseconds unless a field says `hour` (IST hour-of-day float, 0–24). B
 | `probes/{id}` | `{id,name,fromNode,toNode,fromLabel,toLabel,freeMin,enabled,weight}` — node ids index `map.json` route nodes |
 | `probe_obs/{id}` | `{probeId,at,minutes,source}` (TTL 7 d) |
 | `apikeys/{id}` | `{id,name,hash,prefix,scopes:[…],rateLimit,createdBy,createdAt,lastUsed?,revoked:boolean}` |
-| `settings/app` | `{feed:{mode:'sim'|'live'|'blend',tickMin:10,staleAfterMin:25},workflow:{escalateAfterMin:15,verifyAfterMin:30},ai:{enabled,dailyCallCap,perUserDaily:{admin,commissioner,dcp,station,viewer},tiers:{t1:{enabled,model},t2:{…},t3:{…}},killReason?},caps:{routesCallsPerDay,tomtomCallsPerDay},map:{defaultView:'traffic'|'safety'|'speed',views:{safety:{[role]:boolean},speed:{[role]:boolean}},layers:{minorRoads,stations,incidents,works,googleTraffic:boolean},speedBands:{slow,moderate,good,fast:int km/h, strictly rising},crashScale:int},maintenance:boolean}` (`map.views` and `map.layers` are admin-controlled; Live traffic is always available) |
+| `settings/app` | `{feed:{mode:'sim'|'live'|'blend',tickMin:10,staleAfterMin:25,idleAfterMin:120,idleTickMin:60},workflow:{escalateAfterMin:15,verifyAfterMin:30},ai:{enabled,dailyCallCap,perUserDaily:{admin,commissioner,dcp,station,viewer},tiers:{t1:{enabled,model},t2:{…},t3:{…}},killReason?},caps:{routesCallsPerDay,tomtomCallsPerDay},map:{defaultView:'traffic'|'safety'|'speed',views:{safety:{[role]:boolean},speed:{[role]:boolean}},layers:{minorRoads,stations,incidents,works,googleTraffic:boolean},speedBands:{slow,moderate,good,fast:int km/h, strictly rising},crashScale:int},maintenance:boolean}` (`map.views` and `map.layers` are admin-controlled; Live traffic is always available) |
 | `ai_usage/{yyyyMMdd}` | `{date,calls,tokensIn,tokensOut,byTier:{t0,t1,t2,t3},byUser:{email:calls},cacheHits,estCostUsd}` |
 | `ai_cache/{sha256}` | `{key,tier,text,createdAt,expireAt}` (TTL 24 h) |
 | `audit/{id}` | `{id,at,actor,role,kind,target,summary,ip?,meta?}` (append-only; never updated or deleted by the app) |

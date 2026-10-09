@@ -30,7 +30,7 @@ export function createStore(now = Date.now()) {
     u('commissioner@blr.test', 'commissioner', { name: 'City Commissioner', lastLogin: now - 20 * MIN }), u('dcp.east@blr.test', 'dcp', { name: 'DCP East', region: 'East', lastLogin: now - 10 * MIN }),
     u('station.indira@blr.test', 'station', { name: 'Indiranagar SHO', station: 'Indiranagar', lastLogin: now - 26 * HOUR }), u('viewer@blr.test', 'viewer', { name: 'Press Desk', lastLogin: now - 6 * DAY }),
     u('old.user@blr.test', 'viewer', { name: 'Former Officer', active: false, lastLogin: now - 90 * DAY })]);
-  s.settings = { feed: { mode: 'blend', tickMin: 10, staleAfterMin: 25 }, workflow: { escalateAfterMin: 15, verifyAfterMin: 30 },
+  s.settings = { feed: { mode: 'blend', tickMin: 10, staleAfterMin: 25, idleAfterMin: 120, idleTickMin: 60 }, workflow: { escalateAfterMin: 15, verifyAfterMin: 30 },
     ai: { enabled: true, dailyCallCap: 800, perUserDaily: { admin: 100, commissioner: 60, dcp: 40, station: 25, viewer: 5 }, tiers: { t1: { enabled: true, model: 'gemini-2.5-flash-lite' }, t2: { enabled: true, model: 'gemini-2.5-flash' }, t3: { enabled: true, model: 'gemini-2.5-pro' } } },
     caps: { routesCallsPerDay: 1500, tomtomCallsPerDay: 2000 },
     map: { defaultView: 'traffic', views: { safety: { admin: true, commissioner: true, dcp: true, station: true, viewer: false }, speed: { admin: true, commissioner: true, dcp: true, station: true, viewer: true } }, layers: { minorRoads: true, stations: true, incidents: true, works: true, googleTraffic: true }, speedBands: { slow: 14, moderate: 20, good: 27, fast: 34 }, crashScale: 26 }, maintenance: false };

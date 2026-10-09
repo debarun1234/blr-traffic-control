@@ -67,10 +67,11 @@ export function createConnectorRunner({ store, net, clock, fetch = globalThis.fe
     },
     runNow: async (id, o) => { const c = await store.get('connectors', id); if (!c) throw err('not_found', 'connector'); return runOne(c, o); },
     /** Run enabled connectors whose interval has elapsed. */
-    async runDue({ now = clock.now() } = {}) {
+    async runDue({ now = clock.now(), skipPaid = false } = {}) {
       const out = [];
       for (const c of await store.list('connectors', { where: [['enabled', '==', true]] })) {
         if (c.type === 'sim' || c.type === 'webhook') continue;
+        if (skipPaid && PAID.includes(c.type)) continue;
         if (c.lastRun && now - c.lastRun.at < c.intervalMin * 60000) continue;
         const r = await runOne(c, { now }); out.push({ id: c.id, ok: r.ok, count: r.count, error: r.error });
       }

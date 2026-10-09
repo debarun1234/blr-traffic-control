@@ -1,6 +1,6 @@
 import Fastify from 'fastify';
 import * as F from 'fastify';
-import { ApiError, err, systemClock, getNet, createConnectorRunner, runTick, runChecks, applyBudget, parseBudgetMessage, runRetention, httpTimeSource, assertAuthConfig } from '@blr/core';
+import { ApiError, err, systemClock, getNet, createConnectorRunner, runTick, runChecks, applyBudget, parseBudgetMessage, runRetention, httpTimeSource, assertAuthConfig, getSettings, isIdle, idleTickDue } from '@blr/core';
 
 /** Google OIDC verifier (google-auth-library, lazy). Returns async (idToken) => payload. */
 export function createOidcVerifier({ audience } = {}) {
@@ -52,7 +52,11 @@ export async function buildWorker(o) {
     internal.post('/tick', async () => {
       if (ticking) return { ok: true, skipped: 'tick already running' };
       ticking = true;
-      try { return await runTick({ store, net, now: clock.now(), connectors }); } finally { ticking = false; }
+      try {
+        const now = clock.now(), settings = await getSettings(store), idle = isIdle(settings, await store.get('state', 'activity'), now);
+        if (idle && !idleTickDue(settings, await store.get('state', 'meta'), now)) return { ok: true, skipped: 'idle', idle: true };
+        return await runTick({ store, net, now, connectors, settings, idle });
+      } finally { ticking = false; }
     });
     internal.post('/checks', async () => runChecks({ store, net, clock, env, timeSource: o.timeSource ?? (o.fetch ? undefined : httpTimeSource()) }));
     internal.post('/budget', async (req) => {

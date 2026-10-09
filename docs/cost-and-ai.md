@@ -41,6 +41,8 @@ The table below shows the three situations: as implemented today, cache only, an
 | t2 | Long action advice, works clash narrative | `AI_MODEL_T2` | 500 tokens, 15 s |
 | t3 | Commissioner brief only | `AI_MODEL_T3` | 900 tokens, 30 s, 24 per day, cached per scope and hour |
 
+**Idle cost.** Cloud Run (API and worker) scales to zero. Cloud Scheduler still fires (about 100 wake-ups a day); with idle mode on, most of those return at once, only one real tick per hour runs, and Google Routes and TomTom are not called. Set `scheduler_paused = true` in `TFVARS` to stop even that (the map then goes stale until resumed). Caps: Admin > Settings > Paid API caps, and the per-connector `dailyCap`.
+
 Every request passes these gates in order (`packages/core/src/ai/router.mjs`): maintenance mode, role permission, tier enabled (a disabled tier falls back to t0 for action advice), per-user daily quota by role (admin 100, commissioner 60, dcp 30, station 20, viewer 0), global daily cap (400 calls), brief cap, cache lookup (answers 24 h, brief 1 h), model call with timeout, usage recorded in `ai_usage/{yyyyMMdd}` with an estimated cost. Model ids are data (`settings/app`) so a deprecated model is a settings change, not a deploy. Defaults ship in code; **the model ids and the per-million-token prices in `settings.ai.prices` are placeholders: check them against Vertex AI before enabling AI.**
 
 Kill switch: admin site (AI and cost) or `POST /api/admin/ai/kill {enabled:false, reason}`. `scripts/seed.sh` seeds AI **off**; pass `--ai-enabled` or flip it in the admin site.
