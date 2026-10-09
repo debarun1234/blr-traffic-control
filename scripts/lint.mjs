@@ -133,7 +133,7 @@ if (fb) {
     const get = (k) => all?.headers?.find((x) => x.key.toLowerCase() === k)?.value ?? '';
     const csp = get('content-security-policy');
     if (!csp) err('firebase.json', `${id}: missing Content-Security-Policy`);
-    if (/unsafe-eval/.test(csp) || /script-src[^;]*'unsafe-inline'/.test(csp)) err('firebase.json', `${id}: CSP allows unsafe script execution`);
+    if (/(?<!wasm-)unsafe-eval/.test(csp) || /script-src[^;]*'unsafe-inline'/.test(csp)) err('firebase.json', `${id}: CSP allows unsafe script execution`);
     if (!/frame-ancestors 'none'/.test(csp)) err('firebase.json', `${id}: CSP must set frame-ancestors 'none'`);
     for (const k of ['strict-transport-security', 'x-content-type-options', 'referrer-policy']) if (!get(k)) err('firebase.json', `${id}: missing header ${k}`);
     // Every inline <script> in the app's HTML must be allowed by hash (CSP has no 'unsafe-inline' for scripts).

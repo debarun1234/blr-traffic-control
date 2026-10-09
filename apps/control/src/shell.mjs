@@ -40,6 +40,14 @@ export function mountApp(root, { onSignOut }) {
     const scopeBox = h('div.cc-scope', { role: 'group', 'aria-label': t('scope.aria'), 'data-testid': 'scope' });
     const pill = h('span.badge.cc-pill', { 'data-testid': 'status-pill', role: 'status' });
     const updated = h('span.xs.faint.cc-updated');
+    let refreshing = false;
+    const refreshBtn = h('button.btn.sm.cc-quick', { 'data-testid': 'refresh', 'aria-label': t('top.refresh.aria'), hidden: true, onclick: async () => {
+      if (refreshing) return; refreshing = true; refreshBtn.disabled = true; fill(refreshBtn, ic('rotate', 14), t('top.refresh.busy'));
+      try { await S.api.post('/refresh'); await pollNow(); toast(t('top.refresh.done'), 'good'); }
+      catch (e) { toast(e?.code === 'rate_limited' ? t('top.refresh.wait', { s: e.extra?.retryAfterSec ?? 60 }) : t('top.refresh.fail'), e?.code === 'rate_limited' ? 'warn' : 'bad'); }
+      finally { refreshing = false; refreshBtn.disabled = false; fill(refreshBtn, ic('rotate', 14), t('top.refresh')); }
+    } });
+    fill(refreshBtn, ic('rotate', 14), t('top.refresh'));
     const clock = h('span.mono.cc-clock', { 'aria-label': t('clock.aria') });
     const roleB = h('span.badge.cc-role', { 'data-testid': 'role-badge' });
     const aiB = h('span.badge.cc-aiq', { 'data-testid': 'ai-quota', hidden: true });
@@ -68,7 +76,7 @@ export function mountApp(root, { onSignOut }) {
     root._cleanup = () => document.removeEventListener('pointerdown', menuOutside);
 
     const top = h('header.topbar.cc-top', h('div.brand', h('div.mark', ic('map', 18)), h('div.cc-brandtxt', t('app.name'), h('small', t('app.sub')))), scopeBox,
-      h('div.grow'), h('div.cc-status', pill, updated), clock, roleB, aiB, langBtn, themeBtn, helpBtn, h('div.cc-menuwrap', menuBtn, menuPop));
+      h('div.grow'), h('div.cc-status', pill, updated), refreshBtn, clock, roleB, aiB, langBtn, themeBtn, helpBtn, h('div.cc-menuwrap', menuBtn, menuPop));
 
     // ---- banners ----
     const banners = h('div.cc-banners');
@@ -103,6 +111,7 @@ export function mountApp(root, { onSignOut }) {
       if (lr) scopeBox.prepend(ic('shield', 14));
       const p = statusPill(); pill.className = `badge cc-pill ${p.kind}`; fill(pill, h('span.dot' + (p.kind === 'good' ? '.good' : p.kind === 'bad' ? '.bad' : '.warn') + (p.live ? '.live' : '')), p.text); pill.title = p.title ?? '';
       updated.textContent = S.live?.updatedAt ? t('top.updated', { ago: agoText(S.live.updatedAt) }) : '';
+      refreshBtn.hidden = !can('state.refresh');
       const m = S.me; roleB.textContent = roleText(); roleB.className = 'badge cc-role ' + (m?.role === 'viewer' ? '' : 'accent');
       if (m?.role === 'viewer') roleB.title = t('role.readonly');
       const q = S.quota, show = aiAvailable() && !!q; aiB.hidden = !show;

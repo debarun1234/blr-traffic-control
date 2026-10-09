@@ -9,8 +9,8 @@ export const WORKFLOW = Object.freeze({ escalateAfterMin: 15, verifyAfterMin: 30
 export const TRANSITIONS = Object.freeze({ new: ['ack'], ack: ['prog'], prog: ['done'], done: ['prog'], persist: ['prog'], cleared: [] });
 
 export const PERMISSIONS = Object.freeze({
-  admin: ['state.read', 'action.transition', 'incident.report', 'works.write', 'planner.run', 'ai.advise', 'ai.brief', 'admin.access'],
-  commissioner: ['state.read', 'action.transition', 'incident.report', 'works.write', 'planner.run', 'ai.advise', 'ai.brief'],
+  admin: ['state.read', 'state.refresh', 'action.transition', 'incident.report', 'works.write', 'planner.run', 'ai.advise', 'ai.brief', 'admin.access'],
+  commissioner: ['state.read', 'state.refresh', 'action.transition', 'incident.report', 'works.write', 'planner.run', 'ai.advise', 'ai.brief'],
   dcp: ['state.read', 'action.transition', 'incident.report', 'planner.run', 'ai.advise'],
   station: ['state.read', 'action.transition', 'incident.report', 'planner.run', 'ai.advise'],
   viewer: ['state.read'],

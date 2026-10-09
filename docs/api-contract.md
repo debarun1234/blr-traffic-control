@@ -59,6 +59,7 @@ Everything in `/state` is **modelled**; `mode:"live"` means the model is calibra
 
 ### Operations
 * `GET /api/state` `*` → State.
+* `POST /api/refresh` `state.refresh` (admin, commissioner) → `{ok, updatedAt, tickMs}`. Runs one tick now in the API process. Connectors still follow their own intervals and daily caps, so it never makes an extra paid call. One refresh a minute for the whole city (`429 rate_limited` with `retry-after`), one at a time (`409 conflict`). Audited as `feed_refresh`. The Control app shows a Refresh now button to users who have the permission.
 * `GET /api/crash` `*` → `{stations:{[name]:{y2025:{fatal,nonfatal},hist}},importedAt}`. Only the 53 police stations have entries; the 9 outer taluk units have none and the UI shows a dash.
 * `GET /api/actions?state=open|all&limit=200` `*` → `{actions:[…]}` filtered server-side: `station`/`dcp` get their **region**; others all. Sorted escalated first, then newest.
 * `POST /api/actions/:id/transition` `{to:'ack'|'prog'|'done', note?}` → updated action. Requires `action.transition` **and** the action's station ∈ caller jurisdiction, else 403. Illegal transition → 409. Writes audit.

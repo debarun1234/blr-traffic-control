@@ -1,6 +1,6 @@
 import { decodeState } from '@blr/model';
 import { PERMISSIONS, REGIONS, hasPermission, canOnStation, canTransition, jurisdiction, lockedRegion, istParts } from '@blr/shared';
-import { createActivityTracker, err, rid, validDate, validateWork, simIncidentDocs, buildIncidentAction, capForType, stationName, roadName, actionContext, briefContext, round2 } from '@blr/core';
+import { createActivityTracker, runTick, err, rid, validDate, validateWork, simIncidentDocs, buildIncidentAction, capForType, stationName, roadName, actionContext, briefContext, round2 } from '@blr/core';
 import { bad, body, only, str, int, bool, limitParam } from '../http.mjs';
 
 const OPEN = ['new', 'ack', 'prog', 'persist'];
@@ -31,6 +31,24 @@ export function registerOps(api, ctx) {
     reply.header('etag', tag).header('cache-control', 'private, no-cache');
     if (req.headers['if-none-match'] === tag) return reply.status(304).send();
     return doc;
+  });
+
+  // On-demand refresh: one tick now, for people with state.refresh. Connectors still obey their own intervals and daily caps
+  // (runDue), so a refresh never makes an extra paid call. One refresh a minute for the whole city, and never two at once.
+  let refreshing = false;
+  api.post('/refresh', async (req) => {
+    need(req.user, 'state.refresh');
+    if (refreshing) throw err('conflict', 'A refresh is already running');
+    const hit = ctx.limiter.hit('refresh:all', 1);
+    if (!hit.ok) throw err('rate_limited', 'The feed was refreshed a moment ago. Try again shortly.', { retryAfterSec: hit.retryAfterSec });
+    refreshing = true;
+    try {
+      void touch();
+      const now = clock.now(), settings = await ctx.settings();
+      const r = await runTick({ store, net, now, connectors: ctx.connectors, settings, idle: false });
+      await aud(req, 'feed_refresh', 'state/current', 'Refreshed the feed on demand', { tickMs: r.tickMs });
+      return { ok: true, updatedAt: now, tickMs: r.tickMs };
+    } finally { refreshing = false; }
   });
 
   api.get('/crash', async () => {

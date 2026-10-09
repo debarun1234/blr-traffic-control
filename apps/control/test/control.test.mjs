@@ -62,6 +62,18 @@ test('commissioner: whole city + region chips, role badge, briefing, no admin li
   });
 });
 
+test('refresh now: shown to commissioner, posts /refresh, handles the rate limit; hidden for dcp and viewer', async () => {
+  await run('commissioner', { allow: /429|rate_limited|Failed to load resource/ }, async (page) => {
+    const btn = page.getByTestId('refresh'); assert.equal(await btn.isVisible(), true);
+    await btn.click(); await page.locator('.toast', { hasText: /Feed refreshed/ }).waitFor();
+    assert.ok((await mock.info()).calls.includes('POST /refresh'));
+    await mock.ctl('set', { refreshLimited: true }); await btn.click();
+    await page.locator('.toast', { hasText: /Try again in 42 s/ }).waitFor();
+    assert.equal(await btn.isEnabled(), true);
+  });
+  for (const who of ['north.dcp', 'viewer']) await run(who, async (page) => { assert.equal(await page.getByTestId('refresh').isVisible(), false, who); });
+});
+
 test('rural: 9 outer units, Urban/Rural scopes (keys 2, 8), no invented crash figures', async () => {
   await run('commissioner', async (page) => {
     const info = await page.evaluate(async () => { const m = await (await fetch('/assets/map.json')).json(); const u = m.st.filter((x) => x.r === 'Rural'); return { n: u.length, noCrash: u.every((x) => x.t === null && x.f === null), poly: u.every((x) => x.poly?.length), reg: !!m.reg.Rural }; });

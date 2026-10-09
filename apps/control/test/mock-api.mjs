@@ -76,7 +76,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
   });
 
   const json = (res, code, body, headers = {}) => { const s = JSON.stringify(body); res.writeHead(code, { 'content-type': 'application/json', 'cache-control': 'no-store', ...headers }); res.end(s); };
-  const err = (res, code, status, message) => json(res, status, { error: { code, message } });
+  const err = (res, code, status, message, extra) => json(res, status, { error: { code, message, ...(extra ?? {}) } });
   const body = (req) => new Promise((ok) => { let b = ''; req.on('data', (c) => (b += c)); req.on('end', () => { try { ok(b ? JSON.parse(b) : {}); } catch { ok({}); } }); });
   const userOf = (req) => {
     const e = String(req.headers['x-dev-user'] ?? '').trim().toLowerCase(); if (!e) return { status: 401 };
@@ -95,6 +95,12 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     if (au.status === 403) return err(res, 'forbidden', 403, 'not on the allowlist');
     const u = au.u; S.calls.push(`${m} ${path}`);
     if (S.maintenance && u.role !== 'admin' && path !== '/me') return err(res, 'unavailable', 503, 'maintenance');
+    if (m === 'POST' && path === '/refresh') {
+      if (!(PERMISSIONS[u.role] ?? []).includes('state.refresh')) return err(res, 'forbidden', 403, 'Requires state.refresh');
+      if (S.refreshLimited) return err(res, 'rate_limited', 429, 'The feed was refreshed a moment ago.', { retryAfterSec: 42 });
+      if (S.refreshFails) return err(res, 'unavailable', 503, 'down');
+      S.refreshes = (S.refreshes ?? 0) + 1; return json(res, 200, { ok: true, updatedAt: Date.now(), tickMs: 5 });
+    }
     if (m === 'POST' && path === '/preflight') {
       if (S.noPreflight) return err(res, 'unavailable', 503, 'down');
       const inScope = (st) => u.role === 'station' ? st === u.station : u.role === 'dcp' ? stations.find((x) => x.n === st)?.r === u.region : true;
@@ -166,7 +172,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     if (p === '/__mock/reset') { init(); return json(res, 200, { ok: true }); }
     if (p === '/__mock/set') {
       let re = false;
-      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration', 'noPreflight', 'mapsKey', 'map']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
+      for (const k of ['boost', 'hour', 'mode', 'stale', 'staleBy', 'maintenance', 'aiEnabled', 'aiLimit', 'aiUsed', 'down', 'latency', 'failNext', 'noCalibration', 'noPreflight', 'mapsKey', 'map', 'refreshLimited', 'refreshFails']) if (k in b) { S[k] = b[k]; if (k === 'boost' || k === 'hour') re = true; }
       if (b.addUser) S.users.set(b.addUser.email, { active: true, ...b.addUser });
       if (b.addIncident) { const i = b.addIncident; S.incidents.push(mkInc(i.id ?? `x-${++S.seq}`, i.type ?? 'Accident', i.edge ?? edgeIn(i.station), i.sh ?? S.hour - 0.2, i.eh ?? S.hour + 0.8)); re = true; }
       syncActions(); if (re) recompute(3); else S.version++;

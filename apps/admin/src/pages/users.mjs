@@ -4,7 +4,7 @@ import { api, list, errMsg } from '../lib/api.mjs';
 import { pageHeader, loader, dataTable, emptyState, mkField, input, select, errorSummary, validateFields, serverError, openDialog, confirmDialog, roleBadge, fmtDT, debounce, busy } from '../lib/kit.mjs';
 
 const ROLE_BLURB = { admin: 'Everything, including this site.', commissioner: 'Whole city; may write works and request the city brief.', dcp: 'One region; acts on stations in that region.', station: 'One station; sees its region map, acts only on its own station.', viewer: 'Read-only.' };
-const PERM_LABEL = { 'state.read': 'View live state', 'action.transition': 'Acknowledge / progress / close actions', 'incident.report': 'Report incidents', 'works.write': 'Create and edit road works', 'planner.run': 'Use the planner', 'ai.advise': 'AI action advice', 'ai.brief': 'City AI brief', 'admin.access': 'Admin site' };
+const PERM_LABEL = { 'state.read': 'View live state', 'state.refresh': 'Refresh the feed now', 'action.transition': 'Acknowledge / progress / close actions', 'incident.report': 'Report incidents', 'works.write': 'Create and edit road works', 'planner.run': 'Use the planner', 'ai.advise': 'AI action advice', 'ai.brief': 'City AI brief', 'admin.access': 'Admin site' };
 const isOnline = (u) => u.lastLogin && Date.now() - u.lastLogin < 15 * 60000;
 
 export async function mount(root, ctx) {

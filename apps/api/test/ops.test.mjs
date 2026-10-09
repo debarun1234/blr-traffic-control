@@ -129,3 +129,17 @@ test('using the app records activity for the idle-aware worker (throttled)', asy
   await T.store.set('state', 'activity', { id: 'activity', lastSeenAt: 1 }); await T.call('admin', 'GET', '/api/me'); await new Promise((r) => setTimeout(r, 20));
   assert.equal((await T.store.get('state', 'activity')).lastSeenAt, 1, 'a second call inside the throttle window does not write again');
 });
+
+test('POST /api/refresh: admin and commissioner only, one a minute city-wide, runs a tick and audits it', async () => {
+  assert.equal((await T.call('viewer', 'POST', '/api/refresh')).status, 403);
+  assert.equal((await T.call('north.dcp', 'POST', '/api/refresh')).status, 403);
+  T.clock.advance(120000);
+  const before = (await T.store.get('state', 'current')).updatedAt;
+  T.clock.advance(120000);
+  const r = await T.call('commissioner', 'POST', '/api/refresh'); assert.equal(r.status, 200); assert.equal(r.body.ok, true);
+  assert.ok((await T.store.get('state', 'current')).updatedAt > before, 'a tick ran and state advanced');
+  assert.equal((await audits('feed_refresh')).length, 1);
+  const again = await T.call('admin', 'POST', '/api/refresh'); assert.equal(again.status, 429); assert.ok(again.headers['retry-after']);
+  T.clock.advance(61000);
+  assert.equal((await T.call('admin', 'POST', '/api/refresh')).status, 200);
+});

@@ -3,6 +3,7 @@
 | Situation | Action |
 |---|---|
 | Health unknown | `scripts/doctor.sh --env <env>` (read-only), then Admin > System checks |
+| Server map version banner in Control, or old behaviour after a deploy | A failed Deploy rolls Cloud Run traffic back to the previous revision and pins it there. Check `gcloud run services describe blr-api --format='value(status.traffic)'`; if it names a revision instead of the latest, run `gcloud run services update-traffic <svc> --to-latest`. The Deploy workflow now does this itself after each update |
 | Bad release | `scripts/rollback.sh --env <env>` (previous Cloud Run revisions) |
 | Costs rising | Admin > AI: disable AI or lower caps; disable paid connectors; check the billing budget. The Pub/Sub budget trigger does this automatically at 100% |
 | Connector failing | Admin > Connectors > runs; the circuit breaker pauses it; fix, then re-enable (start in shadow) |
@@ -10,6 +11,7 @@
 | Lock-out (no admin) | `scripts/admins.mjs` lists admins; `scripts/seed.sh --admin-email <you>` creates one |
 | Leaked key or secret | Revoke the API key in Admin; `scripts/set-secret.sh --rotate`; rotate the Google OAuth secret |
 | Save money while idle | Admin > Settings > Data feed: set Treat as idle after / Slow tick while idle (default 2 h / 60 min). For a full stop set `scheduler_paused = true` in `TFVARS` and run Deploy; resume by setting it back to `false`. Lower Google Routes and TomTom per-day caps in Settings, or keep those connectors in shadow or disabled until a demo |
+| Fresh numbers now | Commissioner and Admin: Control top bar > Refresh now (one tick, one a minute city-wide, paid connectors still obey their own intervals and caps). Ticks run every 5 min at the 07:00-11:00 and 16:00-21:00 IST peaks and every 10 min otherwise; override with `tick_schedules` in `TFVARS`. Renaming or adding schedule keys creates or deletes the Scheduler jobs on the next Deploy |
 | Maintenance | Set the maintenance flag in Admin > Settings (non-admins see a maintenance screen) |
 | Teardown | `scripts/teardown.sh --env <env>` (read the prompt; `delete_protection` guards Firestore) |
 

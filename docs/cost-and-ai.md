@@ -77,7 +77,7 @@ Volumes are computed from the assumptions; prices are ranges to replace with cur
 | A1 | Each user keeps the control app in a visible tab 8 h a day, 22 working days a month |
 | A2 | Client poll every 30 s (default `pollMs`). Each poll calls `/state`, `/actions`, `/works`, `/incidents`, plus `/ai/quota` every second poll and `/me` every fourth: 4.5 requests. That is 21,120 polls and 95,040 requests per user per month |
 | A3 | Firestore reads per poll: state 1, works 10, incidents 30, actions 1,000 **as implemented** (once the history exceeds 1,000 actions, about 20 to 50 working days at tens of actions a day) or 30 with a time-window query. Totals: 1,041 as implemented, 71 with the window query |
-| A4 | Worker: 110 ticks a day (103 in the 05:30 to 22:30 IST window, 7 hourly) about 3,300 a month at 6 s of CPU each; 96 checks a day about 2,900 a month at 2 s each. Worker reads about 0.4M a month, writes about 25k |
+| A4 | Worker: 164 ticks a day (157 in the 05:30 to 22:30 IST window, of which 108 are the 5-minute peaks 07:00 to 11:00 and 16:00 to 21:00, and 7 hourly) about 4,900 a month at 6 s of CPU each; 96 checks a day about 2,900 a month at 2 s each. Worker reads about 0.4M a month, writes about 25k |
 | A5 | API bills about 0.06 s of one vCPU per request (CPU only while handling requests) |
 | A6 | AI: 5 requests per user per working day, split 50 percent t0, 20 percent t1, 30 percent t2, plus briefs: 120, 240 and 528 a month (528 = 3 scopes x 8 h x 22 d). Tokens in/out: t1 600/150, t2 1,200/350, t3 3,000/700. Prices: the placeholders in `settings.ai.prices` (USD per 1M tokens in/out: t1 0.1/0.4, t2 0.3/2.5, t3 1.25/10) |
 | A7 | Page loads: 1.5 full loads per user per working day at about 0.5 MB (gzip) |
