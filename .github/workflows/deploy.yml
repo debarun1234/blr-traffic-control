@@ -131,6 +131,9 @@ jobs:
             --image "${REPO}/worker:${GITHUB_SHA}" --update-labels "commit-sha=${GITHUB_SHA}" --quiet
           gcloud run services update "$API_SVC" --project "$PROJECT_ID" --region "$REGION" \
             --image "${REPO}/api:${GITHUB_SHA}" --update-labels "commit-sha=${GITHUB_SHA}" --quiet
+          # A previous rollback pins traffic to an old revision by name; `services update` would never move it. Always serve the new revision.
+          gcloud run services update-traffic "$WORKER_SVC" --project "$PROJECT_ID" --region "$REGION" --to-latest --quiet
+          gcloud run services update-traffic "$API_SVC" --project "$PROJECT_ID" --region "$REGION" --to-latest --quiet
 
       - name: Build web, render config
         run: |
