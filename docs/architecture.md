@@ -110,7 +110,7 @@ sequenceDiagram
   W->>W: capacity multipliers, calibrate vs probes, assign (MSA + BPR)
   W->>FS: write state/current, state_hist (TTL 72 h)
   W->>FS: create / escalate / verify actions
-  Note over W: failure logs event tick_failed; no tick for staleAfterMin logs feed_stale
+  Note over W: a failed tick logs event tick_failed, and no tick for staleAfterMin logs feed_stale
 ```
 
 The state is modelled. Even in `live` mode it is a model calibrated against probe observations, not a sensor feed; the UI must say so ([model.md](model.md)).

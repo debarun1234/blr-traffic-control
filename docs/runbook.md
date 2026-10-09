@@ -20,9 +20,9 @@ The `Deploy` and `Deploy web only` workflows use Workload Identity Federation (n
 |---|---|
 | `WIF_PROVIDER`, `WIF_SERVICE_ACCOUNT` | Workload Identity provider and deployer service account, printed by `scripts/bootstrap.sh` |
 | `TF_STATE_BUCKET` | Terraform state bucket (`<project>-tfstate`) |
-| `TFVARS` | The full contents of your `dev.tfvars` / `prod.tfvars` (project, admin emails, OAuth client id, budget, optional `maps_browser_key` and `maps_map_id`). Git-ignored locally; never commit it |
+| `TFVARS` | The full contents of your `dev.tfvars` / `prod.tfvars` (project, admin emails, OAuth client id (not the secret), budget, optional `maps_browser_key` and `maps_map_id`). Git-ignored locally; never commit it |
 
-The OAuth client secret is a GitHub **secret**, not a variable: `TF_VAR_OAUTH_CLIENT_SECRET`. `Deploy` fails fast with a clear message if a variable is missing.
+The OAuth client secret is a GitHub **secret**, not a variable: `TF_VAR_OAUTH_CLIENT_SECRET`. Do not put `oauth_client_secret` in `TFVARS`: variables are stored and shown in plain text, and the tfvars file would override the secret. `Deploy` fails fast with a clear message if a variable is missing.
 
 ### Google sign-in (one manual step)
 

@@ -14,5 +14,11 @@ service-account*.json
 tools/mapdata/stage*.json
 __pycache__/
 tools/mapdata/data/raw/
+infra/terraform/envs/ci.tfvars
+
+# local deploy config and state (secrets/keys): never commit
 infra/terraform/envs/dev.tfvars
-infra/terraform/envs/dev.backend.hcl
+infra/terraform/envs/prod.tfvars
+infra/terraform/envs/*.backend.hcl
+!infra/terraform/envs/*.backend.hcl.example
+!infra/terraform/envs/*.tfvars.example

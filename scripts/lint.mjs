@@ -32,7 +32,9 @@ function* walk(dir) {
     else yield p;
   }
 }
-const files = [...walk(root)].map((p) => ({ abs: p, rel: relative(root, p).split('\\').join('/') }));
+// infra/terraform/envs/ci.tfvars is written by the Deploy workflow from the TFVARS variable and is git-ignored; the real secret scan is on committed files.
+const GENERATED = new Set(['infra/terraform/envs/ci.tfvars']);
+const files = [...walk(root)].map((p) => ({ abs: p, rel: relative(root, p).split('\\').join('/') })).filter((f) => !GENERATED.has(f.rel));
 const readText = (abs) => readFileSync(abs, 'utf8');
 const isText = (f) => TEXT_EXT.has(extname(f.rel)) || /(^|\/)Dockerfile/.test(f.rel) || basename(f.rel).startsWith('.env');
 
