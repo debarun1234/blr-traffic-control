@@ -27,8 +27,12 @@ export function createRenderer(canvas) {
     R.DPR = Math.min(2, window.devicePixelRatio || 1); R.W = w; R.H = h;
     canvas.width = Math.max(1, Math.round(w * R.DPR)); canvas.height = Math.max(1, Math.round(h * R.DPR)); R.dirty = true;
   };
-  const sx = (x) => (x - R.view.cx) * R.view.k + R.W / 2, sy = (y) => R.H / 2 - (y - R.view.cy) * R.view.k;
-  const wx = (px) => (px - R.W / 2) / R.view.k + R.view.cx, wy = (py) => (R.H / 2 - py) / R.view.k + R.view.cy;
+  // Vertical stretch: the data is plate carree, Google is Web Mercator (y scale 1/cos(lat) relative to x). With the Google
+  // basemap on we apply that factor about the view centre so roads sit on Google's roads; 1 otherwise.
+  const ORG = map.o, SC = map.s;
+  R.ky = () => (R.baseOn?.() ? 1 / Math.cos(((ORG[1] + R.view.cy / SC) * Math.PI) / 180) : 1);
+  const sx = (x) => (x - R.view.cx) * R.view.k + R.W / 2, sy = (y) => R.H / 2 - (y - R.view.cy) * R.view.k * R.ky();
+  const wx = (px) => (px - R.W / 2) / R.view.k + R.view.cx, wy = (py) => (R.H / 2 - py) / (R.view.k * R.ky()) + R.view.cy;
   Object.assign(R, { sx, sy, wx, wy });
   R.regAlpha = (ri) => (S.scope === 'All' ? 1 : S.scope === 'Urban' ? (ri !== REGION_INDEX.Rural ? 1 : 0.16) : ri === REGION_INDEX[S.scope] ? 1 : lockedRegion() ? 0.07 : 0.2);
   const regAlpha = R.regAlpha;
@@ -51,7 +55,7 @@ export function createRenderer(canvas) {
   R.zoomAt = (px, py, f) => {
     R._anim = (R._anim ?? 0) + 1;
     const k0 = R.view.k, k1 = Math.max(0.02, Math.min(4, k0 * f)), x = wx(px), y = wy(py);
-    R.view.k = k1; R.view.cx = x - (px - R.W / 2) / k1; R.view.cy = y + (py - R.H / 2) / k1; R.dirty = true;
+    R.view.k = k1; R.view.cx = x - (px - R.W / 2) / k1; R.view.cy = y + (py - R.H / 2) / (k1 * R.ky()); R.dirty = true;
   };
   R.fitScope = (instant) => R.fitBox(REGBOX[S.scope] ?? REGBOX.All, 0.06, instant);
 
@@ -66,10 +70,12 @@ export function createRenderer(canvas) {
     return worksCache.edges;
   }
 
+  const GM_COL = ['#d946ef', '#a21caf', '#581c87']; // model hotspots over Google: magenta ramp, distinct from Google's own green/amber/red
+  R.gmColours = GM_COL;
   R.draw = () => {
     R.dirty = false;
     const C = colours(), k = R.view.k, W = R.W, H = R.H, vc = S.result?.vc, view = curView(), cfg = mapCfg(), hasFeed = !!vc && view === 'traffic';
-    const mini = W < 560;
+    const mini = W < 560, gm = !!R.baseOn?.(); // gm: Google basemap on, so draw only the essentials over it
     ctx.setTransform(R.DPR, 0, 0, R.DPR, 0, 0);
     if (R.baseOn?.()) ctx.clearRect(0, 0, W, H); // Google basemap shows through
     else { ctx.fillStyle = C['--map']; ctx.fillRect(0, 0, W, H); ctx.beginPath(); ringPath(map.city); ctx.fillStyle = C['--land']; ctx.fill(); }
@@ -93,7 +99,7 @@ export function createRenderer(canvas) {
     if (S.scope !== 'All') { ctx.beginPath(); ringPath(map.city); if (S.scope === 'Urban') for (const r of URBAN) ringPath(map.reg[r]); else ringPath(map.reg[S.scope]); ctx.fillStyle = C['--map']; ctx.globalAlpha = lockedRegion() ? 0.78 : 0.6; ctx.fill('evenodd'); ctx.globalAlpha = 1; }
     // station boundaries
     ctx.lineWidth = 0.7; ctx.strokeStyle = C['--line'];
-    for (const s of ST) { ctx.globalAlpha = 0.95 * regAlpha(s.ri); ctx.beginPath(); ringPath(s.poly); ctx.stroke(); }
+    for (const s of gm && view === 'traffic' ? [] : ST) { ctx.globalAlpha = 0.95 * regAlpha(s.ri); ctx.beginPath(); ringPath(s.poly); ctx.stroke(); }
     ctx.globalAlpha = 1;
 
     // roads (level of detail by zoom)
@@ -103,15 +109,16 @@ export function createRenderer(canvas) {
       const B = [[], [], [], [], []].map(() => [[], [], [], [], [], [], []]);
       for (let i = 0; i < N; i++) {
         if (!visItem(i, x0, y0, x1, y1)) continue;
-        const d = map.d[i], c = d[0]; if ((c === 3 && !showMinor) || (c === 4 && !showStreets)) continue;
+        const d = map.d[i], c = d[0]; if ((c === 3 && !showMinor) || (c === 4 && !showStreets) || (gm && (c > 2 || view !== 'traffic'))) continue;
         const ra = DREG[i], al = ra < 0 ? 1 : regAlpha(ra); if ((al >= 1 ? 0 : 1) !== bk) continue;
-        B[c][d[4] >= 0 && hasFeed ? colourClass(vc[d[4]]) : 6].push(i);
+        const b = d[4] >= 0 && hasFeed ? colourClass(vc[d[4]]) : 6; if (gm && (b < 3 || b > 5)) continue; // only congested main roads
+        B[c][b].push(i);
       }
       ctx.globalAlpha = bk ? (lockedRegion() ? 0.14 : 0.22) : 1; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (let c = 4; c >= 0; c--) for (let b = 0; b < 7; b++) {
         const L = B[c][b]; if (!L.length) continue;
         ctx.beginPath(); for (const i of L) polyline(DX[i]);
-        ctx.strokeStyle = b < 6 ? C.cls[b] : c >= 3 ? C['--road-minor'] : (c <= 2 && view === 'traffic' ? C['--nofeed'] : C['--road-major']);
+        ctx.strokeStyle = gm ? GM_COL[b - 3] : b < 6 ? C.cls[b] : c >= 3 ? C['--road-minor'] : (c <= 2 && view === 'traffic' ? C['--nofeed'] : C['--road-major']);
         ctx.lineWidth = WD[c] * sc * (b >= 3 && b < 6 ? 1.25 : 1); ctx.stroke();
       }
     }
@@ -138,7 +145,7 @@ export function createRenderer(canvas) {
 
     // road names
     const FONT = C['--font'] || 'system-ui, sans-serif';
-    if (k > 0.16) {
+    if (k > 0.16 && !gm) {
       ctx.font = `10px ${FONT}`; ctx.textAlign = 'center'; ctx.fillStyle = C['--ink'];
       const placed = [], byName = {}; let cnt = 0;
       for (let q = 0; q < RT.length && cnt < 45; q++) {

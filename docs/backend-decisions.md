@@ -15,7 +15,7 @@ Where `docs/api-contract.md` was ambiguous or silent, the simplest reading was t
 - Self-demotion, self-disable and removing the last active admin return **409 conflict**. Creating an existing user returns 409 (use PATCH to re-activate).
 - `PUT /api/admin/ai/limits` accepts only `dailyCallCap, briefPerDay, perUserDaily, tiers, maxOutputTokens, timeoutMs, prices` and merges them into `settings/app.ai`.
 - Connector `DELETE` is a hard delete (runs stay until their TTL). New connectors default to `enabled:false`.
-- `/api/ai/advise` with `context.actionId` ignores client numbers and builds the context from stored state and the road graph. A free-text `context.question` forces tier t2 (otherwise small contexts are answered by the t0 template).
+- `/api/ai/advise` with `context.actionId` ignores client numbers and builds the context from stored state and the road graph. Action advice always goes to tier t2 when AI is on; the t0 template is only the fallback (AI off, tier off, model error or timeout, or the caller's or the system's daily quota used up), and the response then carries `fallback` (`error`, `timeout` or `quota`).
 - `/api/ai/quota.used` counts the caller's model calls today (t0 templates and cache hits are free). With no AI router configured it returns `aiEnabled:false`.
 
 ## Additive fields and collections (not in the contract)

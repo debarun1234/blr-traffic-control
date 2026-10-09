@@ -10,6 +10,8 @@ export function aiResult(data, { meta } = {}) {
   return h('div.cc-ai', { 'data-testid': 'ai-result' },
     h('div.cc-ai-h', h('span.cc-ai-tag', ic('sparkle', 13), t('ai.label')),
       h('span.badge' + (data.tier === 't0' ? '.info' : '.accent'), { title: t(`ai.tierHint.${data.tier}`), 'data-testid': 'ai-tier' }, t(TIER[data.tier] ?? 'ai.tier.t1')),
+      data.fallback ? h('span.badge.warn', { 'data-testid': 'ai-fallback', title: data.fallback }, t('ai.fallback')) : null,
+      data.truncated ? h('span.badge.warn', { 'data-testid': 'ai-truncated' }, t('ai.truncated')) : null,
       data.cached ? h('span.badge', { 'data-testid': 'ai-cached' }, t('ai.cached')) : null, meta ?? null),
     h('div.cc-ai-b', blocks.length ? blocks : h('p', '')));
 }

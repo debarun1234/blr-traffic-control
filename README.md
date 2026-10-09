@@ -113,7 +113,7 @@ Generic REST and webhook connectors, CSV upload, inbound `x-api-key` ingest, Goo
 
 ## Validation status
 
-Verified here: unit tests (core 45, api 28, worker 5, model 6, shared 6), Control suite (38 tests incl. Playwright scenarios) and Admin suite (42 tests incl. Playwright scenarios) against mock and in-memory servers, repo lint, shellcheck, Terraform syntax parse.
+Verified here: unit tests (core 48, api 28, worker 5, model 6, shared 6), Control suite (38 tests incl. Playwright scenarios) and Admin suite (42 tests incl. Playwright scenarios) against mock and in-memory servers, repo lint, shellcheck, Terraform syntax parse.
 
 CI (`.github/workflows/ci.yml`) also runs Terraform fmt/validate and container builds on GitHub; those were not run in the authoring sandbox.
 

@@ -19,7 +19,7 @@ export function createMapPane() {
   const wrap = h('section.cc-map', { 'aria-label': t('map.region') }, canvas);
   const R = createRenderer(canvas);
   const mapsKey = S.cfg?.mapsKey || '';
-  const gbase = mapsKey ? createGoogleBase(wrap, R, { key: mapsKey, mapId: S.cfg?.mapsMapId, origin: MD.map.o, onFail: (m) => { S.layers.base = 'plain'; lsSet('blr-base', 'plain'); baseSel && (baseSel.value = 'plain'); toast(m, 'bad', 6000); } }) : null;
+  const gbase = mapsKey ? createGoogleBase(wrap, R, { key: mapsKey, mapId: S.cfg?.mapsMapId, origin: MD.map.o, scale: MD.map.s, onChange: () => drawLegend(), onFail: (m) => { S.layers.base = 'plain'; lsSet('blr-base', 'plain'); baseSel && (baseSel.value = 'plain'); toast(m, 'bad', 6000); } }) : null;
   R.baseOn = () => !!gbase?.active;
   let baseSel = null;
 
@@ -109,6 +109,10 @@ export function createMapPane() {
       rows = ramp.map((c, i) => h('div.cc-lg', h('i', { style: { background: c, opacity: 0.7, height: '10px' } }), h('span', t(['legend.speed.crawl', 'legend.slow', 'legend.speed.ok', 'legend.speed.good', 'legend.speed.fast'][i])), h('span.mono.faint', lab[i])));
       const sl = scopeStations().filter((s) => S.sum?.per[s.i]?.speed != null).sort((a, c) => S.sum.per[a.i].speed - S.sum.per[c.i].speed).slice(0, 3);
       top = sl.length ? t('legend.slowest', { list: sl.map((s) => `${s.n} ${Math.round(S.sum.per[s.i].speed)}`).join(' · ') }) : null;
+    }
+    if (v === 'traffic' && R.baseOn()) { // Google basemap: model draws only congested main roads, in a colour Google does not use
+      rows = R.gmColours.map((c, i) => lg(c, t(['legend.slow', 'legend.jam', 'legend.grid'][i]), ['0.95–1.15', '1.15–1.50', '>1.50'][i]));
+      top = t('legend.gm');
     }
     const marks = [layerOn('inc') ? h('div.cc-lg', h('i.inc', '!'), h('span', t('legend.inc'))) : null, layerOn('works') ? h('div.cc-lg', h('i.wk'), h('span', t('legend.works'))) : null];
     fill(legend, h('b.xs', t(`view.${v}.t`)), h('div.faint.cc-lgd', t(`view.${v}.d`)), ...rows, top ? h('div.cc-lgt', top) : null, h('div.cc-lgu', t(`view.${v}.use`)), ...marks);

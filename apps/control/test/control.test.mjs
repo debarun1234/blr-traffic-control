@@ -265,6 +265,17 @@ test('Google basemap: option only with a key; selecting it loads Maps, follows t
     await page.locator('.cc-zoom button').first().click();
     await page.waitForFunction((z) => window.__moves.at(-1).zoom > z, m.zoom);
     assert.ok(await page.evaluate(() => document.querySelector('.cc-map').classList.contains('gm')));
+    // alignment: the offset between two model points on screen equals the offset Google's Web Mercator gives them at the camera
+    await page.waitForFunction(() => { const { S } = window.__blr, v = S.mapRef.view; return Math.abs(window.__moves.at(-1).zoom - Math.log2((v.k * S.MD.map.s * 360) / 256)) < 1e-3; });
+    const err = await page.evaluate(() => {
+      const { S } = window.__blr, R = S.mapRef, c = window.__moves.at(-1), o = S.MD.map.o, sc = S.MD.map.s, w = 256 * 2 ** c.zoom;
+      const mx = (lng) => (w * (lng + 180)) / 360, my = (lat) => w * (0.5 - Math.log(Math.tan(Math.PI / 4 + (lat * Math.PI) / 360)) / (2 * Math.PI));
+      const A = S.MD.ST[0], B = S.MD.ST[S.MD.ST.length - 1], ll = (p) => [o[0] + p.x / sc, o[1] + p.y / sc];
+      const [la, lb] = [ll(A), ll(B)];
+      return [Math.abs((R.sx(B.x) - R.sx(A.x)) - (mx(lb[0]) - mx(la[0]))), Math.abs((R.sy(B.y) - R.sy(A.y)) - (my(lb[1]) - my(la[1])))];
+    });
+    assert.ok(err[0] < 1.5 && err[1] < 1.5, `model and Google basemap agree to <1.5 px, got ${err}`);
+    assert.match(await page.locator('.cc-legend').innerText(), /congested main roads only/i, 'legend switches to the essentials-only key');
     await page.evaluate(() => window.gm_authFailure()); await page.waitForFunction(() => !document.querySelector('.cc-map').classList.contains('gm'));
     assert.equal(await page.getByTestId('base-select').inputValue(), 'plain');
   });

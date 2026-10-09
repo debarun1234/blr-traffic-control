@@ -19,7 +19,7 @@ export { query as jsonPath, items as jsonItems } from './connectors/jsonpath.mjs
 export * from './ai/router.mjs';
 export * from './ai/generate.mjs';
 export { adviceTemplate } from './ai/templates.mjs';
-export { actionContext, briefContext } from './ai/context.mjs';
+export { actionContext, briefContext, peakInfo } from './ai/context.mjs';
 export { detourAround } from './ai/graph.mjs';
 export { cleanContext, buildPrompt, sanitiseOutput } from './ai/prompts.mjs';
 export * from './retention.mjs';

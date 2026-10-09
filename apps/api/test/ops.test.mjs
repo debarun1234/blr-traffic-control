@@ -71,10 +71,11 @@ test('works: create, validate, patch, soft delete, audit; inactive hidden from t
   assert.deepEqual((await T.store.list('audit')).filter((a) => a.target === w.id).map((a) => a.kind).sort(), ['works_create', 'works_delete', 'works_update']);
 });
 
-test('AI endpoints: template advice from an action, brief cached per hour, quota, kill switch and /api/me flag', async () => {
+test('AI endpoints: model advice from an action, brief cached per hour, quota, kill switch and /api/me flag', async () => {
   const a = (await T.call('admin', 'GET', '/api/actions?state=open')).body.actions.find((x) => x.edge >= 0 && x.type === 'cong') ?? (await T.call('admin', 'GET', '/api/actions?state=open')).body.actions[0];
   const adv = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id } });
-  assert.equal(adv.status, 200); assert.equal(adv.body.tier, 't0'); assert.match(adv.body.text, /modelled|simulated/i); assert.equal(T.calls.filter((c) => /action_advice|SITUATION/.test(c.prompt)).length, 0);
+  assert.equal(adv.status, 200); assert.equal(adv.body.tier, 't2', 'advice is model-written, not a template'); assert.ok(adv.body.model);
+  const sent = T.calls.at(-1).prompt; assert.match(sent, /SITUATION/); for (const k of ['ageMin', 'escalated', 'peak', 'vc']) assert.match(sent, new RegExp(`"${k}"`), `${k} reaches the model`);
   const q = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id, question: 'Which junction first?' } });
   assert.equal(q.body.tier, 't2'); assert.match(q.body.text, /^AI\[/); assert.ok(q.body.model);
   assert.equal((await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: 'nope' } })).status, 404);
@@ -82,6 +83,7 @@ test('AI endpoints: template advice from an action, brief cached per hour, quota
   const w = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'works_clash', context: {} }); assert.equal(w.body.tier, 't2');
   const b1 = await T.call('commissioner', 'POST', '/api/ai/brief', { scope: 'city' }), b2 = await T.call('commissioner', 'POST', '/api/ai/brief', { scope: 'city' });
   assert.equal(b1.body.tier, 't3'); assert.equal(b1.body.cached, false); assert.equal(b2.body.cached, true); assert.ok(b1.body.generatedAt);
+  const bp = T.calls.filter((c) => /commissioner/.test(c.prompt)).at(-1).prompt; for (const k of ['regions', 'incidents', 'works', 'escalatedTop', 'peak', 'topCongested']) assert.match(bp, new RegExp(`"${k}"`), `${k} is in the brief data`);
   assert.match(T.calls.find((c) => c.prompt.includes('briefing')).prompt, /"simulated":true/);
   assert.equal((await T.call('commissioner', 'POST', '/api/ai/brief', { scope: 'Narnia' })).status, 400);
   const quota = (await T.call('commissioner', 'GET', '/api/ai/quota')).body; assert.deepEqual([quota.used, quota.limit, quota.aiEnabled], [1, 60, true]); assert.ok(quota.resetsAt > T0);
@@ -113,7 +115,7 @@ test('platform: security headers, JSON errors, size limit, rate limiting, readin
 test('AI output follows the requested language (Kannada templates, model prompt, separate cache)', async () => {
   const a = (await T.call('admin', 'GET', '/api/actions?state=open')).body.actions[0];
   const kn = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id }, lang: 'kn' });
-  assert.equal(kn.status, 200); assert.equal(kn.body.tier, 't0'); assert.match(kn.body.text, /[\u0C80-\u0CFF]/, 'template is in Kannada script');
+  assert.equal(kn.status, 200); assert.equal(kn.body.tier, 't2'); assert.match(T.calls.at(-1).prompt, /Kannada/, 'the model is asked for Kannada');
   const en = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id } });
   assert.doesNotMatch(en.body.text, /[\u0C80-\u0CFF]/); assert.equal(en.body.cached, false, 'languages are cached separately');
   const q = await T.call('admin', 'POST', '/api/ai/advise', { kind: 'action_advice', context: { actionId: a.id, question: 'ಮೊದಲು ಯಾವ ಜಂಕ್ಷನ್?' }, lang: 'kn' });

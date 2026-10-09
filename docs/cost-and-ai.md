@@ -36,10 +36,10 @@ The table below shows the three situations: as implemented today, cache only, an
 
 | Tier | Used for | Model source | Default limits |
 |---|---|---|---|
-| t0 | Short action advice (small context, no free-form question): deterministic templates | none | free, still counted |
+| t0 | Fallback only: deterministic template when AI is off or a tier is off, the model errors or times out, or a daily quota is used up | none | free, still counted |
 | t1 | Kannada translation | `AI_MODEL_T1` / `settings.ai.tiers.t1.model` | 300 output tokens, 8 s timeout |
-| t2 | Long action advice, works clash narrative | `AI_MODEL_T2` | 500 tokens, 15 s |
-| t3 | Commissioner brief only | `AI_MODEL_T3` | 900 tokens, 30 s, 24 per day, cached per scope and hour |
+| t2 | Action advice (every request while AI is on, cached 24 h per context), works clash narrative | `AI_MODEL_T2` | 800 tokens (floor), 15 s |
+| t3 | Commissioner brief only | `AI_MODEL_T3` | 1,500 tokens (floor; thinking tokens share the budget), 30 s, 24 per day, cached per scope and hour |
 
 **Idle cost.** Cloud Run (API and worker) scales to zero. Cloud Scheduler still fires (about 100 wake-ups a day); with idle mode on, most of those return at once, only one real tick per hour runs, and Google Routes and TomTom are not called. Set `scheduler_paused = true` in `TFVARS` to stop even that (the map then goes stale until resumed). Caps: Admin > Settings > Paid API caps, and the per-connector `dailyCap`.
 
@@ -80,6 +80,7 @@ Volumes are computed from the assumptions; prices are ranges to replace with cur
 | A4 | Worker: 164 ticks a day (157 in the 05:30 to 22:30 IST window, of which 108 are the 5-minute peaks 07:00 to 11:00 and 16:00 to 21:00, and 7 hourly) about 4,900 a month at 6 s of CPU each; 96 checks a day about 2,900 a month at 2 s each. Worker reads about 0.4M a month, writes about 25k |
 | A5 | API bills about 0.06 s of one vCPU per request (CPU only while handling requests) |
 | A6 | AI: 5 requests per user per working day, split 50 percent t0, 20 percent t1, 30 percent t2, plus briefs: 120, 240 and 528 a month (528 = 3 scopes x 8 h x 22 d). Tokens in/out: t1 600/150, t2 1,200/350, t3 3,000/700. Prices: the placeholders in `settings.ai.prices` (USD per 1M tokens in/out: t1 0.1/0.4, t2 0.3/2.5, t3 1.25/10) |
+| A6b | Changed after A6 was costed: advice no longer stops at the t0 template, so the 50 percent t0 share in A6 now goes to t2. The AI cost rows below were not recomputed and understate model spend; the per-user and system daily caps still bound it |
 | A7 | Page loads: 1.5 full loads per user per working day at about 0.5 MB (gzip) |
 | A8 | Unit price ranges, **all to be verified**: Cloud Run vCPU-s 0.000018 to 0.000030 USD, GiB-s 0.000002 to 0.0000035, requests 0.30 to 0.60 USD per million; Firestore reads 0.03 to 0.10 USD per 100k |
 | A9 | Free tiers assumed (verify): Cloud Run 180,000 vCPU-s, 360,000 GiB-s, 2M requests a month; Firestore 50,000 reads and 20,000 writes a day, 1 GiB; Hosting 10 GB transfer a month; first 3 Scheduler jobs per billing account free; Identity Platform monthly-active-user free tier; Cloud Logging free monthly ingestion allotment |

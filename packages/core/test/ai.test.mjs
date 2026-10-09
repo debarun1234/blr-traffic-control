@@ -12,16 +12,16 @@ function setup(over = {}) {
 }
 const big = { type: 'inc', title: 'Accident on Hosur Road', road: 'Hosur Road', station: 'Adugodi', region: 'South', pri: 'hi', incType: 'Accident', cap: 0.4, endHour: 10, vc: 1.3, speed: 12, hour: 9, simulated: true, alternates: { roads: ['A Road', 'B Road'], extraKm: 1.2 } };
 
-test('routeTask: advice is t0 for small contexts and t2 otherwise; translate t1; clash t2; brief t3', () => {
-  assert.equal(routeTask('action_advice', { title: 'x', vc: 1 }), 't0');
+test('routeTask: advice always goes to the model (t2); translate t1; clash t2; brief t3', () => {
+  assert.equal(routeTask('action_advice', { title: 'x', vc: 1 }), 't2');
   assert.equal(routeTask('action_advice', { title: 'x', question: 'what now?' }), 't2');
   assert.equal(routeTask('action_advice', { detail: 'x'.repeat(500) }), 't2');
   assert.equal(routeTask('translate_kn'), 't1'); assert.equal(routeTask('works_clash'), 't2'); assert.equal(routeTask('brief'), 't3');
   assert.throws(() => routeTask('nope'));
 });
 
-test('t0 template: no model call, mentions alternates and simulated data, usage counts t0 only', async () => {
-  const { ai, calls, store } = setup();
+test('t0 template is the fallback when AI is off: no model call, mentions alternates and simulated data, usage counts t0 only', async () => {
+  const { ai, calls, store } = setup(); await store.set('settings', 'app', { ...defaultSettings(), ai: { ...defaultSettings().ai, enabled: false } });
   const r = await ai.advise({ user: U('station'), kind: 'action_advice', context: { title: 'Accident on Hosur Road', road: 'Hosur Road', incType: 'Accident', vc: 1.3, alternates: { roads: ['A Road'], extraKm: 1.2 }, simulated: true } });
   assert.equal(r.tier, 't0'); assert.equal(calls.length, 0); assert.match(r.text, /Divert via A Road/); assert.match(r.text, /simulated/);
   const u = await store.get('ai_usage', istDay(Date.parse('2026-10-07T03:30:00Z'))); assert.equal(u.byTier.t0, 1); assert.equal(u.calls, 0);
@@ -32,7 +32,7 @@ test('model tiers: model from settings, token cap, sanitised output, usage with 
   const req = { user: U('dcp'), kind: 'action_advice', context: { ...big, question: 'Which junction first?' } };
   const r1 = await ai.advise(req);
   assert.deepEqual([r1.tier, r1.cached, r1.model, r1.text], ['t2', false, defaultSettings().ai.tiers.t2.model, 'Route via X.']);
-  assert.equal(calls[0].maxOutputTokens, 500); assert.match(calls[0].prompt, /simulated/); assert.ok(!/@/.test(calls[0].prompt));
+  assert.equal(calls[0].maxOutputTokens, 800, 'floor: thinking tokens share the output budget'); assert.match(calls[0].prompt, /simulated/); assert.ok(!/@/.test(calls[0].prompt));
   const r2 = await ai.advise(req); assert.equal(r2.cached, true); assert.equal(calls.length, 1);
   const u = await store.get('ai_usage', istDay(clock.now()));
   assert.equal(u.calls, 1); assert.equal(u.cacheHits, 1); assert.equal(u.tokensIn, 1000); assert.equal(u.byUser['dcp@x.test'], 1); assert.ok(u.estCostUsd > 0); assert.match(u.costNote, /estimate/);
@@ -52,11 +52,13 @@ test('guards: maintenance, kill switch, permission, per-user quota, global cap, 
   // per-user quota
   await store.set('settings', 'app', { ...defaultSettings(), ai: { ...defaultSettings().ai, perUserDaily: { ...defaultSettings().ai.perUserDaily, station: 1 } } });
   await ai.advise({ user: U('station'), kind: 'action_advice', context: ctx });
-  await assert.rejects(ai.advise({ user: U('station'), kind: 'action_advice', context: { ...ctx, question: 'other' } }), { code: 'quota_exceeded' });
+  const over = await ai.advise({ user: U('station'), kind: 'action_advice', context: { ...ctx, question: 'other' } });
+  assert.deepEqual([over.tier, over.fallback], ['t0', 'quota'], 'advice falls back to the template when the quota is used up');
   await ai.advise({ user: U('station', 'other@x.test'), kind: 'action_advice', context: { ...ctx, question: 'other' } });
   // global cap
   await store.set('settings', 'app', { ...defaultSettings(), ai: { ...defaultSettings().ai, dailyCallCap: 2 } });
-  await assert.rejects(ai.advise({ user: U('admin'), kind: 'action_advice', context: { ...ctx, question: 'third' } }), (e) => e.code === 'quota_exceeded' && /whole system/.test(e.message));
+  assert.equal((await ai.advise({ user: U('admin'), kind: 'action_advice', context: { ...ctx, question: 'third' } })).fallback, 'quota');
+  await assert.rejects(ai.advise({ user: U('admin'), kind: 'translate_kn', context: { text: 'third' } }), (e) => e.code === 'quota_exceeded' && /whole system/.test(e.message));
   // kill switch: models refused, but template advice still works
   await store.set('settings', 'app', { ...defaultSettings(), ai: { ...defaultSettings().ai, enabled: false, killReason: 'budget' } });
   const n = calls.length;
@@ -83,7 +85,7 @@ test('brief: t3, cached per scope and IST hour, daily brief limit, quota endpoin
   const { ai, calls, clock, store } = setup();
   const ctx = { scope: 'city', avgSpeedKmh: 22, simulated: true };
   const b1 = await ai.brief({ user: U('commissioner'), scope: 'city', context: ctx });
-  assert.equal(b1.tier, 't3'); assert.equal(b1.cached, false); assert.equal(calls[0].maxOutputTokens, 900); assert.equal(calls[0].model, defaultSettings().ai.tiers.t3.model);
+  assert.equal(b1.tier, 't3'); assert.equal(b1.cached, false); assert.equal(calls[0].maxOutputTokens, 1500); assert.equal(calls[0].model, defaultSettings().ai.tiers.t3.model);
   assert.equal((await ai.brief({ user: U('admin'), scope: 'city', context: { ...ctx, avgSpeedKmh: 23 } })).cached, true, 'same scope + hour');
   assert.equal((await ai.brief({ user: U('admin'), scope: 'North', context: { ...ctx, scope: 'North' } })).cached, false);
   clock.advance(3600000);
@@ -107,4 +109,31 @@ test('prompt hygiene: unknown fields dropped, fences stripped, output capped', (
   assert.ok(!('secretField' in c) && !('note' in c));
   assert.match(buildPrompt('brief', { scope: 'city', simulated: true }), /simulated/);
   assert.equal(sanitiseOutput('```json\nabc\n```'), 'abc'); assert.equal(sanitiseOutput('x'.repeat(9000), 100).length, 100);
+});
+
+test('advice falls back to the template when the model fails; a cut-off answer is trimmed to a full sentence and not cached', async () => {
+  let n = 0;
+  const { ai, store } = setup({ generate: async () => { n++; if (n === 1) throw new Error('boom'); return { text: 'Send a unit to Hosur Road now. Hold traffic at the upstream junc', truncated: true }; } });
+  const ctx = { ...big, question: 'q' };
+  const r = await ai.advise({ user: U('dcp'), kind: 'action_advice', context: ctx });
+  assert.deepEqual([r.tier, r.fallback], ['t0', 'error']); assert.match(r.text, /Divert via/);
+  const t = await ai.advise({ user: U('dcp'), kind: 'action_advice', context: { ...ctx, question: 'again' } });
+  assert.equal(t.tier, 't2'); assert.equal(t.text, 'Send a unit to Hosur Road now.');
+  assert.equal((await store.list('ai_cache')).length, 0, 'truncated output is not cached');
+});
+
+test('thinking budget is kept small so it cannot eat the visible answer', async () => {
+  const { thinkingFor } = await import('../src/ai/generate.mjs');
+  assert.deepEqual(thinkingFor('gemini-3.1-pro-preview'), { thinkingLevel: 'LOW' });
+  assert.deepEqual(thinkingFor('gemini-3-flash-preview'), { thinkingLevel: 'LOW' });
+  assert.deepEqual(thinkingFor('gemini-2.5-flash'), { thinkingBudget: 0 });
+  assert.deepEqual(thinkingFor('gemini-2.5-pro'), { thinkingBudget: 128 });
+  assert.equal(thinkingFor('something-else'), null);
+});
+
+test('brief context carries regions, incidents, escalated waits and the next peak; prompts ask for a specific plan', async () => {
+  const { briefContext, peakInfo } = await import('../src/index.mjs');
+  assert.match(peakInfo(23), /next demand peak starts 07:00/); assert.match(peakInfo(8), /until 11:00/);
+  const p = buildPrompt('brief', { scope: 'city', peak: 'x' }); assert.match(p, /four short paragraphs/); assert.match(p, /Outlook/);
+  const a = buildPrompt('action_advice', { title: 't', ageMin: 40 }); assert.match(a, /who does what and where/); assert.match(a, /15 minutes/);
 });

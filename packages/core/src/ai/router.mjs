@@ -6,13 +6,16 @@ import { cleanContext, buildPrompt, sanitiseOutput } from './prompts.mjs';
 import { adviceTemplate } from './templates.mjs';
 
 export const KINDS = ['action_advice', 'translate_kn', 'works_clash'];
-const CACHE_TTL = 24 * 3600000, SMALL_CONTEXT = 400;
+const CACHE_TTL = 24 * 3600000;
+/** Floors for the output budget: thinking tokens share it, and the brief needs room for four short paragraphs. Admin values below these are raised. */
+const MIN_OUT = { t1: 300, t2: 800, t3: 1500 };
+const cutToSentence = (t) => { const i = Math.max(t.lastIndexOf('. '), t.lastIndexOf('.\n'), t.endsWith('.') ? t.length - 1 : -1); return i > 15 ? t.slice(0, i + 1) : t; };
 export const emptyUsage = (date) => ({ date, calls: 0, tokensIn: 0, tokensOut: 0, byTier: { t0: 0, t1: 0, t2: 0, t3: 0 }, byUser: {}, byKind: {}, cacheHits: 0, estCostUsd: 0, costNote: 'estimate: tokens x price table in settings' });
 const est = (s) => Math.ceil(String(s ?? '').length / 4);
 
 /** Map a request to a tier. Small action contexts are answered by templates without a model. */
 export function routeTask(kind, ctx = {}) {
-  if (kind === 'action_advice') return !ctx.question && JSON.stringify(ctx).length <= SMALL_CONTEXT ? 't0' : 't2';
+  if (kind === 'action_advice') return 't2'; // always the model when AI is on; the t0 template is only the fallback
   if (kind === 'translate_kn') return 't1';
   if (kind === 'works_clash') return 't2';
   if (kind === 'brief') return 't3';
@@ -39,25 +42,31 @@ export function createAiRouter({ store, clock, generate, env = process.env }) {
     }
     const u0 = await usageDoc(now);
     const limit = s.ai.perUserDaily[user.role] ?? 0;
-    if ((u0.byUser[user.email] ?? 0) >= limit) throw err('quota_exceeded', 'Daily AI quota used up for your role');
-    if (u0.calls >= s.ai.dailyCallCap) throw err('quota_exceeded', 'Daily AI budget for the whole system is used up');
+    const over = (u0.byUser[user.email] ?? 0) >= limit ? 'Daily AI quota used up for your role' : u0.calls >= s.ai.dailyCallCap ? 'Daily AI budget for the whole system is used up' : null;
+    if (over && kind === 'action_advice') { await bump(now, (u) => { u.byTier.t0++; }); return { text: adviceTemplate(ctx), tier: 't0', cached: false, fallback: 'quota' }; }
+    if (over) throw err('quota_exceeded', over);
     if (kind === 'brief' && (u0.byKind.brief ?? 0) >= s.ai.briefPerDay) throw err('quota_exceeded', 'Daily brief limit reached');
     const key = sha256(kind === 'brief' ? `t3|brief|${scope}|${ctx.lang === 'kn' ? 'kn|' : ''}${istHourKey(now)}` : `${effTier}|${kind}|${stable(ctx)}`);
     const hit = await store.get('ai_cache', key);
     if (hit && hit.expireAt > now) { await bump(now, (u) => { u.cacheHits++; }); return { text: hit.text, tier: effTier, cached: true, model: hit.model, generatedAt: hit.createdAt }; }
-    const maxOutputTokens = Math.min(8192, s.ai.maxOutputTokens[effTier] * (ctx.lang === 'kn' ? 4 : 1)), prompt = buildPrompt(kind, ctx); // Kannada needs several times more tokens per sentence
+    const maxOutputTokens = Math.min(8192, Math.max(s.ai.maxOutputTokens[effTier], MIN_OUT[effTier] ?? 0) * (ctx.lang === 'kn' ? 4 : 1)), prompt = buildPrompt(kind, ctx); // Kannada needs several times more tokens per sentence
     const ac = new AbortController(); let timer;
     let out;
     try {
       out = await Promise.race([generate({ model, prompt, maxOutputTokens, signal: ac.signal }), new Promise((_, rej) => { timer = setTimeout(() => { ac.abort(); rej(new Error('timeout')); }, s.ai.timeoutMs[effTier]); })]);
-    } catch (e) { throw err('unavailable', e?.message === 'timeout' ? 'AI request timed out' : 'AI service error'); } finally { clearTimeout(timer); }
-    const raw = typeof out === 'string' ? out : out?.text, text = sanitiseOutput(raw, kind === 'brief' ? 3000 : 1800);
+    } catch (e) {
+      if (kind === 'action_advice') { await bump(now, (u) => { u.byTier.t0++; }); return { text: adviceTemplate(ctx), tier: 't0', cached: false, fallback: e?.message === 'timeout' ? 'timeout' : 'error' }; }
+      throw err('unavailable', e?.message === 'timeout' ? 'AI request timed out' : 'AI service error');
+    } finally { clearTimeout(timer); }
+    const raw = typeof out === 'string' ? out : out?.text, truncated = !!out?.truncated;
+    let text = sanitiseOutput(raw, kind === 'brief' ? 3000 : 1800);
+    if (truncated) text = cutToSentence(text); // never show a sentence that stops halfway
     if (!text) throw err('unavailable', 'AI returned no text');
     const tin = out?.tokensIn ?? est(prompt), tout = out?.tokensOut ?? est(raw), price = s.ai.prices[effTier] ?? { inPerM: 0, outPerM: 0 };
     const cost = (tin * price.inPerM + tout * price.outPerM) / 1e6;
     await bump(now, (u) => { u.calls++; u.tokensIn += tin; u.tokensOut += tout; u.byTier[effTier]++; u.byUser[user.email] = (u.byUser[user.email] ?? 0) + 1; u.byKind[kind] = (u.byKind[kind] ?? 0) + 1; u.estCostUsd = Math.round((u.estCostUsd + cost) * 1e6) / 1e6; });
-    await store.set('ai_cache', key, { key, tier: effTier, text, model, createdAt: now, expireAt: now + CACHE_TTL });
-    return { text, tier: effTier, cached: false, model, generatedAt: now };
+    if (!truncated) await store.set('ai_cache', key, { key, tier: effTier, text, model, createdAt: now, expireAt: now + CACHE_TTL }); // a cut-off answer is not cached
+    return { text, tier: effTier, cached: false, model, generatedAt: now, ...(truncated ? { truncated: true } : {}) };
   }
 
   return {
@@ -68,12 +77,12 @@ export function createAiRouter({ store, clock, generate, env = process.env }) {
       const ctx = cleanContext(kind, context);
       if (kind === 'translate_kn' && !ctx.text) throw err('invalid', 'context.text required');
       const r = await run({ user, kind, ctx });
-      return { text: r.text, tier: r.tier, cached: r.cached, ...(r.model ? { model: r.model } : {}) };
+      return { text: r.text, tier: r.tier, cached: r.cached, ...(r.model ? { model: r.model } : {}), ...(r.fallback ? { fallback: r.fallback } : {}) };
     },
     /** @param {{user:object, scope:string, context:object}} p context is built server-side (see briefContext) */
     async brief({ user, scope, context }) {
       const r = await run({ user, kind: 'brief', ctx: cleanContext('brief', context), scope });
-      return { text: r.text, tier: 't3', cached: r.cached, generatedAt: r.generatedAt ?? clock.now() };
+      return { text: r.text, tier: 't3', cached: r.cached, generatedAt: r.generatedAt ?? clock.now(), ...(r.truncated ? { truncated: true } : {}) };
     },
     /** Cheap once-a-day model health probe (tier t1). Never throws: returns {status:'ok'|'off'|'capped'|'degraded', ...}. */
     async ping() {

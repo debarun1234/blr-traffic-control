@@ -18,7 +18,7 @@ export function attachInteraction(canvas, R, hooks) {
         lastPinch = d; moved = 99;
       } else {
         const dx = e.clientX - p.x, dy = e.clientY - p.y; moved += Math.abs(dx) + Math.abs(dy);
-        R._anim = (R._anim ?? 0) + 1; R.view.cx -= dx / R.view.k; R.view.cy += dy / R.view.k; p.x = e.clientX; p.y = e.clientY; R.dirty = true; hooks.hideTip();
+        R._anim = (R._anim ?? 0) + 1; R.view.cx -= dx / R.view.k; R.view.cy += dy / (R.view.k * R.ky()); p.x = e.clientX; p.y = e.clientY; R.dirty = true; hooks.hideTip();
       }
     } else hover(e.clientX - r.left, e.clientY - r.top);
   });
@@ -32,8 +32,8 @@ export function attachInteraction(canvas, R, hooks) {
   canvas.addEventListener('wheel', (e) => { e.preventDefault(); const r = rect(); R.zoomAt(e.clientX - r.left, e.clientY - r.top, Math.exp(-e.deltaY * 0.0015)); }, { passive: false });
   canvas.addEventListener('dblclick', (e) => { const r = rect(); R.zoomAt(e.clientX - r.left, e.clientY - r.top, 2); });
   canvas.addEventListener('keydown', (e) => {
-    const step = 90 / R.view.k, K = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
-    if (K) { R.view.cx += K[0] * step; R.view.cy += K[1] * step; R.dirty = true; e.preventDefault(); }
+    const step = 90 / R.view.k, stepY = step / R.ky(), K = { ArrowLeft: [-1, 0], ArrowRight: [1, 0], ArrowUp: [0, 1], ArrowDown: [0, -1] }[e.key];
+    if (K) { R.view.cx += K[0] * step; R.view.cy += K[1] * stepY; R.dirty = true; e.preventDefault(); }
     else if (e.key === '+' || e.key === '=') { R.zoomAt(R.W / 2, R.H / 2, 1.4); e.preventDefault(); }
     else if (e.key === '-') { R.zoomAt(R.W / 2, R.H / 2, 1 / 1.4); e.preventDefault(); }
   });

@@ -94,7 +94,7 @@ const D = {
   'legend.speed.crawl': ['Crawling', 'ತೆವಳುತ್ತಿದೆ'], 'legend.speed.ok': ['Moderate', 'ಮಧ್ಯಮ'], 'legend.speed.good': ['Good', 'ಉತ್ತಮ'], 'legend.speed.fast': ['Fast', 'ವೇಗ'],
   'legend.title': ['Road load (v/c)', 'ರಸ್ತೆ ಭಾರ (v/c)'],
   'legend.free': ['Free', 'ಸುಗಮ'], 'legend.light': ['Light', 'ಹಗುರ'], 'legend.busy': ['Busy', 'ಕಾರ್ಯನಿರತ'], 'legend.slow': ['Slow', 'ನಿಧಾನ'], 'legend.jam': ['Jammed', 'ಜಾಮ್'], 'legend.grid': ['Gridlock', 'ಸ್ಥಗಿತ'],
-  'legend.nofeed': ['No feed', 'ಮಾಹಿತಿ ಇಲ್ಲ'], 'legend.inc': ['Incident', 'ಘಟನೆ'], 'legend.works': ['Works', 'ಕಾಮಗಾರಿ'],
+  'legend.gm': ['Model overlay: congested main roads only (magenta). Google’s own colours are its live traffic.', 'ಮಾದರಿ: ದಟ್ಟಣೆಯ ಮುಖ್ಯ ರಸ್ತೆಗಳು ಮಾತ್ರ (ಕೆನ್ನೇರಳೆ). Google ಬಣ್ಣಗಳು ಅದರ ಲೈವ್ ಸಂಚಾರ.'], 'legend.nofeed': ['No feed', 'ಮಾಹಿತಿ ಇಲ್ಲ'], 'legend.inc': ['Incident', 'ಘಟನೆ'], 'legend.works': ['Works', 'ಕಾಮಗಾರಿ'],
   'search.road': ['road', 'ರಸ್ತೆ'], 'search.none': ['No match', 'ಹೊಂದಾಣಿಕೆ ಇಲ್ಲ'],
   'tip.incident': ['Incident here', 'ಇಲ್ಲಿ ಘಟನೆ'],
 
@@ -139,6 +139,8 @@ const D = {
 
   // ---- AI ----
   'ai.advise': ['Advise', 'ಸಲಹೆ'], 'ai.label': ['AI-generated, verify before acting', 'AI ರಚಿತ, ಕ್ರಮ ಕೈಗೊಳ್ಳುವ ಮೊದಲು ಪರಿಶೀಲಿಸಿ'], 'ai.cached': ['cached', 'ಸಂಗ್ರಹಿತ'],
+  'ai.fallback': ['Model unavailable: showing rules', 'ಮಾದರಿ ಲಭ್ಯವಿಲ್ಲ: ನಿಯಮಗಳನ್ನು ತೋರಿಸಲಾಗಿದೆ'],
+  'ai.truncated': ['Shortened: the model ran out of room', 'ಕಡಿಮೆ ಮಾಡಲಾಗಿದೆ: ಮಾದರಿಗೆ ಸ್ಥಳ ಸಾಲಲಿಲ್ಲ'],
   'ai.tier.t0': ['T0 · rules', 'T0 · ನಿಯಮಗಳು'], 'ai.tier.t1': ['T1', 'T1'], 'ai.tier.t2': ['T2', 'T2'], 'ai.tier.t3': ['T3', 'T3'],
   'ai.tierHint.t0': ['Deterministic rules, no model call', 'ನಿರ್ಧಾರಾತ್ಮಕ ನಿಯಮಗಳು, ಮಾದರಿ ಕರೆ ಇಲ್ಲ'], 'ai.tierHint.t1': ['Fast model', 'ವೇಗದ ಮಾದರಿ'], 'ai.tierHint.t2': ['Standard model', 'ಪ್ರಮಾಣಿತ ಮಾದರಿ'], 'ai.tierHint.t3': ['Briefing model', 'ಸಾರಾಂಶ ಮಾದರಿ'],
   'ai.quota': ['AI calls today: {used} of {limit}', 'ಇಂದಿನ AI ಕರೆಗಳು: {limit} ರಲ್ಲಿ {used}'],
