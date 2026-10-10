@@ -16,7 +16,7 @@ const stations = new Map();
 for (const [, , name, nonfatal, fatal] of crash.cur['2025']) stations.set(name, { station: name, y2025: { fatal, nonfatal }, hist: {}, source: 'seed:crash.json', importedAt: now });
 for (const [name, years] of Object.entries(crash.hist)) { const d = stations.get(name) ?? { station: name, y2025: { fatal: 0, nonfatal: 0 }, hist: {}, source: 'seed:crash.json', importedAt: now }; d.hist = years; stations.set(name, d); }
 for (const d of stations.values()) await store.set('crash_stats', d.station, d);
-const users = [['admin@example.test', 'admin'], ['commissioner@example.test', 'commissioner'], ['north.dcp@example.test', 'dcp', { region: 'North' }], ['yalahanka@example.test', 'station', { station: 'Yalahanka' }], ['indiranagar@example.test', 'station', { station: 'Indiranagar' }], ['viewer@example.test', 'viewer']];
+const users = [['admin@example.test', 'admin'], ['commissioner@example.test', 'commissioner'], ['north.dcp@example.test', 'dcp', { region: 'North' }], ['yelahanka@example.test', 'station', { station: 'Yelahanka' }], ['indiranagar@example.test', 'station', { station: 'Indiranagar' }], ['viewer@example.test', 'viewer']];
 for (const [email, role, extra] of users) await store.set('users', email, { email, name: email.split('@')[0], role, ...extra, active: true, createdBy: 'dev-seed', createdAt: now });
 
 // Without GOOGLE_CLOUD_PROJECT there is no model: answer with a clearly labelled stub so the UI can be exercised.

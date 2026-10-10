@@ -41,8 +41,8 @@ const csvCell = (v) => { const s = v == null ? '' : typeof v === 'object' ? JSON
 export function toCsv(rows, cols) { return [cols.join(','), ...rows.map((r) => cols.map((c) => csvCell(r[c])).join(','))].join('\n') + '\n'; }
 
 export const IMPORT_SPECS = {
-  works: { header: ['name', 'road', 'station', 'from', 'to', 'hours', 'cap', 'kind', 'agency'], required: ['name', 'road', 'station', 'from', 'to'], example: 'name,road,station,from,to,hours,cap,kind,agency\nMetro Phase 3 barricading,Outer Ring Road,K R Puram,2026-10-15,2026-12-31,peak,0.7,metro,BMRCL\n' },
-  crash: { header: ['station', 'year', 'fatal', 'nonfatal'], required: ['station', 'year', 'fatal', 'nonfatal'], example: 'station,year,fatal,nonfatal\nHalasooru,2025,12,34\n' },
+  works: { header: ['name', 'road', 'station', 'from', 'to', 'hours', 'cap', 'kind', 'agency'], required: ['name', 'road', 'station', 'from', 'to'], example: 'name,road,station,from,to,hours,cap,kind,agency\nMetro Phase 3 barricading,Outer Ring Road,K.R. Puram,2026-10-15,2026-12-31,peak,0.7,metro,BMRCL\n' },
+  crash: { header: ['station', 'year', 'fatal', 'nonfatal'], required: ['station', 'year', 'fatal', 'nonfatal'], example: 'station,year,fatal,nonfatal\nHalasuru,2025,12,34\n' },
 };
 /** Header check before we send anything to the server. Returns problem strings. */
 export function checkCsvHeader(text, kind) {

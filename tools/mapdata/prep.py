@@ -14,22 +14,24 @@ def region(z,sub):
     if sub=='Central':return 'Central'
     return z
 pts=np.array([ll2xy(S[n][0],S[n][1]) for n in names]);R=[region(meta[n][0],meta[n][1]) for n in names]
+# Byatarayanapura (Bellary Road, between Hebbal and Yelahanka) is North, although the crash dataset lists it under West.
+R=['North' if n=='Byatarayanapura' else r for n,r in zip(names,R)]
 # voronoi with far points
 far=np.array([[-1e5,-1e5],[1e5,-1e5],[1e5,1e5],[-1e5,1e5]])
 vor=Voronoi(np.vstack([pts,far]))
 Rad=850
-BIG={'Int. Aiport','Chikkajala','Kengeri','Electronic City','Whitefield','Hulimavu','Thalagattapura','Chikkabanavara','Yalahanka','Hennuru','Bellanduru','Jnanabharathi'}
+BIG={'Kempegowda Intl. Airport','Chikkajala','Kengeri','Electronic City','Whitefield','Hulimavu','Talaghattapura','Chikkabanavara','Yelahanka','Hennur','Bellandur','Jnanabharathi'}
 RADS=[850 if n in BIG else 520 for n in names]
 import numpy as _np
 b=[float(v) for v in open('data/boundary.txt').read().strip().split(',')]
 bpoly=Polygon(list(zip(b[0::2],b[1::2]))).buffer(0)
 print('boundary area km2',bpoly.area*5.42*5.56/1e6,bpoly.is_valid)
-ai=names.index('Int. Aiport');yl=names.index('Yalahanka')
+ai=names.index('Kempegowda Intl. Airport');yl=names.index('Yelahanka')
 from shapely.geometry import LineString,MultiPoint
 # BTP jurisdiction reaches the airport beyond the municipal boundary. Instead of an arbitrary wedge, extend the
 # territory only along real arterial roads (class 0-1) that leave the boundary toward the airport, buffered ~1.3 km.
 W=json.load(open('data/roads.json'))
-north=MultiPoint([pts[names.index(k)] for k in ('Yalahanka','Chikkajala','Int. Aiport','Hennuru','Kodigehalli')]).convex_hull.buffer(1500)
+north=MultiPoint([pts[names.index(k)] for k in ('Yelahanka','Chikkajala','Kempegowda Intl. Airport','Hennur','Kodigehalli')]).convex_hull.buffer(1500)
 lines=[]
 for c,ni,ow,flat in W['w']:
     if c>1:continue

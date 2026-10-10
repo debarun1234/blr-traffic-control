@@ -1,5 +1,5 @@
-import { validateUser, normaliseEmail, hasPermission } from '@blr/shared';
-import { err, rid, validDate, importWorksCsv, importCrashCsv, applyWorks, applyCrash, putSettings, createApiKey, publicKey, KEY_SCOPES, validateConnector, CONNECTOR_TYPES, runChecks, toCsv, istDay, stationNames, xyToLatLon, callsToday, isObj } from '@blr/core';
+import { validateUser, normaliseEmail, hasPermission, canonStation } from '@blr/shared';
+import { err, rid, validDate, importWorksCsv, importCrashCsv, applyWorks, applyCrash, putSettings, createApiKey, publicKey, KEY_SCOPES, validateConnector, CONNECTOR_TYPES, runChecks, toCsv, istDay, stationNames, xyToLatLon, callsToday, isObj, runTick } from '@blr/core';
 import { bad, body, only, str, int, num, bool, limitParam, flag, msParam } from '../http.mjs';
 
 const SLUG = (s) => String(s).toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '').slice(0, 30) || 'x';
@@ -54,7 +54,7 @@ export function registerAdmin(api, ctx) {
 
   // ---------- stations & territories ----------
   api.get(`${A}/stations`, async () => {
-    const ov = new Map((await store.list('stations')).map((s) => [s.name, s])), crash = new Map((await store.list('crash_stats')).map((c) => [c.station, c]));
+    const ov = new Map((await store.list('stations')).map((s) => [canonStation(s.name), s])), crash = new Map((await store.list('crash_stats')).map((c) => [canonStation(c.station), c]));
     const rows = stations.map((s) => {
       const p = xyToLatLon(net.map, s.x, s.y), o = ov.get(s.n) ?? null, c = crash.get(s.n);
       return { name: s.n, region: s.r, zone: s.z, lat: o?.lat ?? +p.lat.toFixed(5), lon: o?.lon ?? +p.lon.toFixed(5), source: s.src, override: o, crash: { imported: !!c, importedAt: c?.importedAt ?? null, source: c?.source ?? null } };
@@ -62,7 +62,7 @@ export function registerAdmin(api, ctx) {
     return { stations: rows, crash: { stations: crash.size, of: stations.length, importedAt: Math.max(0, ...[...crash.values()].map((c) => c.importedAt ?? 0)) || null } };
   });
   api.patch(`${A}/stations/:name`, async (req) => {
-    const name = req.params.name; if (!stationNames(net).includes(name)) throw err('not_found', 'Unknown station');
+    const name = canonStation(req.params.name); if (!stationNames(net).includes(name)) throw err('not_found', 'Unknown station');
     const b = only(body(req), ['lat', 'lon', 'aliases', 'notes', 'verified']), cur = (await store.get('stations', name)) ?? { name, verified: false };
     const next = { ...cur };
     if (b.lat !== undefined || b.lon !== undefined) { next.lat = num(b.lat, 'lat', 12.5, 13.5); next.lon = num(b.lon, 'lon', 77.2, 78.0); }
@@ -124,7 +124,11 @@ export function registerAdmin(api, ctx) {
   });
   api.delete(`${A}/connectors/:id`, async (req) => { const c = await connFor(req.params.id); await store.delete('connectors', c.id); await aud(req, 'connector_delete', c.id, `Deleted connector ${c.name}`); return { ok: true }; });
   api.post(`${A}/connectors/:id/test`, async (req) => { const c = await connFor(req.params.id); const r = await ctx.connectors.test(c); await aud(req, 'connector_test', c.id, `Tested connector ${c.name}: ${r.ok ? 'ok' : 'failed'}`); return r; });
-  api.post(`${A}/connectors/:id/run`, async (req) => { const c = await connFor(req.params.id); const r = await ctx.connectors.runNow(c.id); await aud(req, 'connector_run', c.id, `Ran connector ${c.name}: ${r.ok ? 'ok' : 'failed'}`); return r; });
+  api.post(`${A}/connectors/:id/run`, async (req) => { const c = await connFor(req.params.id); const r = await ctx.connectors.runNow(c.id); await aud(req, 'connector_run', c.id, `Ran connector ${c.name}: ${r.ok ? 'ok' : 'failed'}`);
+    // New live data should show up now, not at the next scheduled tick: recompute the state once (no connectors, so no extra paid calls).
+    let refreshed = false;
+    if (r.ok && !r.shadow && r.count > 0) { try { await runTick({ store, net, now: clock.now(), settings: await ctx.settings(), idle: false }); refreshed = true; } catch { /* the scheduled tick will catch up */ } }
+    return { ...r, refreshed }; });
   api.get(`${A}/connectors/:id/runs`, async (req) => {
     const c = await connFor(req.params.id);
     return { runs: await store.list('connector_runs', { where: [['connectorId', '==', c.id]], orderBy: ['at', 'desc'], limit: limitParam(req.query?.limit, 50, 200) }) };

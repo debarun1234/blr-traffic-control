@@ -5,7 +5,7 @@ export const DEV_USERS = [
   { email: 'admin@example.test', name: 'Asha Rao', role: 'admin' },
   { email: 'commissioner@example.test', name: 'Ravi Menon', role: 'commissioner' },
   { email: 'north.dcp@example.test', name: 'Kavita Nair', role: 'dcp' },
-  { email: 'yalahanka@example.test', name: 'Manoj Gowda', role: 'station' },
+  { email: 'yelahanka@example.test', name: 'Manoj Gowda', role: 'station' },
   { email: 'indiranagar@example.test', name: 'Divya Shetty', role: 'station' },
   { email: 'viewer@example.test', name: 'Vikram Rao', role: 'viewer' },
 ];

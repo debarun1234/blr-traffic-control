@@ -107,18 +107,18 @@ test('dcp: locked to North, no other chips, only North actions, keys 1-6 do noth
 });
 
 test('station user: map locked to region, own station highlighted, can act only on own station', async () => {
-  await run('yalahanka', { allow: /403/ }, async (page) => {
+  await run('yelahanka', { allow: /403/ }, async (page) => {
     assert.deepEqual(await texts(page, '[data-scope]'), ['North']);
-    assert.match(await page.getByTestId('role-badge').innerText(), /Station · Yalahanka/);
-    assert.match(await page.locator('.cc-tbl tbody tr', { hasText: 'Yalahanka' }).first().innerText(), /Yours/);
-    assert.equal(await page.evaluate(() => { const { S } = window.__blr; return S.MD.ST[S.MD.stIdx.get('Yalahanka')].r; }), 'North');
+    assert.match(await page.getByTestId('role-badge').innerText(), /Station · Yelahanka/);
+    assert.match(await page.locator('.cc-tbl tbody tr', { hasText: 'Yelahanka' }).first().innerText(), /Yours/);
+    assert.equal(await page.evaluate(() => { const { S } = window.__blr; return S.MD.ST[S.MD.stIdx.get('Yelahanka')].r; }), 'North');
     await tab(page, 'actions');
     const own = page.locator('article', { hasText: 'Doddaballapur' }), other = page.locator('article', { hasText: 'Peenya' }).first();
     assert.equal(await own.getByTestId('act-ack').count(), 1);
     assert.equal(await other.getByTestId('act-ack').count(), 0);
     assert.match(await other.innerText(), /Outside your jurisdiction/);
     // the API refuses writes outside jurisdiction too
-    const code = await page.evaluate(async () => { const id = [...window.__blr.S.actions].find((a) => a.station === 'Peenya').id; const r = await fetch(`/api/actions/${id}/transition`, { method: 'POST', headers: { 'x-dev-user': 'yalahanka@example.test', 'content-type': 'application/json' }, body: '{"to":"ack"}' }); return r.status; });
+    const code = await page.evaluate(async () => { const id = [...window.__blr.S.actions].find((a) => a.station === 'Peenya').id; const r = await fetch(`/api/actions/${id}/transition`, { method: 'POST', headers: { 'x-dev-user': 'yelahanka@example.test', 'content-type': 'application/json' }, body: '{"to":"ack"}' }); return r.status; });
     assert.equal(code, 403);
     // map really dims everything outside: a pixel outside the region is the dimmed map colour (hash check via scope lock)
     assert.equal(await page.evaluate(() => window.__blr.S.scope), 'North');
@@ -134,7 +134,7 @@ test('viewer is read-only: no action, report, works or AI controls; planner disa
     await tab(page, 'works'); assert.equal(await page.getByTestId('wk-add').count(), 0); assert.equal(await page.getByTestId('wk-edit').count(), 0);
     await tab(page, 'planner'); assert.equal(await page.getByTestId('pl-run').isDisabled(), true);
     await tab(page, 'overview'); assert.equal(await page.getByTestId('brief').isVisible(), false);
-    await setSel(page, { t: 'edge', e: (await mock.info()).edgeIn.Yalahanka }); assert.equal(await page.getByTestId('rep-open').count(), 0);
+    await setSel(page, { t: 'edge', e: (await mock.info()).edgeIn.Yelahanka }); assert.equal(await page.getByTestId('rep-open').count(), 0);
   });
 });
 
@@ -166,7 +166,7 @@ test('status pill: simulated, live, stale since, offline keeps last state and re
 });
 
 test('action workflow ack -> prog -> done round trip, and rollback on server error', async () => {
-  await run('yalahanka', { allow: /Failed to load resource/ }, async (page) => {
+  await run('yelahanka', { allow: /Failed to load resource/ }, async (page) => {
     await tab(page, 'actions');
     const card = page.locator('article', { hasText: 'Doddaballapur' }), id = await card.getAttribute('data-id');
     const srv = async () => (await mock.info()).actions.find((a) => a.id === id).state;
@@ -182,16 +182,16 @@ test('action workflow ack -> prog -> done round trip, and rollback on server err
 });
 
 test('report incident: allowed in own station, hidden outside jurisdiction', async () => {
-  await run('yalahanka', async (page) => {
+  await run('yelahanka', async (page) => {
     const { edgeIn } = await mock.info(); const n0 = (await mock.info()).actions.length;
     await setSel(page, { t: 'edge', e: edgeIn.Indiranagar }); assert.equal(await page.getByTestId('rep-open').count(), 0);
-    await setSel(page, { t: 'edge', e: edgeIn.Yalahanka });
+    await setSel(page, { t: 'edge', e: edgeIn.Yelahanka });
     await page.getByTestId('rep-open').click(); await page.locator('#rep-dur').fill('30'); await page.locator('#rep-note').fill('test report'); await page.getByTestId('rep-submit').click();
     await page.waitForSelector('.toast.good');
     await page.waitForFunction(() => window.__blr.S.incidents.some((i) => i.src === 'user'));
     assert.equal((await mock.info()).actions.length, n0 + 1);
     // lifecycle: the reported incident can be extended, confirmed and cleared from the road card
-    await setSel(page, { t: 'edge', e: edgeIn.Yalahanka });
+    await setSel(page, { t: 'edge', e: edgeIn.Yelahanka });
     const eh0 = await page.evaluate(() => window.__blr.S.incidents.find((i) => i.src === 'user').eh);
     await page.getByTestId('inc-extend').click(); await page.waitForFunction((v) => window.__blr.S.incidents.find((i) => i.src === 'user').eh > v + 0.4, eh0);
     await page.getByTestId('inc-confirm').click(); await page.waitForFunction(() => window.__blr.S.incidents.find((i) => i.src === 'user').confirmed);
@@ -202,7 +202,7 @@ test('report incident: allowed in own station, hidden outside jurisdiction', asy
 
 test('planner: run, matrix, diversions with crash counts', async () => {
   await run('commissioner', async (page) => {
-    await tab(page, 'planner'); await page.getByTestId('pl-st').selectOption({ label: 'Yalahanka · North' }); await page.getByTestId('pl-run').click();
+    await tab(page, 'planner'); await page.getByTestId('pl-st').selectOption({ label: 'Yelahanka · North' }); await page.getByTestId('pl-run').click();
     await page.waitForSelector('[data-testid=matrix]', { timeout: 90000 });
     assert.equal(await page.locator('.cc-cell').count(), 8);
     await page.getByTestId('cell-closepeakPM').click();
@@ -219,9 +219,9 @@ test('works: clash quantified, add / edit / remove (soft delete)', async () => {
     assert.equal(await page.getByTestId('clash-count').innerText(), '1');
     await page.getByTestId('clash-quant').click(); await page.waitForSelector('[data-testid=clash-together]', { timeout: 90000 });
     assert.ok(+(await page.getByTestId('clash-together').innerText()) > 0);
-    await page.getByTestId('wk-add').click(); await page.getByTestId('wf-name').fill('Test works Z'); await page.getByTestId('wf-st').selectOption({ label: 'Yalahanka · North' }); await page.getByTestId('wf-cap').fill('60'); await page.getByTestId('wf-submit').click();
+    await page.getByTestId('wk-add').click(); await page.getByTestId('wf-name').fill('Test works Z'); await page.getByTestId('wf-st').selectOption({ label: 'Yelahanka · North' }); await page.getByTestId('wf-cap').fill('60'); await page.getByTestId('wf-submit').click();
     await page.waitForSelector('article.cc-work:has-text("Test works Z")');
-    const w = (await mock.info()).works.find((x) => x.name === 'Test works Z'); assert.equal(w.cap, 0.6); assert.deepEqual(w.stations, ['Yalahanka']);
+    const w = (await mock.info()).works.find((x) => x.name === 'Test works Z'); assert.equal(w.cap, 0.6); assert.deepEqual(w.stations, ['Yelahanka']);
     await page.locator('article.cc-work', { hasText: 'Test works Z' }).getByTestId('wk-edit').click(); await page.getByTestId('wf-name').fill('Test works Y'); await page.getByTestId('wf-submit').click();
     await page.waitForSelector('article.cc-work:has-text("Test works Y")');
     await page.locator('article.cc-work', { hasText: 'Test works Y' }).getByTestId('wk-del').click(); await page.getByTestId('confirm-ok').click();
@@ -405,7 +405,7 @@ test('welcome: after an interactive sign-in each role gets its own greeting and 
   const cases = [
     ['commissioner', /Commissioner Ravi/, /All Bengaluru/i, /All of Bengaluru is in view/, 'Enter the control room'],
     ['north.dcp', /DCP Kavita/, /North division/i, /North division is ready/, 'Enter the control room'],
-    ['yalahanka', /Manoj/, /Yalahanka/i, /Yalahanka station, ready for your shift/, 'Start my shift'],
+    ['yelahanka', /Manoj/, /Yelahanka/i, /Yelahanka station, ready for your shift/, 'Start my shift'],
     ['viewer', /Vikram/, /Read-only/i, /read-only view/, 'Open the control room'],
     ['admin', /Asha/, /Administrator/i, /Admin console is one click away/, 'Enter the control room'],
   ];
@@ -414,7 +414,7 @@ test('welcome: after an interactive sign-in each role gets its own greeting and 
       await page.goto(page.mock.url + '/?welcome=1'); await page.getByTestId(`dev-${who}`).click();
       await page.getByTestId('welcome').waitFor();
       assert.match(await page.locator('.wl-h').innerText(), head); assert.match(await page.locator('.wl-chip').innerText(), kick); assert.match(await page.locator('.wl-sub').innerText(), sub);
-      assert.equal(await page.getByTestId('welcome').getAttribute('data-variant'), who === 'north.dcp' ? 'dcp' : who === 'yalahanka' ? 'station' : who);
+      assert.equal(await page.getByTestId('welcome').getAttribute('data-variant'), who === 'north.dcp' ? 'dcp' : who === 'yelahanka' ? 'station' : who);
       const enter = page.getByTestId('welcome-enter'); await page.waitForFunction(() => !document.querySelector('[data-testid=welcome-enter]').disabled);
       assert.equal((await enter.innerText()).trim(), go);
       assert.equal(await page.locator('.wl-row.ok').count(), 3, 'connection, data and AI checks all pass');
@@ -427,7 +427,7 @@ test('welcome: after an interactive sign-in each role gets its own greeting and 
 
 test('welcome: Kannada copy, scoped numbers, AI off and a failing check never block entry', async () => {
   await run(null, { mock: { aiEnabled: false } }, async (page) => {
-    await page.goto(page.mock.url + '/?welcome=1'); await page.getByTestId('dev-yalahanka').click();
+    await page.goto(page.mock.url + '/?welcome=1'); await page.getByTestId('dev-yelahanka').click();
     await page.getByTestId('welcome').waitFor(); await page.waitForFunction(() => !document.querySelector('[data-testid=welcome-enter]').disabled);
     assert.equal(await page.locator('.wl-row.off').count(), 1, 'AI shows as switched off, not as a failure');
     assert.match(await page.locator('.wl-row[data-row=ai]').innerText(), /built-in advice still works/);

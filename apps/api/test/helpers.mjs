@@ -6,7 +6,7 @@ export const net = getNet();
 export const T0 = Date.parse('2026-10-07T03:30:00Z');
 export const USERS = {
   admin: { role: 'admin' }, commissioner: { role: 'commissioner' }, 'north.dcp': { role: 'dcp', region: 'North' }, 'south.dcp': { role: 'dcp', region: 'South' },
-  yalahanka: { role: 'station', station: 'Yalahanka' }, indiranagar: { role: 'station', station: 'Indiranagar' }, viewer: { role: 'viewer' }, gone: { role: 'admin', active: false },
+  yelahanka: { role: 'station', station: 'Yelahanka' }, indiranagar: { role: 'station', station: 'Indiranagar' }, viewer: { role: 'viewer' }, gone: { role: 'admin', active: false },
 };
 export const em = (k) => `${k}@example.test`;
 const json = (o, status = 200) => new Response(JSON.stringify(o), { status, headers: { 'content-type': 'application/json' } });

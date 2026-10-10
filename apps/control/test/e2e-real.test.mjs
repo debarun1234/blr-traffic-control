@@ -21,12 +21,12 @@ const mk = async (who, vp = { width: 1440, height: 900 }) => {
 test.before(async () => { if (!skip) browser = await launch(); });
 test.after(async () => { await browser?.close(); });
 
-for (const who of ['admin', 'commissioner', 'north.dcp', 'yalahanka', 'indiranagar', 'viewer']) {
+for (const who of ['admin', 'commissioner', 'north.dcp', 'yelahanka', 'indiranagar', 'viewer']) {
   test(`real API: ${who} loads, role scoping and no console errors`, { skip, timeout: 90000 }, async () => {
     const page = await mk(who);
     const chips = await page.locator('[data-scope]').allInnerTexts();
     const role = await page.getByTestId('role-badge').innerText();
-    if (who === 'north.dcp' || who === 'yalahanka') assert.deepEqual(chips, ['North']);
+    if (who === 'north.dcp' || who === 'yelahanka') assert.deepEqual(chips, ['North']);
     else if (who === 'indiranagar') assert.deepEqual(chips, ['East']);
     else assert.equal(chips.length, 6);
     console.log(who, '->', role, '| chips', chips.join(','), '| pill', await page.getByTestId('status-pill').innerText());

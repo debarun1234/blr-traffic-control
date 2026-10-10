@@ -17,7 +17,7 @@ test('works hours and activity windows', () => {
   assert.ok(worksActiveAt(w, '2026-10-07', 9)); assert.ok(!worksActiveAt(w, '2026-11-01', 9)); assert.ok(!worksActiveAt({ ...w, active: false }, '2026-10-07', 9));
 });
 test('worksEdges resolves road + station to edges; capMulFor applies the minimum', () => {
-  const w = { id: 'a', road: 'Outer Ring Road', stations: ['Bellanduru'], from: '2026-10-01', to: '2026-10-31', hours: 'all', cap: 0.7 };
+  const w = { id: 'a', road: 'Outer Ring Road', stations: ['Bellandur'], from: '2026-10-01', to: '2026-10-31', hours: 'all', cap: 0.7 };
   const es = worksEdges(net, w); assert.ok(es.length > 0);
   const cm = capMulFor(net, { works: [w], incidents: [{ e: es[0], cap: 0.4, sh: 8, eh: 10 }], date: '2026-10-07', h: 9 });
   assert.equal(+cm[es[0]].toFixed(2), 0.4); assert.equal(+cm[es[1] ?? es[0]].toFixed(2) <= 0.7, true);
@@ -25,8 +25,8 @@ test('worksEdges resolves road + station to edges; capMulFor applies the minimum
   assert.ok(capKey(cm).includes(`${es[0]}:0.40`));
 });
 test('clashes finds corridor-connected overlapping works and ignores peak vs night', () => {
-  const a = { id: 'a', name: 'A', road: 'Outer Ring Road', stations: ['Bellanduru'], from: '2026-10-01', to: '2026-12-31', hours: 'all', cap: 0.7 };
-  const b = { id: 'b', name: 'B', road: 'Outer Ring Road', stations: ['Bellanduru', 'Mahadevapura'], from: '2026-11-01', to: '2027-01-31', hours: 'all', cap: 0.75 };
+  const a = { id: 'a', name: 'A', road: 'Outer Ring Road', stations: ['Bellandur'], from: '2026-10-01', to: '2026-12-31', hours: 'all', cap: 0.7 };
+  const b = { id: 'b', name: 'B', road: 'Outer Ring Road', stations: ['Bellandur', 'Mahadevapura'], from: '2026-11-01', to: '2027-01-31', hours: 'all', cap: 0.75 };
   const c = { ...b, id: 'c', from: '2027-02-01', to: '2027-03-01' };
   assert.equal(clashes(net, [a, b]).length, 1); assert.equal(clashes(net, [a, c]).length, 0);
   assert.equal(clashes(net, [{ ...a, hours: 'peak' }, { ...b, hours: 'night' }]).length, 0);

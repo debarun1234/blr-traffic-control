@@ -1,5 +1,5 @@
 import { decodeState } from '@blr/model';
-import { PERMISSIONS, REGIONS, hasPermission, canOnStation, canTransition, jurisdiction, lockedRegion, istParts, actionIdFor } from '@blr/shared';
+import { PERMISSIONS, REGIONS, hasPermission, canOnStation, canTransition, jurisdiction, lockedRegion, istParts, actionIdFor, canonStation } from '@blr/shared';
 import { createActivityTracker, runTick, err, rid, validDate, validateWork, simIncidentDocs, buildIncidentAction, capForType, stationName, roadName, actionContext, briefContext, round2 } from '@blr/core';
 import { bad, body, only, str, int, bool, limitParam } from '../http.mjs';
 
@@ -29,7 +29,7 @@ export function registerOps(api, ctx) {
   api.get('/me', async (req) => {
     void touch(); void wakeIfIdle();
     const u = req.user, s = await ctx.settings();
-    return { email: u.email, name: u.name ?? '', role: u.role, region: u.region ?? lockedRegion(u, stations), station: u.station ?? null, active: u.active !== false,
+    return { email: u.email, name: u.name ?? '', role: u.role, region: u.region ?? lockedRegion(u, stations), station: u.station ? canonStation(u.station) : null, active: u.active !== false,
       permissions: [...(PERMISSIONS[u.role] ?? [])], lockedRegion: lockedRegion(u, stations), jurisdiction: [...jurisdiction(u, stations)], flags: { aiEnabled: !!s.ai.enabled, maintenance: !!s.maintenance }, map: s.map };
   });
 
@@ -76,7 +76,7 @@ export function registerOps(api, ctx) {
     const where = []; if (region) where.push(['region', '==', region]); if (which === 'open') where.push(['state', 'in', OPEN]);
     let rows = await store.list('actions', { where, ...(which === 'all' ? { orderBy: ['raisedAt', 'desc'], limit: 1000 } : {}) });
     rows.sort(sortActions);
-    return { actions: rows.slice(0, limit) };
+    return { actions: rows.slice(0, limit).map((a) => (a.station && canonStation(a.station) !== a.station ? { ...a, station: canonStation(a.station) } : a)) }; // stored records may carry a renamed station's old spelling
   });
 
   api.post('/actions/:id/transition', async (req) => {
@@ -141,7 +141,7 @@ export function registerOps(api, ctx) {
     const s = await ctx.settings();
     const stored = await store.list('incidents', { where: [['date', '==', date]] });
     const sim = s.feed.mode !== 'live' ? simIncidentDocs(net, date) : [];
-    return { incidents: [...sim, ...stored].sort((x, y) => x.startHour - y.startHour) };
+    return { incidents: [...sim, ...stored.map((i) => (i.station && canonStation(i.station) !== i.station ? { ...i, station: canonStation(i.station) } : i))].sort((x, y) => x.startHour - y.startHour) };
   });
 
   api.post('/incidents', async (req, reply) => {

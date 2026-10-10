@@ -1,5 +1,6 @@
 import { loadMap } from '@blr/mapdata';
 import { createNetwork } from '@blr/model';
+import { canonStation } from '@blr/shared';
 let net;
 /** Shared, lazily built network (building is ~100 ms; assignment dominates). */
 export function getNet() { return (net ??= createNetwork(loadMap())); }
@@ -34,7 +35,7 @@ export const stationNames = (net) => net.map.st.map((s) => s.n);
 /** Find a station by exact (case-insensitive) name or admin alias. */
 export function resolveStation(net, s, overrides = []) {
   const q = String(s ?? '').trim().toLowerCase(); if (!q) return null;
-  const hit = net.map.st.find((x) => x.n.toLowerCase() === q); if (hit) return hit.n;
+  const hit = net.map.st.find((x) => x.n.toLowerCase() === q) ?? net.map.st.find((x) => x.n === canonStation(String(s).trim())); if (hit) return hit.n;
   for (const o of overrides) if ((o.aliases ?? []).some((a) => String(a).toLowerCase() === q)) return o.name;
   return null;
 }

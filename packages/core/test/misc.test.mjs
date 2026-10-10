@@ -13,7 +13,7 @@ test('AUTH_MODE=dev is refused in production, allowed otherwise', () => {
 
 test('auth: allowlist, inactive, bearer verifier, bootstrap admin, uid/lastLogin on first call, 60 s cache', async () => {
   const { store, clock } = mk();
-  await store.set('users', 'a@x.test', { email: 'a@x.test', role: 'station', station: 'Yalahanka', active: true, createdBy: 't', createdAt: 1 });
+  await store.set('users', 'a@x.test', { email: 'a@x.test', role: 'station', station: 'Yelahanka', active: true, createdBy: 't', createdAt: 1 });
   await store.set('users', 'off@x.test', { email: 'off@x.test', role: 'admin', active: false, createdBy: 't', createdAt: 1 });
   const verifier = async (t) => { if (t === 'good') return { email: 'A@X.test', uid: 'u1', email_verified: true }; if (t === 'boot') return { email: 'Boss@x.test', uid: 'u2', email_verified: true, name: 'Boss' }; if (t === 'unverified') return { email: 'a@x.test', email_verified: false }; throw new Error('bad'); };
   const a = createAuthenticator({ store, clock, verifier, env: { AUTH_MODE: 'dev', BOOTSTRAP_ADMIN_EMAILS: 'boss@x.test, other@x.test' } });

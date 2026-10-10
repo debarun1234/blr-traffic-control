@@ -21,9 +21,9 @@ test('GET /api/state: contract shape, ETag + 304, stale flag derived from age', 
 });
 
 test('GET /api/me returns role, permissions, jurisdiction and flags', async () => {
-  const me = (await T.call('yalahanka', 'GET', '/api/me')).body;
-  assert.deepEqual([me.email, me.role, me.station, me.region, me.lockedRegion], ['yalahanka@example.test', 'station', 'Yalahanka', 'North', 'North']);
-  assert.deepEqual(me.jurisdiction, ['Yalahanka']); assert.ok(me.permissions.includes('incident.report') && !me.permissions.includes('works.write')); assert.deepEqual(me.flags, { aiEnabled: true, maintenance: false }); assert.equal(me.map.defaultView, 'traffic'); assert.equal(me.map.speedBands.fast, 34);
+  const me = (await T.call('yelahanka', 'GET', '/api/me')).body;
+  assert.deepEqual([me.email, me.role, me.station, me.region, me.lockedRegion], ['yelahanka@example.test', 'station', 'Yelahanka', 'North', 'North']);
+  assert.deepEqual(me.jurisdiction, ['Yelahanka']); assert.ok(me.permissions.includes('incident.report') && !me.permissions.includes('works.write')); assert.deepEqual(me.flags, { aiEnabled: true, maintenance: false }); assert.equal(me.map.defaultView, 'traffic'); assert.equal(me.map.speedBands.fast, 34);
   const a = (await T.call('admin', 'GET', '/api/me')).body; assert.equal(a.lockedRegion, null); assert.equal(a.jurisdiction.length, net.map.st.length); assert.ok(a.permissions.includes('admin.access'));
   assert.equal((await T.call('north.dcp', 'GET', '/api/me')).body.jurisdiction.length, net.map.st.filter((s) => s.r === 'North').length);
 });
@@ -40,10 +40,10 @@ test('action state machine writes audit rows with actor; done can be reopened; n
 });
 
 test('incident report creates an incident and a new action visible to the right users; jurisdiction and validation enforced', async () => {
-  const e = edgeIn('Yalahanka');
-  const r = await T.call('yalahanka', 'POST', '/api/incidents', { edge: e, type: 'Tree fall', durationMin: 60, note: 'near the bus stop' });
+  const e = edgeIn('Yelahanka');
+  const r = await T.call('yelahanka', 'POST', '/api/incidents', { edge: e, type: 'Tree fall', durationMin: 60, note: 'near the bus stop' });
   assert.equal(r.status, 201); const { incident, action } = r.body;
-  assert.deepEqual([incident.src, incident.station, incident.by, incident.cap, incident.date], ['user', 'Yalahanka', em('yalahanka'), 0.35, '2026-10-07']);
+  assert.deepEqual([incident.src, incident.station, incident.by, incident.cap, incident.date], ['user', 'Yelahanka', em('yelahanka'), 0.35, '2026-10-07']);
   assert.equal(incident.endHour - incident.startHour, 1); assert.equal(action.id, `A-${incident.id}`); assert.equal(action.state, 'new'); assert.equal(action.type, 'inc'); assert.equal(action.region, 'North'); assert.match(action.detail, /near the bus stop/);
   assert.ok((await T.call('north.dcp', 'GET', '/api/actions')).body.actions.some((x) => x.id === action.id));
   assert.ok(!(await T.call('indiranagar', 'GET', '/api/actions')).body.actions.some((x) => x.id === action.id), 'other region does not see it');
@@ -63,18 +63,18 @@ test('first request after an idle tick runs one normal tick in the background', 
 });
 
 test('incident lifecycle: extend, confirm and clear change only stored incidents, within jurisdiction, with audit and the linked action closed', async () => {
-  const e = edgeIn('Yalahanka');
-  const { incident, action } = (await T.call('yalahanka', 'POST', '/api/incidents', { edge: e, type: 'Accident', durationMin: 30 })).body;
+  const e = edgeIn('Yelahanka');
+  const { incident, action } = (await T.call('yelahanka', 'POST', '/api/incidents', { edge: e, type: 'Accident', durationMin: 30 })).body;
   const id = incident.id;
   assert.equal((await T.call('indiranagar', 'POST', `/api/incidents/${id}/clear`)).status, 403, 'other station');
   assert.equal((await T.call('viewer', 'POST', `/api/incidents/${id}/clear`)).status, 403, 'no permission');
-  const ex = await T.call('yalahanka', 'POST', `/api/incidents/${id}/extend`, { minutes: 30 }); assert.equal(ex.status, 200);
+  const ex = await T.call('yelahanka', 'POST', `/api/incidents/${id}/extend`, { minutes: 30 }); assert.equal(ex.status, 200);
   assert.ok(Math.abs(ex.body.incident.endHour - incident.endHour - 0.5) < 0.011);
-  assert.equal((await T.call('yalahanka', 'POST', `/api/incidents/${id}/extend`, { minutes: 5 })).status, 400);
-  const cf = await T.call('yalahanka', 'POST', `/api/incidents/${id}/confirm`); assert.equal(cf.status, 200); assert.ok(cf.body.incident.confirmedAt);
-  const cl = await T.call('yalahanka', 'POST', `/api/incidents/${id}/clear`); assert.equal(cl.status, 200);
+  assert.equal((await T.call('yelahanka', 'POST', `/api/incidents/${id}/extend`, { minutes: 5 })).status, 400);
+  const cf = await T.call('yelahanka', 'POST', `/api/incidents/${id}/confirm`); assert.equal(cf.status, 200); assert.ok(cf.body.incident.confirmedAt);
+  const cl = await T.call('yelahanka', 'POST', `/api/incidents/${id}/clear`); assert.equal(cl.status, 200);
   assert.ok(cl.body.incident.clearedAt && cl.body.incident.endHour <= incident.endHour);
-  assert.equal((await T.call('yalahanka', 'POST', `/api/incidents/${id}/clear`)).status, 409, 'already cleared');
+  assert.equal((await T.call('yelahanka', 'POST', `/api/incidents/${id}/clear`)).status, 409, 'already cleared');
   assert.equal((await T.call('north.dcp', 'GET', '/api/actions?state=all')).body.actions.find((x) => x.id === action.id).state, 'done', 'linked action closed');
   for (const k of ['incident_extend', 'incident_confirm', 'incident_clear']) assert.ok((await audits(k)).length >= 1, k);
   const sim = (await T.call('viewer', 'GET', '/api/incidents?date=2026-10-07')).body.incidents.find((i) => i.src === 'sim');
@@ -90,7 +90,7 @@ test('works: create, validate, patch, soft delete, audit; inactive hidden from t
   const p = await T.call('admin', 'PATCH', `/api/works/${w.id}`, { cap: 0.4, to: '2026-10-25' }); assert.equal(p.status, 200); assert.equal(p.body.cap, 0.4); assert.equal(p.body.name, 'Metro');
   assert.equal((await T.call('admin', 'PATCH', `/api/works/${w.id}`, { to: '2026-09-01' })).status, 400);
   assert.equal((await T.call('admin', 'PATCH', '/api/works/nope', { cap: 0.4 })).status, 404);
-  assert.equal((await T.call('yalahanka', 'DELETE', `/api/works/${w.id}`)).status, 403);
+  assert.equal((await T.call('yelahanka', 'DELETE', `/api/works/${w.id}`)).status, 403);
   const d = await T.call('commissioner', 'DELETE', `/api/works/${w.id}`); assert.equal(d.status, 200); assert.equal(d.body.active, false);
   assert.ok(!(await T.call('viewer', 'GET', '/api/works')).body.works.some((x) => x.id === w.id));
   assert.ok((await T.call('viewer', 'GET', '/api/works?includeInactive=1')).body.works.some((x) => x.id === w.id));

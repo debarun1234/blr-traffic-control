@@ -21,3 +21,10 @@ Inputs live in `tools/mapdata/data` (`boundary.txt`, `police.json`, `roads.json`
 4. `python3 graph12.py` then `python3 final.py` write `map.json`; copy it to `packages/mapdata/map.json` and rebuild the web apps.
 
 Road classes in `map.json`: 0 to 2 are routable (motorway/trunk, primary, secondary); 3 (tertiary, unclassified) and 4 (residential, living street) are draw-only, and class 4 is shown only when zoomed in.
+
+## Corrections applied after the pipeline (`tools/mapdata/apply_fixes.py`)
+
+The raw OSM extracts for the outer taluks are not kept in the repo, so `packages/mapdata/map.json` is corrected in place by an idempotent script rather than by re-running the whole pipeline.
+
+- **Byatarayanapura traffic police station** is on Mysuru Road and belongs to the West traffic division. The Ballari Road stretch between Hebbal and Yelahanka (also called Byatarayanapura) is policed by Hebbal traffic police (North). The station point is an approximation (Mysuru Road near the Gali Anjaneya temple); replace it with the station's surveyed coordinates when available. Territories of the neighbouring stations and the ownership of the roads in the changed areas were recomputed.
+- **Road names** use current official spellings (Ballari, Bengaluru, Mysuru, Tumakuru, Mangaluru, Hosakote, Sarjapura, Varthuru) and obvious non-road names from OSM are dropped. Names are otherwise as in OpenStreetMap.

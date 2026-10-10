@@ -194,7 +194,7 @@ test('probes: create from hub to station and via validation; shows observations 
 
 test('works CSV import: dry run shows accepted/rejected with reasons, then confirm imports', async () => {
   await open('works');
-  const csv = 'name,road,station,from,to,hours,cap,kind,agency\nBridge repair,Old Madras Road,Indiranagar,2026-11-01,2026-11-20,night,0.5,bridge,GBA\nGhost work,Nowhere Rd,Atlantis,2026-11-01,2026-11-20,all,0.5,x,GBA\nBad dates,Hosur Road,Adugodi,01/11/2026,2026-11-20,all,0.5,x,GBA\nWide road,Bellary Road,Hebbala,2026-12-01,2026-12-31,peak,0.8,utility,BESCOM';
+  const csv = 'name,road,station,from,to,hours,cap,kind,agency\nBridge repair,Old Madras Road,Indiranagar,2026-11-01,2026-11-20,night,0.5,bridge,GBA\nGhost work,Nowhere Rd,Atlantis,2026-11-01,2026-11-20,all,0.5,x,GBA\nBad dates,Hosur Road,Adugodi,01/11/2026,2026-11-20,all,0.5,x,GBA\nWide road,Bellary Road,Hebbal,2026-12-01,2026-12-31,peak,0.8,utility,BESCOM';
   await page.locator('#imp-works-text').fill(csv); assert.equal(await page.locator('#imp-works-apply').isDisabled(), true);
   await page.click('#imp-works-check'); await page.locator('[data-dryrun=done]').waitFor();
   const t = await page.locator('[data-dryrun=done]').innerText(); assert.match(t, /2 will be accepted/); assert.match(t, /2 rejected/); assert.match(t, /unknown station "Atlantis"/); assert.match(t, /YYYY-MM-DD/);
@@ -214,7 +214,7 @@ test('works CSV import: dry run shows accepted/rejected with reasons, then confi
 
 test('crash CSV import dry run and confirm; incidents tab and exports', async () => {
   await open('works'); await page.getByRole('tab', { name: 'Crash records' }).click();
-  await page.locator('#imp-crash-text').fill('station,year,fatal,nonfatal\nHalasooru,2025,12,34\nNowhere,2025,1,1\nIndiranagar,2025,x,5');
+  await page.locator('#imp-crash-text').fill('station,year,fatal,nonfatal\nHalasuru,2025,12,34\nNowhere,2025,1,1\nIndiranagar,2025,x,5');
   await page.click('#imp-crash-check'); await page.locator('[data-dryrun=done]').waitFor(); const t = await page.locator('[data-dryrun=done]').innerText(); assert.match(t, /1 will be accepted/); assert.match(t, /2 rejected/); assert.match(t, /whole numbers/);
   await page.click('#imp-crash-apply'); await dlg().getByRole('button', { name: 'Import 1 rows' }).click(); await toast('Imported 1 rows');
   await page.getByRole('tab', { name: 'Incidents' }).click(); await page.waitForSelector('text=breakdown');

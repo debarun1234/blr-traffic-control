@@ -22,7 +22,7 @@ function incidentsAt(h){
 var SEEDS=[
  {id:'s1',name:'Metro blue line viaduct works, ORR',road:'Outer Ring Road',stns:['Bellanduru','Mahadevapura'],from:'2026-09-01',to:'2027-06-30',hours:'all',cap:0.75,kind:'Metro',seed:1},
  {id:'s2',name:'Storm-water drain remodelling, ORR',road:'Outer Ring Road',stns:['Bellanduru'],from:'2026-10-01',to:'2026-12-31',hours:'all',cap:0.7,kind:'Drain',seed:1},
- {id:'s3',name:'Flyover bearing repair, Bellary Road',road:'Bellary Road',stns:['Bytarayanapura','Yalahanka'],from:'2026-10-10',to:'2026-12-10',hours:'all',cap:0.7,kind:'Bridge',seed:1},
+ {id:'s3',name:'Flyover bearing repair, Bellary Road',road:'Bellary Road',stns:['Bytarayanapura','Yelahanka'],from:'2026-10-10',to:'2026-12-10',hours:'all',cap:0.7,kind:'Bridge',seed:1},
  {id:'s4',name:'Resurfacing, Hosur Road (night shifts)',road:'Hosur Road',stns:['Madivala','Adugodi'],from:'2026-10-05',to:'2026-11-05',hours:'night',cap:0.5,kind:'Road',seed:1},
  {id:'s5',name:'Utility trench, Tumkur Road',road:'Tumkur Road',stns:['Peenya'],from:'2026-10-01',to:'2026-11-30',hours:'all',cap:0.75,kind:'Utility',seed:1}];
 function allWorks(){var a=SEEDS.slice();Object.keys(S.works).forEach(function(id){if(S.works[id])a.push(Object.assign({id:id},S.works[id]))});return a}

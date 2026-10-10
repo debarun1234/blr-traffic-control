@@ -35,7 +35,7 @@ All images are real screenshots of the running app (Control from the local dev s
 | ![Area speed view](docs/images/control-speed-view.png) | ![Rural scope](docs/images/control-rural.png) |
 | **Area speed**: areas shaded by average modelled speed, slowest areas listed | **Rural scope**: outer taluk units and their roads, Urban dimmed; no crash data (shown as a dash) |
 | ![Map panel](docs/images/control-layers.png) | ![Station user: map locked to North, own station highlighted](docs/images/control-station.png) |
-| **Map panel**: views and layers; only what the admin allows for your role appears | **Station user (Yalahanka)**: sees its region, own station highlighted |
+| **Map panel**: views and layers; only what the admin allows for your role appears | **Station user (Yelahanka)**: sees its region, own station highlighted |
 | ![Closure planner](docs/images/control-planner.png) | ![Dark theme](docs/images/control-dark.png) |
 | **Planner**: closure impact by time of day, diversion shifts with crash history | **Dark theme** |
 | ![Admin overview](docs/images/admin-overview.png) | ![Admin connectors](docs/images/admin-connectors.png) |
@@ -113,7 +113,7 @@ Generic REST and webhook connectors, CSV upload, inbound `x-api-key` ingest, Goo
 
 ## Validation status
 
-Verified here: unit tests (core 49, api 30, worker 5, model 6, shared 6), Control suite (38 tests incl. Playwright scenarios) and Admin suite (42 tests incl. Playwright scenarios) against mock and in-memory servers, repo lint, shellcheck, Terraform syntax parse.
+Verified here: unit tests (core 49, api 30, worker 5, model 6, shared 7), Control suite (38 tests incl. Playwright scenarios) and Admin suite (42 tests incl. Playwright scenarios) against mock and in-memory servers, repo lint, shellcheck, Terraform syntax parse.
 
 CI (`.github/workflows/ci.yml`) also runs Terraform fmt/validate and container builds on GitHub; those were not run in the authoring sandbox.
 

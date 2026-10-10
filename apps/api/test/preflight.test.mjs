@@ -4,7 +4,7 @@ import { makeApp } from './helpers.mjs';
 
 test('preflight: scoped glance, one model probe per day shared across users, admin gets platform snapshot', async () => {
   const T = await makeApp(); try {
-    const a = await T.call('yalahanka', 'POST', '/api/preflight');
+    const a = await T.call('yelahanka', 'POST', '/api/preflight');
     assert.equal(a.status, 200);
     assert.equal(a.body.api.ok, true); assert.equal(a.body.data.mode, 'sim'); assert.equal(a.body.ai.status, 'ok'); assert.equal(a.body.ai.cached, false);
     assert.equal(a.body.glance.stations, 1, 'station user sees only their own station');

@@ -67,7 +67,7 @@ test('connectors: create/validate (no secrets in config), test is a dry run, run
   const id = c.body.id, p = nodeLatLon(net, net.a[300]);
   feed = { data: { items: [{ id: 'Z1', t: 'Accident', lat: p.lat, lon: p.lon, m: 30 }] } };
   const t = await A('POST', `/api/admin/connectors/${id}/test`); assert.equal(t.body.ok, true); assert.equal(t.body.sample.length, 1); assert.equal((await T.store.list('incidents', { where: [['connectorId', '==', id]] })).length, 0);
-  const r = await A('POST', `/api/admin/connectors/${id}/run`); assert.equal(r.status, 200); assert.equal(r.body.ok, true); assert.equal(r.body.count, 1);
+  const r = await A('POST', `/api/admin/connectors/${id}/run`); assert.equal(r.status, 200); assert.equal(r.body.ok, true); assert.equal(r.body.count, 1); assert.equal(typeof r.body.refreshed, 'boolean');
   assert.equal((await T.store.list('incidents', { where: [['connectorId', '==', id]] })).length, 1);
   const runs = (await A('GET', `/api/admin/connectors/${id}/runs?limit=5`)).body.runs; assert.equal(runs.length, 1); assert.equal((await T.store.get('connectors', id)).lastRun.ok, true);
   const patched = await A('PATCH', `/api/admin/connectors/${id}`, { enabled: true, intervalMin: 15 }); assert.equal(patched.body.enabled, true);

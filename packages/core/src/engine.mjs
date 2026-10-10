@@ -1,5 +1,5 @@
 import { assign, summarize, encodeState, calibrate, hash32 } from '@blr/model';
-import { istParts, actionIdFor } from '@blr/shared';
+import { istParts, actionIdFor, canonStation } from '@blr/shared';
 import { getSettings } from './settings.mjs';
 import { shiftDate, istMinuteKey, clamp } from './util.mjs';
 import { roadName, stationName, stationRegion } from './map.mjs';
@@ -25,7 +25,7 @@ function roadIdx(net, road) {
 export function worksEdges(net, w) {
   const idx = roadIdx(net, w.road); if (idx === undefined) return [];
   const byStn = net.roads.get(idx); if (!byStn) return [];
-  const want = (w.stations ?? []).length ? new Set(w.stations) : null, out = [];
+  const want = (w.stations ?? []).length ? new Set(w.stations.map(canonStation)) : null, out = [];
   for (const [si, edges] of byStn) if (!want || want.has(net.map.st[si]?.n)) out.push(...edges);
   return out;
 }

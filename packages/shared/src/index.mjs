@@ -16,13 +16,23 @@ export const PERMISSIONS = Object.freeze({
   viewer: ['state.read'],
 });
 
+/** Stations that were renamed: stored users, actions and incidents may still carry the old spelling. */
+export const LEGACY_STATION_NAMES = Object.freeze({
+  Yalahanka: 'Yelahanka', Halasooru: 'Halasuru', Banasawadi: 'Banaswadi', Pulikeshinagar: 'Pulakeshinagar', 'H.Grounds': 'High Grounds', 'S.S.Nagar': 'Sadashivanagar',
+  'U.Gate': 'Ulsoor Gate', 'W.Garden': 'Wilson Garden', Ashokanagar: 'Ashok Nagar', Hebbala: 'Hebbal', 'Int. Aiport': 'Kempegowda Intl. Airport', Hennuru: 'Hennur',
+  Yashawanthapura: 'Yeshwanthpur', Micolayout: 'Mico Layout', 'VV Puram': 'V.V. Puram', 'R T Nagar': 'R.T. Nagar', 'K S Layout': 'K.S. Layout', 'JP Nagar': 'J.P. Nagar',
+  Thalagattapura: 'Talaghattapura', Madivala: 'Madiwala', Bellanduru: 'Bellandur', 'K G Halli': 'K.G. Halli', 'K R Puram': 'K.R. Puram', Bytarayanapura: 'Byatarayanapura',
+  'Hoskote (taluk)': 'Hosakote (taluk)', Airport: 'HAL Airport',
+});
+export const canonStation = (n) => LEGACY_STATION_NAMES[n] ?? n;
+
 /** Which stations (by name) a user may act on. `stations` is map.json `st`: [{n, r}] */
 export function jurisdiction(user, stations) {
   if (!user || user.active === false) return new Set();
   switch (user.role) {
     case 'admin': case 'commissioner': return new Set(stations.map((s) => s.n));
     case 'dcp': return new Set(stations.filter((s) => s.r === user.region).map((s) => s.n));
-    case 'station': return new Set(stations.filter((s) => s.n === user.station).map((s) => s.n));
+    case 'station': return new Set(stations.filter((s) => s.n === canonStation(user.station)).map((s) => s.n));
     default: return new Set();
   }
 }
@@ -34,7 +44,7 @@ export function hasPermission(user, perm) {
 
 /** Can `user` perform `perm` on something owned by station `stationName`? */
 export function canOnStation(user, perm, stationName, stations) {
-  return hasPermission(user, perm) && jurisdiction(user, stations).has(stationName);
+  return hasPermission(user, perm) && jurisdiction(user, stations).has(canonStation(stationName));
 }
 
 /** The region a user's map is locked to, or null for city-wide roles. */

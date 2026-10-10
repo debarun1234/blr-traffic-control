@@ -21,7 +21,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
     { email: 'admin@example.test', name: 'Asha Admin', role: 'admin' },
     { email: 'commissioner@example.test', name: 'Chandra Commissioner', role: 'commissioner' },
     { email: 'north.dcp@example.test', name: 'Nandini DCP', role: 'dcp', region: 'North' },
-    { email: 'yalahanka@example.test', name: 'Yash Yalahanka', role: 'station', station: 'Yalahanka' },
+    { email: 'yelahanka@example.test', name: 'Yash Yelahanka', role: 'station', station: 'Yelahanka' },
     { email: 'indiranagar@example.test', name: 'Indu Indiranagar', role: 'station', station: 'Indiranagar' },
     { email: 'viewer@example.test', name: 'Vik Viewer', role: 'viewer' },
   ];
@@ -33,11 +33,11 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       now: FIXED_NOW, hour, date, boost: 1.12, mode: 'sim', stale: false, staleBy: 0, maintenance: false, map: null, aiEnabled: true, aiLimit: 50, aiUsed: 0, down: null, latency: 0, version: 1, seq: 100,
       users: new Map(DEFAULT_USERS.map((u) => [u.email, { active: true, ...u }])), actions: new Map(), aiCache: new Map(), calls: [],
       incidents: [...simIncidents(net, date).map((x) => mkInc(x.id, x.type, x.e, x.sh, x.eh)),
-        mkInc(`${date}-s1`, 'Vehicle breakdown', edgeIn('Yalahanka'), hour - 0.1, hour + 0.7), mkInc(`${date}-s2`, 'Accident', edgeIn('Indiranagar'), hour - 0.5, hour + 0.8),
-        mkInc(`${date}-s3`, 'Signal fault', edgeIn('Halasooru'), hour - 0.4, hour + 0.6), mkInc(`${date}-s4`, 'Waterlogging', edgeIn('Peenya'), hour - 0.35, hour + 0.9)],
+        mkInc(`${date}-s1`, 'Vehicle breakdown', edgeIn('Yelahanka'), hour - 0.1, hour + 0.7), mkInc(`${date}-s2`, 'Accident', edgeIn('Indiranagar'), hour - 0.5, hour + 0.8),
+        mkInc(`${date}-s3`, 'Signal fault', edgeIn('Halasuru'), hour - 0.4, hour + 0.6), mkInc(`${date}-s4`, 'Waterlogging', edgeIn('Peenya'), hour - 0.35, hour + 0.9)],
       works: [
-        { id: 'w1', name: 'Metro viaduct works, ORR', road: 'Outer Ring Road', stations: ['Bellanduru', 'Mahadevapura'], from: '2026-09-01', to: '2027-06-30', hours: 'all', cap: 0.75, kind: 'Metro', agency: 'BMRCL', source: 'manual', active: true, by: 'admin@example.test', createdAt: FIXED_NOW },
-        { id: 'w2', name: 'Storm-water drain remodelling, ORR', road: 'Outer Ring Road', stations: ['Bellanduru'], from: '2026-10-01', to: '2026-12-31', hours: 'all', cap: 0.7, kind: 'Drain', agency: 'GBA', source: 'csv', active: true, by: 'admin@example.test', createdAt: FIXED_NOW },
+        { id: 'w1', name: 'Metro viaduct works, ORR', road: 'Outer Ring Road', stations: ['Bellandur', 'Mahadevapura'], from: '2026-09-01', to: '2027-06-30', hours: 'all', cap: 0.75, kind: 'Metro', agency: 'BMRCL', source: 'manual', active: true, by: 'admin@example.test', createdAt: FIXED_NOW },
+        { id: 'w2', name: 'Storm-water drain remodelling, ORR', road: 'Outer Ring Road', stations: ['Bellandur'], from: '2026-10-01', to: '2026-12-31', hours: 'all', cap: 0.7, kind: 'Drain', agency: 'GBA', source: 'csv', active: true, by: 'admin@example.test', createdAt: FIXED_NOW },
         { id: 'w3', name: 'Utility trench, Tumkur Road', road: 'Tumkur Road', stations: ['Peenya'], from: '2026-10-01', to: '2026-11-30', hours: 'all', cap: 0.75, kind: 'Utility', agency: 'BESCOM', source: 'manual', active: true, by: 'admin@example.test', createdAt: FIXED_NOW },
       ],
     };
@@ -189,7 +189,7 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       syncActions(); if (re) recompute(3); else S.version++;
       return json(res, 200, { ok: true, version: S.version });
     }
-    if (p === '/__mock/info') return json(res, 200, { calls: S.calls, actions: [...S.actions.values()], works: S.works, aiUsed: S.aiUsed, edgeIn: Object.fromEntries(['Yalahanka', 'Indiranagar', 'Halasooru', 'Peenya', 'Airport'].map((n) => [n, edgeIn(n)])), cityCong: cur.city, version: S.version });
+    if (p === '/__mock/info') return json(res, 200, { calls: S.calls, actions: [...S.actions.values()], works: S.works, aiUsed: S.aiUsed, edgeIn: Object.fromEntries(['Yelahanka', 'Indiranagar', 'Halasuru', 'Peenya', 'HAL Airport'].map((n) => [n, edgeIn(n)])), cityCong: cur.city, version: S.version });
     return json(res, 404, {});
   }
 
