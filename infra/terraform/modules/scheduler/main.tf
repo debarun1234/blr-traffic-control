@@ -29,12 +29,12 @@ variable "tick_schedules" {
   }))
   description = "Feed tick jobs. Default: every 5 min at the 07-11 and 16-21 peaks, every 10 min for the rest of 05:30-22:30 IST, hourly otherwise."
   default = {
-    "tick-day-a" = { schedule = "30-59/10 5 * * *", description = "05:30-05:50 every 10 min" }
-    "tick-day-b" = { schedule = "*/10 6,11-15,21 * * *", description = "06:00-06:50, 11:00-15:50 and 21:00-21:50 every 10 min" }
+    "tick-day-a"   = { schedule = "30-59/10 5 * * *", description = "05:30-05:50 every 10 min" }
+    "tick-day-b"   = { schedule = "*/10 6,11-15,21 * * *", description = "06:00-06:50, 11:00-15:50 and 21:00-21:50 every 10 min" }
     "tick-peak-am" = { schedule = "*/5 7-10 * * *", description = "07:00-10:55 every 5 min (morning peak)" }
     "tick-peak-pm" = { schedule = "*/5 16-20 * * *", description = "16:00-20:55 every 5 min (evening peak)" }
-    "tick-day-c" = { schedule = "0-30/10 22 * * *", description = "22:00-22:30 every 10 min" }
-    "tick-night" = { schedule = "0 23,0-5 * * *", description = "hourly 23:00-05:00" }
+    "tick-day-c"   = { schedule = "0-30/10 22 * * *", description = "22:00-22:30 every 10 min" }
+    "tick-night"   = { schedule = "0 23,0-5 * * *", description = "hourly 23:00-05:00" }
   }
 }
 
