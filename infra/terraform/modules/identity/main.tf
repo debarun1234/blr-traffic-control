@@ -48,6 +48,10 @@ resource "google_identity_platform_config" "this" {
       enabled = false
     }
   }
+
+  lifecycle {
+    ignore_changes = [multi_tenant] # the API returns allow_tenants=false; we do not use multi-tenancy
+  }
 }
 
 resource "google_identity_platform_default_supported_idp_config" "google" {

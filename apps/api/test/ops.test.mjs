@@ -55,6 +55,13 @@ test('incident report creates an incident and a new action visible to the right 
   assert.equal((await T.call('viewer', 'GET', '/api/incidents?date=nope')).status, 400);
 });
 
+test('first request after an idle tick runs one normal tick in the background', async () => {
+  const m = await T.store.get('state', 'meta'); await T.store.set('state', 'meta', { ...m, idle: true });
+  assert.equal((await T.call('viewer', 'GET', '/api/state')).status, 200);
+  for (let i = 0; i < 50 && (await T.store.get('state', 'meta')).idle; i++) await new Promise((r) => setTimeout(r, 20));
+  assert.equal((await T.store.get('state', 'meta')).idle, false);
+});
+
 test('incident lifecycle: extend, confirm and clear change only stored incidents, within jurisdiction, with audit and the linked action closed', async () => {
   const e = edgeIn('Yalahanka');
   const { incident, action } = (await T.call('yalahanka', 'POST', '/api/incidents', { edge: e, type: 'Accident', durationMin: 30 })).body;

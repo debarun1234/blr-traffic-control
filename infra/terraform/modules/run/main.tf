@@ -193,6 +193,7 @@ resource "google_cloud_run_v2_service" "api" {
       client_version,
       traffic,
       launch_stage,
+      scaling, # service-level block the API fills with zeros; the instance limits live in template[0].scaling
     ]
   }
 }
@@ -263,6 +264,7 @@ resource "google_cloud_run_v2_service" "worker" {
       client_version,
       traffic,
       launch_stage,
+      scaling, # service-level block the API fills with zeros; the instance limits live in template[0].scaling
     ]
   }
 }

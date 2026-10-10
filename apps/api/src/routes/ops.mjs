@@ -14,15 +14,27 @@ export function registerOps(api, ctx) {
   const overrides = () => store.list('stations');
   const touch = createActivityTracker({ store, clock });
 
+  // Waking from idle: while nobody was around, paid probe collection was paused, so readings are old. The first person back
+  // triggers one normal tick in the background (connectors still obey their own interval and daily cap) instead of waiting
+  // up to a tick for the stale banner to clear.
+  async function wakeIfIdle() {
+    if (refreshing) return;
+    try {
+      const meta = await store.get('state', 'meta'); if (!meta?.idle || refreshing) return;
+      refreshing = true;
+      try { await runTick({ store, net, now: clock.now(), connectors: ctx.connectors, settings: await ctx.settings(), idle: false }); } finally { refreshing = false; }
+    } catch { /* the scheduled tick will catch up */ }
+  }
+
   api.get('/me', async (req) => {
-    void touch();
+    void touch(); void wakeIfIdle();
     const u = req.user, s = await ctx.settings();
     return { email: u.email, name: u.name ?? '', role: u.role, region: u.region ?? lockedRegion(u, stations), station: u.station ?? null, active: u.active !== false,
       permissions: [...(PERMISSIONS[u.role] ?? [])], lockedRegion: lockedRegion(u, stations), jurisdiction: [...jurisdiction(u, stations)], flags: { aiEnabled: !!s.ai.enabled, maintenance: !!s.maintenance }, map: s.map };
   });
 
   api.get('/state', async (req, reply) => {
-    void touch();
+    void touch(); void wakeIfIdle();
     const st = await store.get('state', 'current');
     if (!st) throw err('unavailable', 'No state has been computed yet');
     const s = await ctx.settings();
