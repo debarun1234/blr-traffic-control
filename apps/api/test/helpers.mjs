@@ -16,7 +16,7 @@ export { json };
 export async function makeApp({ tick = true, generate, fetch, serverOpts = {}, env = {} } = {}) {
   const store = createMemoryStore(), clock = fixedClock(T0), calls = [];
   for (const [k, v] of Object.entries(USERS)) await store.set('users', em(k), { email: em(k), name: k, active: true, createdBy: 'test', createdAt: 1, ...v });
-  const gen = generate ?? (async (o) => { calls.push(o); return { text: `AI[${o.model}] ok`, tokensIn: 100, tokensOut: 50 }; });
+  const gen = generate ?? (async (o) => { calls.push(o); return { text: `AI[${o.model}] ok. ` + "Hold traffic at the upstream junction and clear the lane before the next peak builds. ".repeat(5), tokensIn: 100, tokensOut: 50 }; });
   const ai = createAiRouter({ store, clock, generate: gen });
   const app = await buildServer({ store, clock, ai, net, logger: false, fetch, resolve: async () => ['93.184.216.34'], secretReader: async () => 'k', env: { AUTH_MODE: 'dev', NODE_ENV: 'test', ...env }, ...serverOpts });
   if (tick) await runTick({ store, net, now: clock.now() });

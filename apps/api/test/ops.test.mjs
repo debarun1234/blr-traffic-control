@@ -55,6 +55,26 @@ test('incident report creates an incident and a new action visible to the right 
   assert.equal((await T.call('viewer', 'GET', '/api/incidents?date=nope')).status, 400);
 });
 
+test('incident lifecycle: extend, confirm and clear change only stored incidents, within jurisdiction, with audit and the linked action closed', async () => {
+  const e = edgeIn('Yalahanka');
+  const { incident, action } = (await T.call('yalahanka', 'POST', '/api/incidents', { edge: e, type: 'Accident', durationMin: 30 })).body;
+  const id = incident.id;
+  assert.equal((await T.call('indiranagar', 'POST', `/api/incidents/${id}/clear`)).status, 403, 'other station');
+  assert.equal((await T.call('viewer', 'POST', `/api/incidents/${id}/clear`)).status, 403, 'no permission');
+  const ex = await T.call('yalahanka', 'POST', `/api/incidents/${id}/extend`, { minutes: 30 }); assert.equal(ex.status, 200);
+  assert.ok(Math.abs(ex.body.incident.endHour - incident.endHour - 0.5) < 0.011);
+  assert.equal((await T.call('yalahanka', 'POST', `/api/incidents/${id}/extend`, { minutes: 5 })).status, 400);
+  const cf = await T.call('yalahanka', 'POST', `/api/incidents/${id}/confirm`); assert.equal(cf.status, 200); assert.ok(cf.body.incident.confirmedAt);
+  const cl = await T.call('yalahanka', 'POST', `/api/incidents/${id}/clear`); assert.equal(cl.status, 200);
+  assert.ok(cl.body.incident.clearedAt && cl.body.incident.endHour <= incident.endHour);
+  assert.equal((await T.call('yalahanka', 'POST', `/api/incidents/${id}/clear`)).status, 409, 'already cleared');
+  assert.equal((await T.call('north.dcp', 'GET', '/api/actions?state=all')).body.actions.find((x) => x.id === action.id).state, 'done', 'linked action closed');
+  for (const k of ['incident_extend', 'incident_confirm', 'incident_clear']) assert.ok((await audits(k)).length >= 1, k);
+  const sim = (await T.call('viewer', 'GET', '/api/incidents?date=2026-10-07')).body.incidents.find((i) => i.src === 'sim');
+  assert.equal((await T.call('admin', 'POST', `/api/incidents/${sim.id}/clear`)).status, 409, 'simulated incidents are read-only');
+  assert.equal((await T.call('admin', 'POST', '/api/incidents/nope/clear')).status, 404);
+});
+
 test('works: create, validate, patch, soft delete, audit; inactive hidden from the default list', async () => {
   const st = net.map.st[5].n, road = net.map.n[3], base = { name: 'Metro', road, stations: [st], from: '2026-10-07', to: '2026-10-20', hours: 'peak', cap: 0.6, kind: 'metro', agency: 'BMRCL' };
   const c = await T.call('commissioner', 'POST', '/api/works', base); assert.equal(c.status, 201);

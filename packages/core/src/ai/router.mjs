@@ -11,6 +11,8 @@ const CACHE_TTL = 24 * 3600000;
 const MIN_OUT = { t1: 300, t2: 800, t3: 1500 };
 const cutToSentence = (t) => { const i = Math.max(t.lastIndexOf('. '), t.lastIndexOf('.\n'), t.endsWith('.') ? t.length - 1 : -1); return i > 15 ? t.slice(0, i + 1) : t; };
 export const emptyUsage = (date) => ({ date, calls: 0, tokensIn: 0, tokensOut: 0, byTier: { t0: 0, t1: 0, t2: 0, t3: 0 }, byUser: {}, byKind: {}, cacheHits: 0, estCostUsd: 0, costNote: 'estimate: tokens x price table in settings' });
+/** A model answer that stops mid-sentence or is far too short to be what the prompt asked for (seen with thinking models). */
+export const incomplete = (kind, t) => { const x = String(t ?? '').trim(); return x.length < (kind === 'brief' ? 350 : kind === 'action_advice' ? 60 : 1) || (kind !== 'translate_kn' && !/[.!?।)”"']$/.test(x)); };
 const est = (s) => Math.ceil(String(s ?? '').length / 4);
 
 /** Map a request to a tier. Small action contexts are answered by templates without a model. */
@@ -48,19 +50,26 @@ export function createAiRouter({ store, clock, generate, env = process.env }) {
     if (kind === 'brief' && (u0.byKind.brief ?? 0) >= s.ai.briefPerDay) throw err('quota_exceeded', 'Daily brief limit reached');
     const key = sha256(kind === 'brief' ? `t3|brief|${scope}|${ctx.lang === 'kn' ? 'kn|' : ''}${istHourKey(now)}` : `${effTier}|${kind}|${stable(ctx)}`);
     const hit = await store.get('ai_cache', key);
-    if (hit && hit.expireAt > now) { await bump(now, (u) => { u.cacheHits++; }); return { text: hit.text, tier: effTier, cached: true, model: hit.model, generatedAt: hit.createdAt }; }
+    if (hit && hit.expireAt > now && !incomplete(kind, hit.text)) { await bump(now, (u) => { u.cacheHits++; }); return { text: hit.text, tier: effTier, cached: true, model: hit.model, generatedAt: hit.createdAt }; }
     const maxOutputTokens = Math.min(8192, Math.max(s.ai.maxOutputTokens[effTier], MIN_OUT[effTier] ?? 0) * (ctx.lang === 'kn' ? 4 : 1)), prompt = buildPrompt(kind, ctx); // Kannada needs several times more tokens per sentence
-    const ac = new AbortController(); let timer;
-    let out;
-    try {
-      out = await Promise.race([generate({ model, prompt, maxOutputTokens, signal: ac.signal }), new Promise((_, rej) => { timer = setTimeout(() => { ac.abort(); rej(new Error('timeout')); }, s.ai.timeoutMs[effTier]); })]);
-    } catch (e) {
-      if (kind === 'action_advice') { await bump(now, (u) => { u.byTier.t0++; }); return { text: adviceTemplate(ctx), tier: 't0', cached: false, fallback: e?.message === 'timeout' ? 'timeout' : 'error' }; }
-      throw err('unavailable', e?.message === 'timeout' ? 'AI request timed out' : 'AI service error');
-    } finally { clearTimeout(timer); }
-    const raw = typeof out === 'string' ? out : out?.text, truncated = !!out?.truncated;
-    let text = sanitiseOutput(raw, kind === 'brief' ? 3000 : 1800);
-    if (truncated) text = cutToSentence(text); // never show a sentence that stops halfway
+    let out, raw, truncated, text;
+    for (let attempt = 0; attempt < 2; attempt++) { // a cut-off or stub answer gets one retry with double the output budget
+      const ac = new AbortController(); let timer;
+      try {
+        out = await Promise.race([generate({ model, prompt, maxOutputTokens: Math.min(8192, maxOutputTokens * (attempt + 1)), signal: ac.signal }), new Promise((_, rej) => { timer = setTimeout(() => { ac.abort(); rej(new Error('timeout')); }, s.ai.timeoutMs[effTier]); })]);
+      } catch (e) {
+        if (kind === 'action_advice') { await bump(now, (u) => { u.byTier.t0++; }); return { text: adviceTemplate(ctx), tier: 't0', cached: false, fallback: e?.message === 'timeout' ? 'timeout' : 'error' }; }
+        throw err('unavailable', e?.message === 'timeout' ? 'AI request timed out' : 'AI service error');
+      } finally { clearTimeout(timer); }
+      raw = typeof out === 'string' ? out : out?.text; truncated = !!out?.truncated;
+      text = sanitiseOutput(raw, kind === 'brief' ? 3000 : 1800);
+      if (!truncated && !incomplete(kind, text)) break;
+    }
+    if (truncated || incomplete(kind, text)) {
+      if (kind === 'action_advice') { await bump(now, (u) => { u.byTier.t0++; }); return { text: adviceTemplate(ctx), tier: 't0', cached: false, fallback: 'incomplete' }; }
+      if (kind === 'brief') throw err('unavailable', 'The AI briefing came back incomplete. Press Refresh to try again.');
+      truncated = true; text = cutToSentence(text);
+    }
     if (!text) throw err('unavailable', 'AI returned no text');
     const tin = out?.tokensIn ?? est(prompt), tout = out?.tokensOut ?? est(raw), price = s.ai.prices[effTier] ?? { inPerM: 0, outPerM: 0 };
     const cost = (tin * price.inPerM + tout * price.outPerM) / 1e6;

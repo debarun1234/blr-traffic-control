@@ -5,6 +5,7 @@ import { shiftDate, istMinuteKey, clamp } from './util.mjs';
 import { roadName, stationName, stationRegion } from './map.mjs';
 import { simIncidentDocs, incidentActive, buildIncidentAction, clampCap, round2 } from './incidents.mjs';
 import { createAudit } from './audit.mjs';
+import { PAID } from './connectors/types.mjs';
 
 const r1 = (x) => Math.round(x * 10) / 10;
 export const BOOST_MIN = 0.5, BOOST_MAX = 2, MIN_FRESH_OBS = 3, MAX_CONG_ACTIONS = 20;
@@ -61,7 +62,12 @@ export async function runTick({ store, net, now, connectors, settings, idle = fa
   // ---- calibration ----
   let boost = 1, calibration = null, stale = false;
   if (mode !== 'sim') {
-    const staleMs = settings.feed.staleAfterMin * 60000;
+    // A probe reading is "fresh" for as long as the cadence it is collected at allows: the paid connector's interval
+    // (capped calls mean it runs less often than the tick) and the hourly night tick. Otherwise the feed would be
+    // flagged stale between two perfectly healthy collections.
+    const paid = (await store.list('connectors', { where: [['enabled', '==', true]] })).filter((c) => PAID.includes(c.type));
+    const night = h >= 23 || h < 6, cadenceMin = Math.max(2 * Math.max(0, ...paid.map((c) => c.intervalMin ?? 0)), night ? settings.feed.idleTickMin + settings.feed.tickMin : 0);
+    const staleMs = Math.max(settings.feed.staleAfterMin, cadenceMin) * 60000;
     const probes = (await store.list('probes', { where: [['enabled', '==', true]] }));
     const obs = await store.list('probe_obs', { where: [['at', '>=', now - staleMs]], orderBy: ['at', 'desc'], limit: 2000 });
     const latest = new Map(); for (const o of obs) if (o.at <= now + 60000 && !latest.has(o.probeId)) latest.set(o.probeId, o);

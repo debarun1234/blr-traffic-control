@@ -6,7 +6,7 @@ import { net, mk } from './helpers.mjs';
 const U = (role, email = `${role}@x.test`) => ({ email, role, active: true });
 function setup(over = {}) {
   const { store, clock } = mk(); const calls = [];
-  const generate = over.generate ?? (async () => ({ text: '```\nRoute via X.\n```', tokensIn: 1000, tokensOut: 200 }));
+  const generate = over.generate ?? (async () => ({ text: '```\nRoute via X. ' + 'Hold traffic at the upstream junction and clear the lane before the next peak builds. '.repeat(5) + '\n```', tokensIn: 1000, tokensOut: 200 }));
   const wrapped = async (o) => { calls.push(o); return generate(o); };
   return { store, clock, calls, ai: createAiRouter({ store, clock, generate: wrapped }) };
 }
@@ -31,7 +31,7 @@ test('model tiers: model from settings, token cap, sanitised output, usage with 
   const { ai, calls, store, clock } = setup();
   const req = { user: U('dcp'), kind: 'action_advice', context: { ...big, question: 'Which junction first?' } };
   const r1 = await ai.advise(req);
-  assert.deepEqual([r1.tier, r1.cached, r1.model, r1.text], ['t2', false, defaultSettings().ai.tiers.t2.model, 'Route via X.']);
+  assert.deepEqual([r1.tier, r1.cached, r1.model], ['t2', false, defaultSettings().ai.tiers.t2.model]); assert.match(r1.text, /^Route via X\. Hold traffic/);
   assert.equal(calls[0].maxOutputTokens, 800, 'floor: thinking tokens share the output budget'); assert.match(calls[0].prompt, /simulated/); assert.ok(!/@/.test(calls[0].prompt));
   const r2 = await ai.advise(req); assert.equal(r2.cached, true); assert.equal(calls.length, 1);
   const u = await store.get('ai_usage', istDay(clock.now()));
@@ -118,8 +118,20 @@ test('advice falls back to the template when the model fails; a cut-off answer i
   const r = await ai.advise({ user: U('dcp'), kind: 'action_advice', context: ctx });
   assert.deepEqual([r.tier, r.fallback], ['t0', 'error']); assert.match(r.text, /Divert via/);
   const t = await ai.advise({ user: U('dcp'), kind: 'action_advice', context: { ...ctx, question: 'again' } });
-  assert.equal(t.tier, 't2'); assert.equal(t.text, 'Send a unit to Hosur Road now.');
-  assert.equal((await store.list('ai_cache')).length, 0, 'truncated output is not cached');
+  assert.deepEqual([t.tier, t.fallback], ['t0', 'incomplete'], 'a cut-off answer is retried once, then replaced by the template');
+  assert.equal(n, 3, 'one failed call, then two attempts'); assert.equal((await store.list('ai_cache')).length, 0, 'incomplete output is not cached');
+});
+
+test('brief: a stub or half sentence is never shown or cached, and a bad cached copy is ignored', async () => {
+  const half = setup({ generate: async () => ({ text: 'The overall network is' }) });
+  await assert.rejects(half.ai.brief({ user: U('commissioner'), scope: 'city', context: { scope: 'city' } }), (e) => e.code === 'unavailable' && /incomplete/.test(e.message));
+  assert.equal(half.calls.length, 2, 'retried once with a larger budget'); assert.ok(half.calls[1].maxOutputTokens > half.calls[0].maxOutputTokens);
+  assert.equal((await half.store.list('ai_cache')).length, 0);
+  const good = 'Average speed is 22 km/h with 18% of roads congested. '.repeat(8);
+  let bad = true; const { ai, store } = setup({ generate: async () => ({ text: bad ? 'The overall network is' : good }) });
+  await store.set('ai_cache', 'k', { key: 'k', text: 'old stub' });
+  bad = false; const r = await ai.brief({ user: U('commissioner'), scope: 'city', context: { scope: 'city' } });
+  assert.equal(r.cached, false); assert.match(r.text, /Average speed/);
 });
 
 test('thinking budget is kept small so it cannot eat the visible answer', async () => {

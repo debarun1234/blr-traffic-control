@@ -67,7 +67,7 @@ export const scopeStations = () => S.MD.ST.filter((s) => inScope(s.r));
 export function normIncident(i) {
   const MD = S.MD;
   const st = typeof i.station === 'number' ? i.station : MD.stIdx.get(i.station) ?? (i.edge >= 0 ? MD.net.stn[i.edge] : -1);
-  return { id: String(i.id), type: i.type, e: i.edge, stn: st, sh: i.startHour, eh: i.endHour, cap: i.cap ?? 0.5, src: i.src ?? 'sim', by: i.by, note: i.note, date: i.date };
+  return { id: String(i.id), type: i.type, e: i.edge, stn: st, sh: i.startHour, eh: i.endHour, cap: i.cap ?? 0.5, src: i.src ?? 'sim', by: i.by, note: i.note, date: i.date, confirmed: !!i.confirmedAt, cleared: !!i.clearedAt };
 }
 export function normAction(a) {
   const MD = S.MD, stn = MD.stIdx.get(a.station) ?? (a.edge >= 0 ? MD.net.stn[a.edge] : -1);

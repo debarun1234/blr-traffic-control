@@ -190,6 +190,13 @@ test('report incident: allowed in own station, hidden outside jurisdiction', asy
     await page.waitForSelector('.toast.good');
     await page.waitForFunction(() => window.__blr.S.incidents.some((i) => i.src === 'user'));
     assert.equal((await mock.info()).actions.length, n0 + 1);
+    // lifecycle: the reported incident can be extended, confirmed and cleared from the road card
+    await setSel(page, { t: 'edge', e: edgeIn.Yalahanka });
+    const eh0 = await page.evaluate(() => window.__blr.S.incidents.find((i) => i.src === 'user').eh);
+    await page.getByTestId('inc-extend').click(); await page.waitForFunction((v) => window.__blr.S.incidents.find((i) => i.src === 'user').eh > v + 0.4, eh0);
+    await page.getByTestId('inc-confirm').click(); await page.waitForFunction(() => window.__blr.S.incidents.find((i) => i.src === 'user').confirmed);
+    await page.getByTestId('inc-clear').click(); await page.waitForFunction(() => window.__blr.S.incidents.find((i) => i.src === 'user').cleared);
+    await page.getByTestId('inc-clear').waitFor({ state: 'detached' }); // no controls once cleared
   });
 });
 

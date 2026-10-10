@@ -50,3 +50,7 @@ After an interactive Google sign-in both sites show a welcome screen before the 
 - The AI probe (one tiny tier-t1 call) runs at most **once per IST day for the whole system**; the result is stored in `checks/ai-<day>` and shared by everyone who signs in that day. A failed probe is retried after 30 minutes. If AI is off, over budget or unconfigured, no model call is made.
 - Administrators also trigger the daily full system-check run (`checks/latest`) if it has not run yet today.
 - A page refresh with a live session goes straight to the dashboard. In dev mode the welcome screen only appears with `?welcome=1` (or `welcome: true` in config.js).
+
+## Feed shows "stale" although ticks are running
+
+In `live` or `blend` mode the feed is flagged stale when fewer than 3 probe readings are fresh. A reading counts as fresh for `max(staleAfterMin, 2 x the paid connector's intervalMin, idleTickMin + tickMin at 23:00-06:00 IST)`. If it still shows stale: Admin > Probes (are readings arriving?), Connectors (daily cap reached? circuit open?), then raise the connector interval or `staleAfterMin`. Note: 4 probes at a 250/day cap allow about one collection every 23 minutes.

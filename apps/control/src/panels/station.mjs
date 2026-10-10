@@ -2,7 +2,7 @@
 import { h, toast } from '/vendor/ui.mjs';
 import { INCIDENT_TYPES } from '/vendor/model.mjs';
 import { S, on, can, canActOn, setSel, setTab, scopeStations, fatal2025, nonfatal2025, hasCrash, crashHist, incidentsAt, curHour, myStation, openActions } from '../state.mjs';
-import { reportIncident } from '../feed.mjs';
+import { reportIncident, incidentOp } from '../feed.mjs';
 import { topRoads, colourClass, CLASS_NAMES } from '../analytics.mjs';
 import { t, regionName, typeName } from '../i18n.mjs';
 import { ic } from '../icons.mjs';
@@ -41,6 +41,10 @@ function buildReportForm(e, done) {
   return form;
 }
 
+async function incAct(ev, id, op, body, okKey) {
+  const b = ev.currentTarget; b.disabled = true;
+  try { await incidentOp(id, op, body); toast(t(okKey), 'good'); } catch (err) { toast(errText(err), 'bad'); b.disabled = false; }
+}
 export function createStation(map) {
   const root = h('div.cc-body');
   function update() {
@@ -57,7 +61,7 @@ export function createStation(map) {
     kids.push(h('div.cc-sec.cc-head', h('div', h('h2', { 'data-testid': 'stn-name' }, s.n), h('div.row', { style: { marginTop: '4px' } }, h('span.badge', regionName(s.r)), s.sub && s.sub !== s.r ? h('span.badge', s.sub) : null, myStation() === si ? h('span.badge.accent', t('badge.mine')) : null)),
       h('button.btn.sm.ghost', { onclick: () => setSel(null), 'aria-label': t('stn.clear') }, ic('x', 16))));
     if (e >= 0) {
-      const inc = incidentsAt(curHour()).find((x) => x.e === e), mayReport = can('incident.report') && canActOn(si) && S.replay == null;
+      const onEdge = incidentsAt(curHour()).filter((x) => x.e === e), inc = onEdge[0], own = onEdge.find((x) => x.src !== 'sim' && !x.cleared), mayReport = can('incident.report') && canActOn(si) && S.replay == null;
       if (repEdge !== e) { repEdge = null; repForm = null; }
       const rd = net.name[e];
       kids.push(sectionTitle(t('stn.road')), h('div.card.tight.cc-road', { 'data-testid': 'road-card' },
@@ -65,6 +69,10 @@ export function createStation(map) {
         h('div.row.sm.mono.muted', res ? [h('span', `${Math.round(res.spd[e])} km/h`), h('span', `v/c ${res.vc[e].toFixed(2)}`)] : h('span.skel', { style: { width: '120px' } }), h('span', `${Math.round(net.len[e])} m`), inc ? h('span.badge.bad', typeName(inc.type)) : null),
         h('div.row', { style: { marginTop: '8px' } },
           h('button.btn.sm', { 'data-testid': 'plan-here', onclick: () => { setPlannerTarget(net.stn[e], rd); setTab('planner'); } }, ic('route', 14), t('stn.plan')),
+          own && mayReport ? [
+            h('button.btn.sm', { 'data-testid': 'inc-extend', onclick: (ev) => incAct(ev, own.id, 'extend', { minutes: 30 }, 'inc.extended') }, t('inc.extend')),
+            own.confirmed ? null : h('button.btn.sm', { 'data-testid': 'inc-confirm', onclick: (ev) => incAct(ev, own.id, 'confirm', undefined, 'own.confirmedOk') }, t('inc.confirm')),
+            h('button.btn.sm', { 'data-testid': 'inc-clear', onclick: (ev) => incAct(ev, own.id, 'clear', undefined, 'inc.clearedOk') }, t('inc.clear'))] : null,
           mayReport ? h('button.btn.sm', { 'data-testid': 'rep-open', 'aria-expanded': String(repEdge === e), onclick: () => { if (repEdge === e) { repEdge = null; repForm = null; } else { repEdge = e; repForm = buildReportForm(e, () => { repEdge = null; repForm = null; update(); }); } update(); } }, ic('alert', 14), t('rep.open')) : null),
         repEdge === e && repForm ? repForm : null));
     }

@@ -122,6 +122,7 @@ const D = {
   'stn.noHist': ['No 2018–2024 history for this station (renamed or new).', 'ಈ ಠಾಣೆಗೆ 2018–2024 ಇತಿಹಾಸ ಇಲ್ಲ (ಹೆಸರು ಬದಲಾವಣೆ ಅಥವಾ ಹೊಸದು).'],
   'stn.zoom': ['Zoom to station', 'ಠಾಣೆಗೆ ಜೂಮ್'], 'stn.outside': ['Outside your jurisdiction: view only.', 'ನಿಮ್ಮ ವ್ಯಾಪ್ತಿಯ ಹೊರಗೆ: ವೀಕ್ಷಣೆ ಮಾತ್ರ.'], 'stn.clear': ['Clear selection', 'ಆಯ್ಕೆ ತೆರವುಗೊಳಿಸಿ'],
   'cls.arterial': ['Arterial', 'ಮುಖ್ಯ ರಸ್ತೆ'], 'cls.subArterial': ['Sub-arterial', 'ಉಪ-ಮುಖ್ಯ ರಸ್ತೆ'], 'cls.collector': ['Collector', 'ಸಂಪರ್ಕ ರಸ್ತೆ'],
+  'inc.extend': ['Extend 30 min', '30 ನಿಮಿಷ ವಿಸ್ತರಿಸಿ'], 'inc.confirm': ['Confirm', 'ದೃಢೀಕರಿಸಿ'], 'inc.clear': ['Clear', 'ತೆರವುಗೊಳಿಸಿ'], 'inc.extended': ['Incident extended by 30 min', 'ಘಟನೆಯನ್ನು 30 ನಿಮಿಷ ವಿಸ್ತರಿಸಲಾಗಿದೆ'], 'inc.confirmedOk': ['Incident confirmed', 'ಘಟನೆ ದೃಢೀಕರಿಸಲಾಗಿದೆ'], 'inc.clearedOk': ['Incident cleared', 'ಘಟನೆ ತೆರವುಗೊಂಡಿದೆ'],
   'rep.open': ['Report incident', 'ಘಟನೆ ವರದಿ ಮಾಡಿ'], 'rep.type': ['Type', 'ಪ್ರಕಾರ'], 'rep.dur': ['Duration (min)', 'ಅವಧಿ (ನಿಮಿಷ)'], 'rep.note': ['Note (optional)', 'ಟಿಪ್ಪಣಿ (ಐಚ್ಛಿಕ)'], 'rep.submit': ['Report', 'ವರದಿ'], 'rep.ok': ['Incident reported.', 'ಘಟನೆ ವರದಿಯಾಗಿದೆ.'],
   'inc.type.vehicle-breakdown': ['Vehicle breakdown', 'ವಾಹನ ಕೆಟ್ಟುಹೋಗಿದೆ'], 'inc.type.accident': ['Accident', 'ಅಪಘಾತ'], 'inc.type.waterlogging': ['Waterlogging', 'ನೀರು ನಿಂತಿದೆ'],
   'inc.type.procession': ['Procession', 'ಮೆರವಣಿಗೆ'], 'inc.type.signal-fault': ['Signal fault', 'ಸಿಗ್ನಲ್ ದೋಷ'], 'inc.type.tree-fall': ['Tree fall', 'ಮರ ಬಿದ್ದಿದೆ'],

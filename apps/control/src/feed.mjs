@@ -115,6 +115,11 @@ export async function reportIncident({ edge, type, durationMin, note }) {
   await Promise.allSettled([refreshIncidents(), refreshActions(), refreshState()]);
   return r.data;
 }
+export async function incidentOp(id, op, body) {
+  const r = await S.api.post(`/incidents/${encodeURIComponent(id)}/${op}`, body);
+  await Promise.allSettled([refreshIncidents(), refreshActions(), refreshState()]);
+  return r.data;
+}
 export async function createWorks(w) { const r = await S.api.post('/works', w); await refreshWorks(); return r.data; }
 export async function patchWorks(id, w) { const r = await S.api.patch(`/works/${encodeURIComponent(id)}`, w); await refreshWorks(); return r.data; }
 export async function deleteWorks(id) {

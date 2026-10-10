@@ -65,6 +65,7 @@ Everything in `/state` is **modelled**; `mode:"live"` means the model is calibra
 * `POST /api/actions/:id/transition` `{to:'ack'|'prog'|'done', note?}` → updated action. Requires `action.transition` **and** the action's station ∈ caller jurisdiction, else 403. Illegal transition → 409. Writes audit.
 * `GET /api/incidents?date=` `*` → `{incidents:[…]}` (sim + user + connector for the date).
 * `POST /api/incidents` `{edge:number,type:string,durationMin:10..240,note?}` `incident.report` & station of `edge` ∈ jurisdiction → incident (src `user`) and a new action. Audit.
+* `POST /api/incidents/:id/extend` `{minutes:10..240}`, `/confirm`, `/clear` (no body): `incident.report` & the incident's station ∈ jurisdiction. Stored incidents only (simulated ones return 409). `clear` sets the end to now and marks the linked action done; `extend` is capped at 12 h from the start; a cleared incident returns 409. Audit `incident_extend`, `incident_confirm`, `incident_clear`.
 * `GET /api/works` `*` → `{works:[…]}`; `POST /api/works` / `PATCH /api/works/:id` / `DELETE /api/works/:id` require `works.write`; `DELETE` is a soft delete (`active:false`). Audit.
 * `POST /api/ai/advise` `ai.advise` `{kind:'action_advice'|'translate_kn'|'works_clash',context:object}` → `{text,tier:'t0'|'t1'|'t2',cached:boolean,model?}`
 * `POST /api/ai/brief` `ai.brief` `{scope:'city'|'Urban'|region}` → `{text,tier:'t3',cached,generatedAt}` (cached per scope+hour; at most `brief` quota/day).

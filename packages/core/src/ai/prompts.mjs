@@ -38,7 +38,7 @@ SITUATION (JSON): ${J(c)}`;
 2. Trouble spots: the worst roads and the station each is in, with their load figures, and any active incident or road works that explain them. Name the regions that are worst and best by speed.
 3. Next hour: what needs attention, naming the specific road, station or open escalated action, and one concrete step each (who does what, where). Mention how long escalated actions have been waiting.
 4. Outlook: one sentence on the next demand peak using the 'peak' field.
-Use only facts in the data. If a list is empty, say that nothing is active instead of inventing something. Do not give generic advice that names no place. ${RULES}
+Start directly with paragraph 1: no greeting, no title and no date line. Use only facts in the data. If a list is empty, say that nothing is active instead of inventing something. Do not give generic advice that names no place. ${RULES}
 DATA (JSON): ${J(c)}`;
     default: throw new Error('unknown kind');
   }

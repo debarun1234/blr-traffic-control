@@ -137,6 +137,17 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       const inc = mkInc(`u-${++S.seq}`, b.type, e, S.hour, S.hour + b.durationMin / 60, 'user', u.email); inc.note = b.note; S.incidents.push(inc); syncActions();
       return json(res, 201, { ...inc, action: S.actions.get(actionIdFor(inc.id)) });
     }
+    const im = path.match(/^\/incidents\/([^/]+)\/(clear|extend|confirm)$/);
+    if (m === 'POST' && im) {
+      const inc = S.incidents.find((x) => x.id === decodeURIComponent(im[1])); if (!inc) return err(res, 'not_found', 404, 'Incident not found');
+      if (inc.src === 'sim') return err(res, 'conflict', 409, 'Simulated incidents come from the model and cannot be changed');
+      if (!hasPermission(u, 'incident.report') || !jurisdiction(u, stations).has(inc.station)) return err(res, 'forbidden', 403, 'outside your jurisdiction');
+      const b = await body(req);
+      if (im[2] === 'clear') { inc.endHour = S.hour; inc.clearedAt = S.now; const act = S.actions.get(actionIdFor(inc.id)); if (act) act.state = 'done'; }
+      if (im[2] === 'extend') inc.endHour += (b.minutes ?? 30) / 60;
+      if (im[2] === 'confirm') inc.confirmedAt = S.now;
+      return json(res, 200, { incident: inc });
+    }
     if (m === 'GET' && path === '/works') return json(res, 200, { works: S.works });
     if (path === '/works' || /^\/works\//.test(path)) {
       if (!hasPermission(u, 'works.write')) { await body(req); return err(res, 'forbidden', 403, 'works.write required'); }

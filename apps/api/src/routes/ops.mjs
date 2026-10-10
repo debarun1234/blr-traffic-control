@@ -1,5 +1,5 @@
 import { decodeState } from '@blr/model';
-import { PERMISSIONS, REGIONS, hasPermission, canOnStation, canTransition, jurisdiction, lockedRegion, istParts } from '@blr/shared';
+import { PERMISSIONS, REGIONS, hasPermission, canOnStation, canTransition, jurisdiction, lockedRegion, istParts, actionIdFor } from '@blr/shared';
 import { createActivityTracker, runTick, err, rid, validDate, validateWork, simIncidentDocs, buildIncidentAction, capForType, stationName, roadName, actionContext, briefContext, round2 } from '@blr/core';
 import { bad, body, only, str, int, bool, limitParam } from '../http.mjs';
 
@@ -84,6 +84,44 @@ export function registerOps(api, ctx) {
     });
     await aud(req, 'action_transition', a.id, `${a.state} -> ${to}: ${a.title}`, { from: a.state, to, note });
     return out;
+  });
+
+  // Incident lifecycle: extend, clear, confirm. Only stored incidents can change; simulated ones are model output.
+  async function ownIncident(req, permission = 'incident.report') {
+    need(req.user, permission);
+    const inc = await store.get('incidents', req.params.id);
+    if (!inc) { if (simIncidentDocs(net, istParts(clock.now()).date).some((i) => i.id === req.params.id)) throw err('conflict', 'Simulated incidents come from the model and cannot be changed'); throw err('not_found', 'Incident not found'); }
+    if (!canOnStation(req.user, permission, inc.station, stations)) throw err('forbidden', 'Incident is outside your jurisdiction');
+    if (inc.clearedAt) throw err('conflict', 'Incident is already cleared');
+    return inc;
+  }
+  api.post('/incidents/:id/clear', async (req) => {
+    const inc = await ownIncident(req), now = clock.now(), { date, h } = istParts(now);
+    const end = round2(inc.date === date ? h : h + 24); // incidents started yesterday run on a 24+ hour clock
+    const out = { ...inc, endHour: Math.min(inc.endHour, Math.max(inc.startHour, end)), clearedAt: now, clearedBy: req.user.email };
+    const ops = [{ op: 'set', col: 'incidents', id: inc.id, data: out }];
+    const act = await store.get('actions', actionIdFor(inc.id));
+    if (act && act.state !== 'done') ops.push({ op: 'set', col: 'actions', id: act.id, data: { ...act, state: 'done', doneAt: now, doneBy: req.user.email, doneNote: 'Incident cleared' } });
+    await store.batch(ops);
+    await aud(req, 'incident_clear', inc.id, `${inc.type} cleared on ${roadName(net, inc.edge) ?? 'edge ' + inc.edge}`, { edge: inc.edge });
+    return { incident: out };
+  });
+  api.post('/incidents/:id/extend', async (req) => {
+    const inc = await ownIncident(req), b = only(body(req), ['minutes']), min = int(b.minutes, 'minutes', 10, 240), now = clock.now(), { h } = istParts(now);
+    const nowHour = inc.date === istParts(now).date ? h : h + 24;
+    if (inc.endHour < nowHour) throw err('conflict', 'Incident has already ended; report a new one');
+    const out = { ...inc, endHour: round2(Math.min(inc.startHour + 12, inc.endHour + min / 60)), extendedAt: now, extendedBy: req.user.email };
+    await store.set('incidents', inc.id, out);
+    await aud(req, 'incident_extend', inc.id, `${inc.type} extended by ${min} min on ${roadName(net, inc.edge) ?? 'edge ' + inc.edge}`, { edge: inc.edge, minutes: min });
+    return { incident: out };
+  });
+  api.post('/incidents/:id/confirm', async (req) => {
+    const inc = await ownIncident(req), now = clock.now();
+    if (inc.confirmedAt) return { incident: inc };
+    const out = { ...inc, confirmedAt: now, confirmedBy: req.user.email };
+    await store.set('incidents', inc.id, out);
+    await aud(req, 'incident_confirm', inc.id, `${inc.type} confirmed on ${roadName(net, inc.edge) ?? 'edge ' + inc.edge}`, { edge: inc.edge });
+    return { incident: out };
   });
 
   api.get('/incidents', async (req) => {

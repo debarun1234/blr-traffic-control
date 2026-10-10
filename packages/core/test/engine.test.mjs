@@ -88,6 +88,22 @@ test('calibration: live mode with a fake probe feed bounds the boost; fewer than
   assert.ok(s.boost >= 0.5 && s.boost <= 2, `boost ${s.boost}`); assert.equal(ok.boost, s.boost);
 });
 
+test('calibration freshness follows the probe cadence: 40-min-old readings are fresh with a 30-min paid connector, stale without one', async () => {
+  const store = createMemoryStore();
+  await store.set('settings', 'app', { ...defaultSettings(), feed: { mode: 'blend', tickMin: 10, staleAfterMin: 25, idleAfterMin: 120, idleTickMin: 60 } });
+  const hubs = net.map.hubs;
+  for (const [i, [a, b]] of [[0, 1], [0, 2], [1, 2], [2, 3]].entries()) {
+    await store.set('probes', `p${i}`, { id: `p${i}`, name: `P${i}`, fromNode: hubs[a].node, toNode: hubs[b].node, fromLabel: 'a', toLabel: 'b', freeMin: 20, enabled: true, weight: 1 });
+    await store.set('probe_obs', `o${i}`, { id: `o${i}`, probeId: `p${i}`, at: T0 - 40 * MIN, minutes: 40, source: 'test' });
+  }
+  await runTick({ store, net, now: T0 });
+  assert.equal((await store.get('state', 'current')).stale, true, 'no paid connector: 25 min window, so stale');
+  await store.set('connectors', 'gr', { id: 'gr', type: 'google_routes', enabled: true, intervalMin: 30, shadow: true });
+  await runTick({ store, net, now: T0 });
+  const s = await store.get('state', 'current');
+  assert.equal(s.stale, false); assert.equal(s.calibration.probes, 4);
+});
+
 test('settings default merge feeds the tick', async () => {
   const s = await getSettings(createMemoryStore());
   assert.equal(s.feed.tickMin, 10); assert.equal(s.workflow.escalateAfterMin, 15);
