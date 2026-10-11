@@ -11,6 +11,7 @@ test('tick writes state, history and actions; running twice in the same minute d
   const { store } = shared;
   const r1 = await runTick({ store, net, now: T0 });
   const s = await store.get('state', 'current');
+  assert.equal(s.calibration.skipped, true); assert.match(s.calibration.reason, /Simulation/);
   assert.equal(s.mode, 'sim'); assert.equal(s.date, '2026-10-07'); assert.equal(s.net.edges, net.ne); assert.equal(s.stale, false);
   const d = decodeState({ vc: s.vc, spd: s.spd, n: net.ne });
   assert.equal(d.vc.length, net.ne); assert.ok(d.spd.some((x) => x > 0));

@@ -81,7 +81,7 @@ export async function runTick({ store, net, now, connectors, settings, idle = fa
       boost = clamp(c.boost, BOOST_MIN, BOOST_MAX);
       calibration = { rmsePct: r1(c.rmsePct), probes: items.length, at: now };
     }
-  }
+  } else calibration = { skipped: true, reason: 'Feed mode is Simulation, which never uses probe readings. Switch the feed mode to Live or Blend (Settings) and calibration runs on every tick.', rmsePct: null, probes: 0, at: now };
 
   // ---- assignment + summary ----
   const res = assign(net, { t: h, capMul, boost, iters: 6 });

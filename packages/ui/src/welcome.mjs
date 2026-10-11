@@ -35,7 +35,7 @@ const COPY = {
       'row.api': 'Connection', 'row.data': 'Traffic data', 'row.ai': 'AI assistant', 'row.sys': 'System health', 'row.con': 'Connectors',
       api_ok: 'Reached the service in {ms} ms', api_fail: 'Cannot reach the service. The control room will show its offline screen.',
       data_ok: 'Updated {age} min ago · {mode}', data_stale: 'Data is {age} min old (limit {limit}). Figures may lag.', data_none: 'No data has been computed yet.',
-      mode_sim: 'modelled', mode_live: 'live feed, modelled for roads without sensors', mode_replay: 'replay',
+      mode_sim: 'modelled', mode_live: 'measured on probed corridors, estimated elsewhere', mode_replay: 'replay',
       ai_ok: 'Ready ({model}) · {when}', ai_off: 'Switched off · built-in advice still works', ai_degraded: 'Not answering right now · built-in advice still works', ai_capped: 'Today’s AI budget is used · built-in advice still works', ai_unconfigured: 'Not configured · built-in advice still works',
       when_cached: 'checked earlier today', when_now: 'checked just now',
       sys_ok: 'All {n} checks passed', sys_some: '{ok} passed, {warn} warning(s), {fail} failed', con_ok: '{enabled} enabled, none failing', con_bad: '{failing} of {total} failing', con_none: 'None set up yet',

@@ -62,7 +62,7 @@ export function createOverview(map) {
     // data quality
     const L = S.live, cal = L?.calibration;
     fill(dq, h('span.dot' + (L && !L.stale && S.conn.ok ? '.good' : '.warn')),
-      h('span', L ? [t(`mode.${L.mode}.long`), ' ', cal && cal.rmsePct != null ? t('dq.cal', { probes: cal.probes ?? '–', rmse: cal.rmsePct.toFixed(1) }) : t('dq.uncal'), ' ', L.updatedAt ? t('dq.updated', { ago: agoText(L.updatedAt) }) : ''] : t('loading')));
+      h('span', L ? [t(`mode.${L.mode}.long`, { probes: cal?.probes ?? 0 }), ' ', cal && cal.rmsePct != null ? t('dq.cal', { probes: cal.probes ?? '–', rmse: cal.rmsePct.toFixed(1) }) : t('dq.uncal'), ' ', L.updatedAt ? t('dq.updated', { ago: agoText(L.updatedAt) }) : ''] : t('loading')));
     // timeline
     slider.value = String(Math.round(h0 * 4)); slider.setAttribute('aria-valuetext', `${fmtH(h0)} IST`);
     back.hidden = !rep; tlCard.querySelector('[data-testid=replay-note]').textContent = rep ? t('replay.note') : t('tl.live');

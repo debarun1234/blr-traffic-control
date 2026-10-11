@@ -24,8 +24,8 @@ export function statusPill() {
   if (!L) return S.conn.ok ? { kind: 'info', text: t('pill.connecting'), live: true } : { kind: 'bad', text: t('pill.offline'), title: t('banner.offline') };
   const since = fmtH(istParts(L.updatedAt).h);
   if (!S.conn.ok || L.stale) return { kind: 'bad', text: t('pill.stale', { time: since }), title: !S.conn.ok ? t('banner.offlineNoData') : t('banner.stale', { time: since }), live: false };
-  if (L.mode === 'live') return { kind: 'good', text: t('pill.live'), title: t('mode.live.long'), live: true };
-  if (L.mode === 'blend') return { kind: 'good', text: t('pill.blend'), title: t('mode.blend.long'), live: true };
+  if (L.mode === 'live') return { kind: 'good', text: t('pill.live'), title: t('mode.live.long', { probes: L.calibration?.probes ?? 0 }), live: true };
+  if (L.mode === 'blend') return { kind: 'good', text: t('pill.blend'), title: t('mode.blend.long', { probes: L.calibration?.probes ?? 0 }), live: true };
   return { kind: 'info', text: t('pill.sim'), title: t('mode.sim.long'), live: true };
 }
 
