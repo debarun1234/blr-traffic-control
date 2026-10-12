@@ -52,6 +52,8 @@ The map includes the outer area as nine taluk units: Nelamangala, Doddaballapura
 
 With a Google basemap selected, Map > "Google live traffic" additionally draws Google's own Traffic layer over the visible area. That is Google's data on Google's map, which keeps within the Maps terms; it is not mixed into the model. Google data cannot be bulk-extracted into the road graph under its terms.
 
+**Colour roads by** (Layers > Live traffic): *Speed vs free-flow* (default) colours each road by current speed as a share of its free-flow speed (free-flowing >=75%, slowing 50-75%, slow 25-50%, stop-and-go <25%), the same idea as Google's colours, so the two maps can be compared. *Load ÷ capacity* is the planning view. Each has its own legend with the share of road-km per band for the scope in view, its own "slow / congested" KPI, and the Overview chart follows it (average speed, or % of road-km congested). Over a Google basemap, Google's live layer is the measured one and is on by default; our model's slow roads are an optional "Model estimate overlay", off by default. Everything we colour is still modelled except the probed corridors.
+
 Confirm that the Commissionerate's jurisdiction covers these taluks before operational use; as far as I know Bengaluru Rural has its own district police. Add taluks or a station list by extending `tools/mapdata/rural.py` (see [data-sources.md](data-sources.md)).
 
 ## Map views and layers (admin-controlled)

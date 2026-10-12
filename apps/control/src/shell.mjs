@@ -1,7 +1,7 @@
 // Application shell: top bar, scope control, map pane + inspector with tabs, banners, menus, shortcuts.
 import { h, fmtH, setTheme, toast } from '/vendor/ui.mjs';
 import { istParts } from '/vendor/shared.mjs';
-import { S, on, emit, collectSubs, setScope, setTab, setLang, setReplay, setSel, can, lockedRegion, isAdmin, curHour, openActions } from './state.mjs';
+import { S, on, emit, collectSubs, setFold, setScope, setTab, setLang, setReplay, setSel, can, lockedRegion, isAdmin, curHour, openActions } from './state.mjs';
 import { pollNow, aiAvailable } from './feed.mjs';
 import { createMapPane } from './map/index.mjs';
 import { createOverview } from './panels/overview.mjs';
@@ -94,8 +94,15 @@ export function mountApp(root, { onSignOut }) {
       if (e.key === 'ArrowRight') n = TABS[(i + 1) % TABS.length]; else if (e.key === 'ArrowLeft') n = TABS[(i + TABS.length - 1) % TABS.length]; else if (e.key === 'Home') n = TABS[0]; else if (e.key === 'End') n = TABS[TABS.length - 1];
       if (n) { e.preventDefault(); setTab(n); tabEls[n].focus(); }
     }
-    const insp = h('aside.cc-insp', { 'aria-label': t('insp.aria') }, tabList, body);
-    const grid = h('div.cc-grid', map.pane, insp);
+    const insp = h('aside.cc-insp', { id: 'cc-insp', 'aria-label': t('insp.aria') }, tabList, body);
+    const fold = h('button.cc-fold', { 'data-testid': 'fold', 'aria-controls': 'cc-insp', onclick: () => setFold(!S.fold) }, ic('chevronRight', 16), h('span.cc-foldl'));
+    const grid = h('div.cc-grid', map.pane, insp, fold);
+    function applyFold() {
+      grid.classList.toggle('fold', S.fold); insp.hidden = S.fold;
+      fold.setAttribute('aria-expanded', String(!S.fold)); fold.setAttribute('aria-label', t(S.fold ? 'fold.show' : 'fold.hide')); fold.title = t(S.fold ? 'fold.show' : 'fold.hide');
+      fold.querySelector('.cc-foldl').textContent = S.fold ? t('fold.showShort') : '';
+    }
+    applyFold(); on(['fold', 'lang'], applyFold);
     const main = h('main.main.cc-main', banners, grid);
     fill(root, h('div.shell.no-side.cc', top, main));
 

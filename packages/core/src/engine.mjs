@@ -104,7 +104,14 @@ export async function runTick({ store, net, now, connectors, settings, idle = fa
   await store.set('state', 'current', state);
   await store.set('state', 'meta', { id: 'meta', tickMs, lastTickAt: now, idle, mode, activeIncidents: activeInc.length, activeWorks: works.length, calibrated: !!calibration && !calibration.skipped });
   const key = istMinuteKey(now);
-  await store.set('state_hist', key, { id: key, t: now, mode, summary: { speed: state.city.speed, congPct: state.city.congPct, incidents: activeInc.length, works: works.length, boost: state.boost }, expireAt: now + 72 * 3600000 });
+  // Per-scope speeds for the "actual vs usual" chart: city, urban, each region and each station (vehicle-km weighted).
+  const wavg = (idx) => { let vk = 0, sp = 0; for (const i of idx) { const q = sum.per[i]; if (q.speed != null && q.vk > 0) { vk += q.vk; sp += q.vk * q.speed; } } return vk ? r1(sp / vk) : null; };
+  const sts = net.map.st, allSt = sts.map((_, i) => i), regs = {};
+  for (const r of new Set(sts.map((x) => x.r))) regs[r] = wavg(allSt.filter((i) => sts[i].r === r));
+  const cavg = (idx) => { let km = 0, c = 0; for (const i of idx) { const q = sum.per[i]; km += q.km; c += (q.cong * q.km) / 100; } return km ? r1((100 * c) / km) : null; };
+  const cg = { city: cavg(allSt), urban: cavg(allSt.filter((i) => sts[i].r !== 'Rural')), reg: Object.fromEntries([...new Set(sts.map((x) => x.r))].map((r) => [r, cavg(allSt.filter((i) => sts[i].r === r))])), st: sum.per.map((q) => r1(q.cong)) };
+  const hs = { city: wavg(allSt), urban: wavg(allSt.filter((i) => sts[i].r !== 'Rural')), reg: regs, st: sum.per.map((q) => (q.speed == null ? null : r1(q.speed))) };
+  await store.set('state_hist', key, { id: key, t: now, mode, hs: { ...hs, cg }, summary: { speed: state.city.speed, congPct: state.city.congPct, incidents: activeInc.length, works: works.length, boost: state.boost }, expireAt: now + 72 * 3600000 });
   return { ok: true, t: now, mode, idle, stale, boost: state.boost, tickMs, calibration, connectors: connectorRuns, ...act };
 }
 

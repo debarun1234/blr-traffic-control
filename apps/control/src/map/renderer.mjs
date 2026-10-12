@@ -1,6 +1,6 @@
 // Canvas map renderer: zoom/pan LOD, region dimming, congestion colouring, shading layers, markers.
 import { S, lockedRegion, myStation, curHour, incidentsAt, today, fatal2025, hasCrash, curView, layerOn, mapCfg } from '../state.mjs';
-import { REGIONS, REGION_INDEX, URBAN, colourClass, speedBucket, worksEdges, worksActiveAt } from '../analytics.mjs';
+import { REGIONS, REGION_INDEX, URBAN, colourClass, speedBand, SPEED_CLS, speedBucket, worksEdges, worksActiveAt } from '../analytics.mjs';
 import { UNIT_M } from './data.mjs';
 import { t } from '../i18n.mjs';
 
@@ -75,7 +75,7 @@ export function createRenderer(canvas) {
   R.draw = () => {
     R.dirty = false;
     const C = colours(), k = R.view.k, W = R.W, H = R.H, vc = S.result?.vc, view = curView(), cfg = mapCfg(), hasFeed = !!vc && view === 'traffic';
-    const mini = W < 560, gm = !!R.baseOn?.(); // gm: Google basemap on, so draw only the essentials over it
+    const spdMetric = S.layers.metric === 'speed', mini = W < 560, gm = !!R.baseOn?.(); // gm: Google basemap on, so draw only the essentials over it
     ctx.setTransform(R.DPR, 0, 0, R.DPR, 0, 0);
     if (R.baseOn?.()) ctx.clearRect(0, 0, W, H); // Google basemap shows through
     else { ctx.fillStyle = C['--map']; ctx.fillRect(0, 0, W, H); ctx.beginPath(); ringPath(map.city); ctx.fillStyle = C['--land']; ctx.fill(); }
@@ -111,15 +111,15 @@ export function createRenderer(canvas) {
         if (!visItem(i, x0, y0, x1, y1)) continue;
         const d = map.d[i], c = d[0]; if ((c === 3 && !showMinor) || (c === 4 && !showStreets) || (gm && (c > 2 || view !== 'traffic'))) continue;
         const ra = DREG[i], al = ra < 0 ? 1 : regAlpha(ra); if ((al >= 1 ? 0 : 1) !== bk) continue;
-        const b = d[4] >= 0 && hasFeed ? colourClass(vc[d[4]]) : 6; if (gm && (b < 3 || b > 5)) continue; // only congested main roads
+        const b = d[4] >= 0 && hasFeed ? (spdMetric ? speedBand(net, S.result.spd, d[4]) : colourClass(vc[d[4]])) : 6; if (gm && (!S.layers.gmodel || (spdMetric ? b < 1 || b > 3 : b < 3 || b > 5))) continue; // over Google: only if the model overlay is on, and only slow main roads
         B[c][b].push(i);
       }
       ctx.globalAlpha = bk ? (lockedRegion() ? 0.14 : 0.22) : 1; ctx.lineCap = 'round'; ctx.lineJoin = 'round';
       for (let c = 4; c >= 0; c--) for (let b = 0; b < 7; b++) {
         const L = B[c][b]; if (!L.length) continue;
         ctx.beginPath(); for (const i of L) polyline(DX[i]);
-        ctx.strokeStyle = gm ? GM_COL[b - 3] : b < 6 ? C.cls[b] : c >= 3 ? C['--road-minor'] : (c <= 2 && view === 'traffic' ? C['--nofeed'] : C['--road-major']);
-        ctx.lineWidth = WD[c] * sc * (b >= 3 && b < 6 ? 1.25 : 1); ctx.stroke();
+        ctx.strokeStyle = gm ? GM_COL[spdMetric ? b - 1 : b - 3] : b < 6 ? C.cls[spdMetric ? SPEED_CLS[b] : b] : c >= 3 ? C['--road-minor'] : (c <= 2 && view === 'traffic' ? C['--nofeed'] : C['--road-major']);
+        ctx.lineWidth = WD[c] * sc * ((spdMetric ? b >= 1 : b >= 3) && b < 6 ? 1.25 : 1); ctx.stroke();
       }
     }
     ctx.globalAlpha = 1;

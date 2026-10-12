@@ -1,7 +1,8 @@
 // Overview: KPIs, typical-day timeline + replay, region / station tables, busiest roads.
 import { h, fmtH } from '/vendor/ui.mjs';
+import { istParts } from '/vendor/shared.mjs';
 import { S, on, setScope, setSel, setTab, setReplay, curHour, incidentsAt, openActions, inScope, scopeStations, fatal2025, hasCrash, myStation } from '../state.mjs';
-import { scopeSum, topRoads, colourClass, REGIONS } from '../analytics.mjs';
+import { scopeSum, topRoads, colourClass, bandKm, REGIONS } from '../analytics.mjs';
 import { t, regionName, agoText } from '../i18n.mjs';
 import { reconcile, clear, fill } from '../util.mjs';
 import { kpi, kpiSkeleton, sectionTitle, scopeLabel, speedTag, emptyState, lockNote } from './common.mjs';
@@ -12,10 +13,12 @@ export function createOverview(map) {
   const head = h('div.cc-sec.cc-head'), kpis = h('div.cc-kpis', { 'data-testid': 'kpis' }), dq = h('div.cc-dq');
   const brief = createBriefCard();
   // timeline
+  const tlSub = h('span.xs.faint', t('tl.sub'));
+  const tlLegend = h('div.row.xs.cc-tllegend', { 'data-testid': 'tl-legend' });
   const tl = h('canvas.cc-tl', { role: 'img', 'aria-label': t('tl.aria') });
   const slider = h('input.cc-range', { type: 'range', min: 0, max: 95, step: 1, value: 0, 'aria-label': t('replay.slider'), 'data-testid': 'replay-slider' });
   const back = h('button.btn.sm', { onclick: () => setReplay(null), 'data-testid': 'replay-back' }, t('replay.back'));
-  const tlCard = h('div.card.tight', h('div.cc-sec', h('h3', t('tl.title')), h('span.xs.faint', t('tl.sub'))), tl,
+  const tlCard = h('div.card.tight', h('div.cc-sec', h('h3', t('tl.title')), tlSub), tlLegend, tl,
     h('div.row.nowrap.cc-replayrow', slider, back), h('div.xs.faint', { 'data-testid': 'replay-note' }));
   const tbl = h('div.tbl-wrap'), table = h('table.tbl.cc-tbl'), thead = h('thead'), tbody = h('tbody');
   table.append(thead, tbody); tbl.append(table);
@@ -25,22 +28,45 @@ export function createOverview(map) {
   slider.addEventListener('input', () => setReplay(+slider.value / 4));
   tl.addEventListener('click', (e) => { const r = tl.getBoundingClientRect(); setReplay(Math.max(0, Math.min(23.75, Math.round(((e.clientX - r.left - 4) / (r.width - 8)) * 96) / 4))); });
 
+  // One series pair for the current selection: the model's usual speed per hour and today's measured speed per tick.
+  function tlSeries() {
+    const sel = S.sel, si = sel ? (sel.t === 'st' ? sel.i : S.MD.net.stn[sel.e]) : null, sc = S.scope;
+    const spd = S.layers.metric === 'speed', f = spd ? 'speed' : 'congPct';
+    const usual = S.tlSum.map((m) => (m ? (si != null ? m.per[si]?.[f] : sc === 'All' ? m.city[f] : sc === 'Urban' ? m.urban[f] : m.reg[sc]?.[f]) ?? null : null));
+    const today = [];
+    for (const p of S.hist.points) { const o = spd ? p : p.cg ?? {}; const v = si != null ? o.st?.[si] : sc === 'All' ? o.city : sc === 'Urban' ? o.urban : o.reg?.[sc]; if (v != null) { const q = istParts(p.t); today.push([q.h, v]); } }
+    return { usual, today, spd, name: si != null ? S.MD.ST[si].n : scopeLabel() };
+  }
+  const uAt = (u, hr) => { const i = Math.min(22.999, Math.max(0, hr)), a = u[Math.floor(i)], b = u[Math.floor(i) + 1]; return a == null ? null : b == null ? a : a + (b - a) * (i - Math.floor(i)); };
+
   function drawTL() {
     const w = tl.clientWidth; if (!w) return; const hh = 92, d = Math.min(2, window.devicePixelRatio || 1);
     tl.width = w * d; tl.height = hh * d; const g = tl.getContext('2d'); g.setTransform(d, 0, 0, d, 0, 0);
-    const cs = getComputedStyle(document.documentElement), line = cs.getPropertyValue('--line').trim(), ink3 = cs.getPropertyValue('--ink-3').trim(), acc = cs.getPropertyValue('--accent').trim(), bad = cs.getPropertyValue('--bad').trim(), font = cs.getPropertyValue('--mono').trim();
+    const cs = getComputedStyle(document.documentElement), line = cs.getPropertyValue('--line').trim(), ink3 = cs.getPropertyValue('--ink-3').trim(), acc = cs.getPropertyValue('--accent').trim(), bad = cs.getPropertyValue('--bad').trim(), good = cs.getPropertyValue('--good').trim(), font = cs.getPropertyValue('--mono').trim();
     g.strokeStyle = line; g.fillStyle = ink3; g.font = `10px ${font}`; g.textAlign = 'center';
     for (let hr = 0; hr <= 24; hr += 6) { const x = (hr / 24) * (w - 8) + 4; g.beginPath(); g.moveTo(x, 6); g.lineTo(x, hh - 18); g.stroke(); g.fillText(String(hr).padStart(2, '0'), Math.min(w - 8, Math.max(8, x)), hh - 5); }
-    const have = S.tl.filter((v) => v != null);
-    if (have.length < 2) { g.fillText(t('computing'), w / 2, hh / 2 - 6); }
+    const { usual, today, spd, name } = tlSeries(), nowH = curHour(); tlSub.textContent = t(spd ? 'tl.sub' : 'tl.subCong');
+    const haveU = usual.filter((v) => v != null);
+    if (haveU.length < 2) { g.fillText(t('computing'), w / 2, hh / 2 - 6); }
     else {
-      const lo = Math.min(...have) - 2, hi = Math.max(...have) + 2, X = (i) => ((i + 0.5) / 24) * (w - 8) + 4, Y = (v) => 6 + (hh - 26) * (1 - (v - lo) / (hi - lo));
-      g.beginPath(); let first = true; S.tl.forEach((v, i) => { if (v == null) return; first ? g.moveTo(X(i), Y(v)) : g.lineTo(X(i), Y(v)); first = false; });
-      g.lineWidth = 2; g.strokeStyle = acc; g.lineJoin = 'round'; g.stroke();
-      g.lineTo(X(23), hh - 18); g.lineTo(X(0), hh - 18); g.globalAlpha = 0.1; g.fillStyle = acc; g.fill(); g.globalAlpha = 1;
+      const all = [...haveU, ...today.map((p) => p[1])], lo = spd ? Math.min(...all) - 2 : Math.max(0, Math.min(...all) - 2), hi = Math.max(...all) + 2, X = (hr) => (hr / 24) * (w - 8) + 4, Y = (v) => 6 + (hh - 26) * (1 - (v - lo) / (hi - lo));
+      // gap between today and usual: red where slower than usual, green where faster
+      for (let k = 1; k < today.length; k++) {
+        const [h0, v0] = today[k - 1], [h1, v1] = today[k]; if (h1 - h0 > 1.5 || h1 < h0) continue;
+        const u0 = uAt(usual, h0), u1 = uAt(usual, h1); if (u0 == null || u1 == null) continue;
+        g.beginPath(); g.moveTo(X(h0), Y(v0)); g.lineTo(X(h1), Y(v1)); g.lineTo(X(h1), Y(u1)); g.lineTo(X(h0), Y(u0)); g.closePath();
+        g.globalAlpha = 0.22; g.fillStyle = ((v0 + v1) < (u0 + u1)) === spd ? bad : good; g.fill(); g.globalAlpha = 1;
+      }
+      g.beginPath(); let first = true; usual.forEach((v, i) => { if (v == null) return; first ? g.moveTo(X(i), Y(v)) : g.lineTo(X(i), Y(v)); first = false; });
+      g.setLineDash([4, 3]); g.lineWidth = 1.6; g.strokeStyle = ink3; g.lineJoin = 'round'; g.stroke(); g.setLineDash([]);
+      if (today.length) { g.beginPath(); today.forEach(([hr, v], i) => (i ? g.lineTo(X(hr), Y(v)) : g.moveTo(X(hr), Y(v)))); g.lineWidth = 2.2; g.strokeStyle = acc; g.stroke(); }
     }
-    const x = (curHour() / 24) * (w - 8) + 4; g.strokeStyle = bad; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, 2); g.lineTo(x, hh - 18); g.stroke();
+    const x = (nowH / 24) * (w - 8) + 4; g.strokeStyle = bad; g.lineWidth = 1.5; g.beginPath(); g.moveTo(x, 2); g.lineTo(x, hh - 18); g.stroke();
     g.fillStyle = bad; g.beginPath(); g.arc(x, 4, 3, 0, 7); g.fill();
+    const sw = (c, dash) => h('i.sw', { style: { background: dash ? 'transparent' : c, borderTop: dash ? `2px dashed ${c}` : '', height: dash ? '0' : '3px', width: '16px', display: 'inline-block', verticalAlign: 'middle', borderRadius: '2px' } });
+    const nowV = today.length && S.replay == null ? today[today.length - 1][1] : null, u = today.length ? uAt(usual, today[today.length - 1][0]) : null;
+    fill(tlLegend, h('span.muted', name), h('span', sw(acc), ' ', t('tl.actual')), h('span', sw(ink3, true), ' ', t('tl.usual')),
+      nowV != null && u != null ? h('span.mono', { 'data-testid': 'tl-delta', style: { color: (spd ? nowV < u * 0.95 : nowV > u + 3) ? bad : (spd ? nowV > u * 1.05 : nowV < u - 3) ? good : '' } }, spd ? t('tl.nowVs', { now: Math.round(nowV), usual: Math.round(u), pct: `${nowV >= u ? '+' : ''}${Math.round(((nowV - u) / u) * 100)}` }) : t('tl.nowVsCong', { now: Math.round(nowV), usual: Math.round(u), diff: `${nowV >= u ? '+' : ''}${Math.round(nowV - u)}` })) : today.length < 2 ? h('span.faint', t('tl.building')) : null);
   }
 
   function update() {
@@ -51,10 +77,12 @@ export function createOverview(map) {
     if (!rep && S.scope === 'All' && S.live?.city) sm = { speed: S.live.city.speed, congPct: S.live.city.congPct };
     const incs = incidentsAt(h0).filter((x) => inScope(MD.ST[x.stn]?.r)), oa = openActions().filter((a) => inScope(a.region)), es = oa.filter((a) => a.escalated);
     const fat = scopeStations().reduce((a, s) => a + fatal2025(s.i), 0);
+    const spdM = S.layers.metric === 'speed'; let slowPct = 0;
+    if (spdM && res) { const b = bandKm(net, res.vc, res.spd, 'speed', (si) => inScope(MD.ST[si].r)); slowPct = b.tot ? (100 * (b.km[2] + b.km[3])) / b.tot : 0; }
     const val = (n, u) => h('span', n, u ? h('small', u) : null);
     fill(kpis, 
       res && sm ? kpi(t('kpi.speed'), val(Math.round(sm.speed ?? 0), ' km/h'), { id: 'speed' }) : kpiSkeleton(t('kpi.speed')),
-      res && sm ? kpi(t('kpi.cong'), val(Math.round(sm.congPct), '%'), { id: 'cong' }) : kpiSkeleton(t('kpi.cong')),
+      res && sm ? (spdM ? kpi(t('kpi.slow'), val(Math.round(slowPct), '%'), { id: 'cong' }) : kpi(t('kpi.cong'), val(Math.round(sm.congPct), '%'), { id: 'cong' })) : kpiSkeleton(t(spdM ? 'kpi.slow' : 'kpi.cong')),
       res ? kpi(t('kpi.inc'), String(incs.length), { id: 'inc' }) : kpiSkeleton(t('kpi.inc')),
       S.conn.loaded ? kpi(t('kpi.open'), String(oa.length), { id: 'open', sub: rep ? t('kpi.liveOnly') : '' }) : kpiSkeleton(t('kpi.open')),
       S.conn.loaded ? kpi(t('kpi.esc'), String(es.length), { tone: es.length ? 'bad' : '', id: 'esc' }) : kpiSkeleton(t('kpi.esc')),

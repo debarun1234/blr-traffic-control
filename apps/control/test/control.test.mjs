@@ -33,6 +33,56 @@ test('sign-in: dev picker lists the six users and the honest note', async () => 
   });
 });
 
+test('today vs usual: legend shows the actual line and the gap to the usual model curve, per scope', async () => {
+  await run('commissioner', async (page) => {
+    await page.waitForFunction(() => window.__blr.S.hist.points.length > 0 && window.__blr.S.tlSum.every((x) => x));
+    const lg = page.getByTestId('tl-legend'); await lg.waitFor();
+    assert.match(await lg.innerText(), /Today \(actual\)[\s\S]*Usual \(model\)/);
+    await page.waitForFunction(() => /vs usual \d+ km\/h \([+-]?\d+%\)/.test(document.querySelector('[data-testid=tl-legend]').textContent));
+    await page.getByTestId('row-East').click();
+    await page.waitForFunction(() => /builds up/.test(document.querySelector('[data-testid=tl-legend]').textContent));
+  });
+});
+
+test('colour roads by: speed vs free-flow (default, Google-style) and load / capacity, each with its own legend, share telemetry and chart', async () => {
+  await run('commissioner', async (page) => {
+    await page.waitForFunction(() => window.__blr.S.result && window.__blr.S.tlSum.every((x) => x));
+    const legend = () => page.locator('.cc-legend').innerText();
+    assert.match(await legend(), /Speed vs free-flow[\s\S]*Free-flowing[\s\S]*Stop-and-go[\s\S]*share of road-km/);
+    assert.match(await legend(), /\d+%/, 'each band shows its share of road-km');
+    assert.equal(await page.getByTestId('kpis').getByText('Slow roads').count(), 1);
+    await page.locator('.cc-layersbtn').click(); await page.getByTestId('metric-load').check();
+    await page.waitForFunction(() => /Live traffic/.test(document.querySelector('.cc-legend').textContent));
+    assert.match(await legend(), /Gridlock|Jammed/);
+    assert.equal(await page.getByTestId('kpis').getByText('Congested').count(), 1);
+    await page.waitForFunction(() => /congested/.test(document.querySelector('.cc-sec .xs.faint')?.textContent ?? '') || /% congested/.test(document.querySelector('[data-testid=tl-legend]').textContent));
+    assert.equal(await page.evaluate(() => window.__blr.S.layers.gmodel), false, 'model overlay over Google is off by default');
+  });
+});
+
+test('side panel folds away behind an arrow pill, gives the map the room, and is remembered (desktop and phone)', async () => {
+  await run('commissioner', async (page) => {
+    await page.waitForFunction(() => window.__blr.S.result);
+    const mapW = () => page.evaluate(() => document.querySelector('.cc-map')?.getBoundingClientRect().width ?? 0);
+    const w0 = await mapW(); assert.equal(await page.locator('#cc-insp').isVisible(), true);
+    assert.equal(await page.getByTestId('fold').getAttribute('aria-expanded'), 'true');
+    await page.getByTestId('fold').click();
+    await page.waitForFunction(() => document.querySelector('#cc-insp').hidden);
+    await page.waitForFunction((w) => document.querySelector('.cc-map').getBoundingClientRect().width > w + 300, w0);
+    assert.equal(await page.getByTestId('fold').getAttribute('aria-expanded'), 'false');
+    assert.equal(await page.evaluate(() => localStorage.getItem('blr-fold')), '1');
+    await page.getByTestId('fold').click();
+    await page.waitForFunction(() => !document.querySelector('#cc-insp').hidden);
+    assert.equal(await page.evaluate(() => localStorage.getItem('blr-fold')), '0');
+    // phone: panel sits under the map; folding hands the map the full height
+    await page.setViewportSize({ width: 390, height: 780 });
+    const h0 = await page.evaluate(() => document.querySelector('.cc-map').getBoundingClientRect().height);
+    await page.getByTestId('fold').click();
+    await page.waitForFunction((h) => document.querySelector('.cc-map').getBoundingClientRect().height > h + 150, h0);
+    const r = await page.getByTestId('fold').boundingBox(); assert.ok(r && r.y > 500, 'pill sits at the bottom edge of the map when folded');
+  });
+});
+
 test('unknown user gets the not-on-allowlist screen with email + sign out', async () => {
   await run(null, { allow: /403/ }, async (page) => {
     await open(page); await page.getByTestId('dev-email').fill('nobody@example.test'); await page.getByTestId('dev-email').press('Enter');
@@ -282,7 +332,11 @@ test('Google basemap: option only with a key; selecting it loads Maps, follows t
       return [Math.abs((R.sx(B.x) - R.sx(A.x)) - (mx(lb[0]) - mx(la[0]))), Math.abs((R.sy(B.y) - R.sy(A.y)) - (my(lb[1]) - my(la[1])))];
     });
     assert.ok(err[0] < 1.5 && err[1] < 1.5, `model and Google basemap agree to <1.5 px, got ${err}`);
-    assert.match(await page.locator('.cc-legend').innerText(), /congested main roads only/i, 'legend switches to the essentials-only key');
+    assert.match(await page.locator('.cc-legend').innerText(), /Google live traffic \(measured\)/, 'over Google the legend leads with Google\'s measured layer');
+    assert.doesNotMatch(await page.locator('.cc-legend').innerText(), /congested main roads only/i, 'model overlay is off by default');
+    await page.locator('.cc-layersbtn').click(); await page.getByTestId('gmodel').check();
+    await page.waitForFunction(() => /Our model estimate/.test(document.querySelector('.cc-legend').innerText));
+    assert.match(await page.locator('.cc-legend').innerText(), /congested main roads only/i, 'model overlay on: essentials-only key');
     await page.evaluate(() => window.gm_authFailure()); await page.waitForFunction(() => !document.querySelector('.cc-map').classList.contains('gm'));
     assert.equal(await page.getByTestId('base-select').inputValue(), 'plain');
   });
@@ -291,9 +345,9 @@ test('Google basemap: option only with a key; selecting it loads Maps, follows t
 test('map views: each view explains itself, changes the map, and what is offered follows the admin settings per role', async () => {
   await run('commissioner', async (page) => {
     await page.locator('.cc-layersbtn').click();
-    assert.deepEqual(await page.locator('.cc-opt input').evaluateAll((e) => e.map((x) => x.value)), ['traffic', 'safety', 'speed']);
+    assert.deepEqual(await page.locator('input[name=cc-view]').evaluateAll((e) => e.map((x) => x.value)), ['traffic', 'safety', 'speed']);
     assert.match(await page.getByTestId('view-safety').innerText(), /fatal crashes recorded in 2025/i);
-    assert.match(await page.locator('.cc-legend').innerText(), /Live traffic[\s\S]*Use it to spot where congestion/);
+    assert.match(await page.locator('.cc-legend').innerText(), /Speed vs free-flow[\s\S]*Use it to compare with Google/);
     const h0 = await canvasHash(page);
     await page.getByTestId('view-safety').click(); await page.waitForFunction(() => /Crash hotspots/.test(document.querySelector('.cc-legend').innerText));
     const lg = await page.locator('.cc-legend').innerText(); assert.match(lg, /No crash data/); assert.match(lg, /Highest: /); assert.match(lg, /enforcement, patrols and signage/);

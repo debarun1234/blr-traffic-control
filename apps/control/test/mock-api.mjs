@@ -113,6 +113,12 @@ export async function startMock({ port = 0, pollMs = 30000, hour = 9.0, date = '
       const et = `W/"${S.version}"`; if (req.headers['if-none-match'] === et) { res.writeHead(304, { etag: et }); return res.end(); }
       return json(res, 200, stateBody(), { etag: et });
     }
+    if (m === 'GET' && path === '/state/history') {
+      // hourly points from 06:00 IST to "now"; city 12 km/h slower than a flat 30 so the chart reports a clear gap
+      const base = Date.parse(`${S.date}T00:00:00+05:30`), nowMs = S.now, pts = [];
+      for (let t = base + 6 * 3600000; t <= nowMs; t += 3600000) pts.push({ t, city: 18, urban: 18, reg: {}, st: [], cg: { city: 40, urban: 40, reg: {}, st: [] } });
+      return json(res, 200, { date: S.date, points: pts });
+    }
     if (m === 'GET' && path === '/crash') {
       const st = {}; map.st.filter((s) => s.f != null).forEach((s) => { st[s.n] = { station: s.n, y2025: { fatal: s.f, nonfatal: s.t }, hist: CRASH.hist[s.n] ?? {}, source: 'btp' }; });
       return json(res, 200, { stations: st, importedAt: FIXED_NOW });

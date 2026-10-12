@@ -1,6 +1,6 @@
 // Assembles the map pane: canvas + overlays (search, layers, zoom, legend, tooltip, replay chip).
 import { h } from '/vendor/ui.mjs';
-import { S, on, emit, setSel, setTab, setReplay, lockedRegion, fatal2025, hasCrash, scopeStations, mapCfg, allowedViews, curView, setView, layerAllowed, layerOn } from '../state.mjs';
+import { S, on, emit, inScope, setSel, setTab, setReplay, lockedRegion, fatal2025, hasCrash, scopeStations, mapCfg, allowedViews, curView, setView, layerAllowed, layerOn } from '../state.mjs';
 import { t, regionName } from '../i18n.mjs';
 import { ic } from '../icons.mjs';
 import { createRenderer } from './renderer.mjs';
@@ -8,7 +8,7 @@ import { createGoogleBase } from './gmaps.mjs';
 import { lsSet } from '../util.mjs';
 import { toast } from '/vendor/ui.mjs';
 import { attachInteraction } from './interaction.mjs';
-import { edgesBox, speedBucket } from '../analytics.mjs';
+import { edgesBox, speedBucket, bandKm, SPEED_CLS } from '../analytics.mjs';
 import { fmtH } from '/vendor/ui.mjs';
 import { frame, fill } from '../util.mjs';
 
@@ -66,15 +66,18 @@ export function createMapPane() {
   if (gbase) baseSel = h('select.select', { 'aria-label': t('layers.base'), 'data-testid': 'base-select', onchange: (e) => { S.layers.base = e.target.value; lsSet('blr-base', e.target.value); gbase.set(e.target.value); } },
     ...['plain', 'roadmap', 'hybrid'].map((v) => h('option', { value: v, selected: S.layers.base === v }, t(`layers.base.${v}`))));
   const gtRow = () => (!layerAllowed('gtraffic') ? null : h('label.cc-chk', { 'data-testid': 'gtraffic-row' }, h('input', { type: 'checkbox', 'data-testid': 'gtraffic', checked: S.layers.gtraffic, onchange: (e) => { S.layers.gtraffic = e.target.checked; lsSet('blr-gtraffic', e.target.checked ? '1' : '0'); gbase?.setTraffic(e.target.checked); } }), h('span', h('b', t('layers.gtraffic')), h('small', t('layers.gtraffic.d')))));
+  const gmRow = () => h('label.cc-chk', { 'data-testid': 'gmodel-row' }, h('input', { type: 'checkbox', 'data-testid': 'gmodel', checked: S.layers.gmodel, onchange: (e) => { S.layers.gmodel = e.target.checked; lsSet('blr-gmodel', e.target.checked ? '1' : '0'); drawLegend(); R.dirty = true; } }), h('span', h('b', t('layers.gmodel')), h('small', t('layers.gmodel.d'))));
+  const metricRow = (m) => h('label.cc-opt', { 'data-testid': 'metric-' + m }, h('input', { type: 'radio', name: 'cc-metric', value: m, checked: S.layers.metric === m, onchange: () => { S.layers.metric = m; lsSet('blr-metric', m); popSig = sigOf(); emit('view', 'result', 'tl'); drawLegend(); R.dirty = true; } }), h('span', h('b', t(`metric.${m}`)), h('small', t(`metric.${m}.d`))));
   const layersPop = h('div.cc-pop', { id: 'cc-layers', hidden: true, role: 'group', 'aria-label': t('layers.title') });
   let popSig = '';
   const viewOpt = (v, cur) => h('label.cc-opt', { 'data-testid': 'view-' + v }, h('input', { type: 'radio', name: 'cc-view', value: v, checked: cur === v, onchange: () => { setView(v); popSig = sigOf(); drawLegend(); R.dirty = true; } }), h('span', h('b', t(`view.${v}.t`)), h('small', t(`view.${v}.d`))));
-  const sigOf = () => JSON.stringify([S.lang, allowedViews(), curView(), mapCfg().layers, !!baseSel]);
+  const sigOf = () => JSON.stringify([S.lang, allowedViews(), curView(), mapCfg().layers, !!baseSel, S.layers.metric, S.layers.gmodel, S.layers.gtraffic]);
   function renderLayers() {
     const cur = curView(); popSig = sigOf();
     fill(layersPop, h('div.cc-sec', t('view.title')), ...allowedViews().map((v) => viewOpt(v, cur)),
+      ...(cur === 'traffic' ? [h('div.cc-sec', t('layers.metric')), metricRow('speed'), metricRow('load')] : []),
       h('div.cc-sec', t('layers.show')), layerRow('minor'), layerRow('stn'), layerRow('inc'), layerRow('works'),
-      ...(baseSel ? [h('div.cc-sec', t('layers.base')), baseSel, gtRow()] : []));
+      ...(baseSel ? [h('div.cc-sec', t('layers.base')), baseSel, gtRow(), gmRow()] : []));
   }
   const layersBtn = h('button.btn.sm.cc-layersbtn', { 'aria-expanded': 'false', 'aria-controls': 'cc-layers', onclick: () => { layersPop.hidden = !layersPop.hidden; layersBtn.setAttribute('aria-expanded', String(!layersPop.hidden)); } }, ic('layers', 16), h('span.lbl', t('layers.title')));
   const outside = (e) => { if (!layersPop.hidden && !layersPop.contains(e.target) && !layersBtn.contains(e.target)) { layersPop.hidden = true; layersBtn.setAttribute('aria-expanded', 'false'); } };
@@ -95,8 +98,12 @@ export function createMapPane() {
   function drawLegend() {
     const C = R.colours(), v = curView(), cfg = mapCfg(), lg = (col, label, val) => h('div.cc-lg', h('i', { style: { background: col } }), h('span', label), h('span.mono.faint', val ?? ''));
     let rows = [], top = null;
+    const spdM = S.layers.metric === 'speed', sh = v === 'traffic' && S.result ? bandKm(net, S.result.vc, S.result.spd, S.layers.metric, (si) => inScope(MD.ST[si].r)) : null;
+    const pct = (i) => (sh && sh.tot ? `${Math.round((100 * sh.km[i]) / sh.tot)}%` : '');
     if (v === 'traffic') {
-      rows = [['<0.50', 'legend.free'], ['0.50–0.75', 'legend.light'], ['0.75–0.95', 'legend.busy'], ['0.95–1.15', 'legend.slow'], ['1.15–1.50', 'legend.jam'], ['>1.50', 'legend.grid']].map((r, i) => lg(C.cls[i], t(r[1]), r[0]));
+      if (spdM) rows = ['≥75%', '50–75%', '25–50%', '<25%'].map((r, i) => lg(C.cls[SPEED_CLS[i]], t(`legend.sp.${i}`), `${r} · ${pct(i)}`));
+      else rows = [['<0.50', 'legend.free'], ['0.50–0.75', 'legend.light'], ['0.75–0.95', 'legend.busy'], ['0.95–1.15', 'legend.slow'], ['1.15–1.50', 'legend.jam'], ['>1.50', 'legend.grid']].map((r, i) => lg(C.cls[i], t(r[1]), `${r[0]} · ${pct(i)}`));
+      rows.push(h('div.faint.xs', t('legend.share')));
       rows.push(lg(C['--nofeed'], t('legend.nofeed')));
     } else if (v === 'safety') {
       const cs = cfg.crashScale, steps = [0, 0.25, 0.5, 0.75, 1];
@@ -110,12 +117,15 @@ export function createMapPane() {
       const sl = scopeStations().filter((s) => S.sum?.per[s.i]?.speed != null).sort((a, c) => S.sum.per[a.i].speed - S.sum.per[c.i].speed).slice(0, 3);
       top = sl.length ? t('legend.slowest', { list: sl.map((s) => `${s.n} ${Math.round(S.sum.per[s.i].speed)}`).join(' · ') }) : null;
     }
-    if (v === 'traffic' && R.baseOn()) { // Google basemap: model draws only congested main roads, in a colour Google does not use
-      rows = R.gmColours.map((c, i) => lg(c, t(['legend.slow', 'legend.jam', 'legend.grid'][i]), ['0.95–1.15', '1.15–1.50', '>1.50'][i]));
-      top = t('legend.gm');
+    if (v === 'traffic' && R.baseOn()) { // Google basemap: Google's own layer is the measured one; our model is an optional, separate estimate
+      const gl = ['#10b981', '#f5b400', '#ef4444', '#991b1b'];
+      rows = [S.layers.gtraffic ? h('b.xs', t('legend.g.t')) : h('div.faint.xs', t('legend.gnone')), ...(S.layers.gtraffic ? gl.map((c, i) => lg(c, t(`legend.g.${i}`))) : []),
+        ...(S.layers.gmodel ? [h('b.xs', { style: { marginTop: '6px', display: 'block' } }, t('legend.m.t')), ...R.gmColours.map((c, i) => lg(c, spdM ? t(`legend.sp.${i + 1}`) : t(['legend.slow', 'legend.jam', 'legend.grid'][i]), spdM ? ['50–75%', '25–50%', '<25%'][i] : ['0.95–1.15', '1.15–1.50', '>1.50'][i]))] : [])];
+      top = S.layers.gmodel ? t('legend.gm') : null;
     }
     const marks = [layerOn('inc') ? h('div.cc-lg', h('i.inc', '!'), h('span', t('legend.inc'))) : null, layerOn('works') ? h('div.cc-lg', h('i.wk'), h('span', t('legend.works'))) : null];
-    fill(legend, h('b.xs', t(`view.${v}.t`)), h('div.faint.cc-lgd', t(`view.${v}.d`)), ...rows, top ? h('div.cc-lgt', top) : null, h('div.cc-lgu', t(`view.${v}.use`)), ...marks);
+    const k = v === 'traffic' && spdM ? 'legend.sp' : `view.${v}`, sfx = v === 'traffic' && spdM ? ['.t', '.d', '.use'] : ['.t', '.d', '.use'];
+    fill(legend, h('b.xs', t(k + sfx[0])), h('div.faint.cc-lgd', t(k + sfx[1])), ...rows, top ? h('div.cc-lgt', top) : null, h('div.cc-lgu', t(k + sfx[2])), ...marks);
   }
 
   // ---- tooltip ----
@@ -150,7 +160,7 @@ export function createMapPane() {
   on('scope', () => R.fitScope());
   on('lang', () => { renderLayers(); drawLegend(); input.setAttribute('aria-label', t('map.search')); });
   // admin changes (views, layers, thresholds) arrive with /me; rebuild the popover only when something it shows has changed so focus is not lost
-  on(['me', 'view'], () => { if (sigOf() !== popSig) renderLayers(); gbase?.setTraffic(layerOn('gtraffic')); drawLegend(); R.dirty = true; });
+  on(['me', 'view', 'result'], () => { if (sigOf() !== popSig) renderLayers(); gbase?.setTraffic(layerOn('gtraffic')); drawLegend(); R.dirty = true; });
   on(['result', 'scope', 'crash'], () => { if (curView() !== 'traffic') drawLegend(); });
   renderLayers();
   const recolour = () => { R.refreshColours(); drawLegend(); };

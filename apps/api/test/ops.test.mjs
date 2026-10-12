@@ -7,6 +7,14 @@ let T; before(async () => { T = await makeApp(); });
 after(() => T.app.close());
 const audits = async (kind) => (await T.store.list('audit', { where: [['kind', '==', kind]] }));
 
+test('GET /api/state/history: today\'s ticks with city, urban, region and per-station speeds', async () => {
+  const r = await T.call('viewer', 'GET', '/api/state/history');
+  assert.equal(r.status, 200); const b = r.body;
+  assert.match(b.date, /^\d{4}-\d{2}-\d{2}$/); assert.ok(b.points.length >= 1, 'the seeded tick is in today\'s history');
+  const p = b.points.at(-1); assert.equal(typeof p.city, 'number'); assert.equal(p.st.length, net.map.st.length);
+  assert.ok('Rural' in p.reg && 'North' in p.reg); assert.equal(typeof p.cg.city, 'number'); assert.equal(p.cg.st.length, net.map.st.length);
+});
+
 test('GET /api/state: contract shape, ETag + 304, stale flag derived from age', async () => {
   const r = await T.call('viewer', 'GET', '/api/state');
   assert.equal(r.status, 200); const s = r.body;

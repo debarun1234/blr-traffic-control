@@ -165,7 +165,7 @@ export function summarize(net, res, scope = () => true) {
   }
   return {
     speed: vk ? vs / vk : 0, congPct: L ? (100 * cl) / L : 0,
-    per: per.map((p) => ({ speed: p.vk ? p.sp / p.vk : null, cong: p.L ? (100 * p.c) / p.L : 0, km: p.L })),
+    per: per.map((p) => ({ speed: p.vk ? p.sp / p.vk : null, cong: p.L ? (100 * p.c) / p.L : 0, km: p.L, vk: p.vk })),
   };
 }
 
@@ -182,16 +182,20 @@ export function pathMinutes(net, res, fromNode, toNode) {
  */
 export function calibrate(net, t, probes, { capMul = null, lo = 0.3, hi = 3, steps = 7 } = {}) {
   if (!probes.length) return { boost: 1, fit: [], rmsePct: null };
-  const err = (boost) => {
-    const r = assign(net, { t, capMul, boost, iters: 4 });
-    let s = 0; for (const p of probes) { const m = pathMinutes(net, r, p.from, p.to); s += (m ?? p.freeMin) / p.observedMin - 1; }
-    return s / probes.length;
-  };
+  // Compare DELAY RATIOS (travel time / free-flow time), not absolute minutes. The model's road speeds and the probe's
+  // endpoint snapping give a different free-flow time per corridor; matching minutes would blame that on congestion.
+  const free = assign(net, { t, capMul, boost: 0.02, iters: 2 });
+  const base = probes.map((p) => pathMinutes(net, free, p.from, p.to));
+  const ok = probes.map((p, i) => base[i] > 0 && p.freeMin > 0 && p.observedMin > 0);
+  if (!ok.some(Boolean)) return { boost: 1, fit: [], rmsePct: null };
+  const ratios = (boost) => { const r = assign(net, { t, capMul, boost, iters: 4 }); return { r, m: probes.map((p, i) => { if (!ok[i]) return null; const m = pathMinutes(net, r, p.from, p.to); return m == null ? null : (m / base[i]) / (p.observedMin / p.freeMin); }) }; };
+  const err = (boost) => { const v = ratios(boost).m.filter((x) => x != null); return v.length ? v.reduce((a, x) => a + x - 1, 0) / v.length : 0; };
   let a = lo, b = hi;
   for (let i = 0; i < steps; i++) { const mid = (a + b) / 2; if (err(mid) > 0) b = mid; else a = mid; }
   const boost = (a + b) / 2, r = assign(net, { t, capMul, boost, iters: 4 });
-  const fit = probes.map((p) => ({ modelled: pathMinutes(net, r, p.from, p.to), observed: p.observedMin }));
-  const rmse = Math.sqrt(fit.reduce((s, f) => s + ((f.modelled / f.observed) - 1) ** 2, 0) / fit.length) * 100;
+  const fit = probes.map((p, i) => ({ modelled: ok[i] ? (pathMinutes(net, r, p.from, p.to) ?? null) : null, observed: p.observedMin, modelledFree: base[i] ?? null }));
+  const dev = fit.map((f, i) => (ok[i] && f.modelled != null ? (f.modelled / base[i]) / (f.observed / probes[i].freeMin) - 1 : null)).filter((x) => x != null);
+  const rmse = dev.length ? Math.sqrt(dev.reduce((a, x) => a + x * x, 0) / dev.length) * 100 : null;
   return { boost, fit, rmsePct: rmse };
 }
 

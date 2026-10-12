@@ -39,7 +39,16 @@ body.kn .cc-pill{text-transform:none;letter-spacing:0}
 .cc-main{display:flex;flex-direction:column;overflow:hidden}
 .cc-banners:not(:empty){display:flex;flex-direction:column;gap:6px;padding:8px 12px;border-bottom:1px solid var(--line);background:var(--bg-2)}
 .cc-banners .banner{align-items:center}
-.cc-grid{flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) clamp(390px,32vw,470px);grid-template-rows:minmax(0,1fr)}
+.cc-grid{--insp-w:clamp(390px,32vw,470px);flex:1;min-height:0;display:grid;grid-template-columns:minmax(0,1fr) var(--insp-w);grid-template-rows:minmax(0,1fr);position:relative}
+.cc-grid.fold{grid-template-columns:minmax(0,1fr) 0}
+.cc-insp[hidden]{display:none}
+/* the fold pill: sits on the seam between map and panel (right edge on desktop, bottom edge on phones) */
+.cc-fold{position:absolute;z-index:30;top:50%;right:var(--insp-w);transform:translate(50%,-50%);display:inline-flex;align-items:center;justify-content:center;gap:4px;height:56px;min-width:28px;padding:0 4px;border:1px solid var(--line-2);border-radius:999px;background:var(--surface);color:var(--ink-2);box-shadow:var(--shadow-2);cursor:pointer}
+.cc-fold:hover{color:var(--accent);border-color:var(--accent)}
+.cc-fold svg{transition:transform .2s}
+.cc-grid.fold .cc-fold{right:0;transform:translate(-8px,-50%);padding:0 8px 0 6px}.cc-grid.fold .cc-fold svg{transform:rotate(180deg)}
+.cc-foldl{font:600 12px/1 var(--sans,inherit);writing-mode:vertical-rl}.cc-foldl:empty{display:none}
+
 .cc-insp{background:var(--surface);border-left:1px solid var(--line);display:flex;flex-direction:column;min-height:0;min-width:0}
 .cc-tabs{display:flex;gap:2px;padding:0 8px;border-bottom:1px solid var(--line);overflow-x:auto;flex:none;scrollbar-width:none}
 .cc-tab{font-size:13px;padding:13px 10px 11px;border:0;border-bottom:2px solid transparent;margin-bottom:-1px;background:none;font-weight:600;color:var(--ink-2);cursor:pointer;white-space:nowrap;display:inline-flex;align-items:center}
@@ -186,6 +195,11 @@ body.kn .cc-pill{text-transform:none;letter-spacing:0}
   .cc-top .grow{display:none}.cc-status{margin-left:auto}
   .cc-role{max-width:42vw}
   .cc-grid{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(250px,42dvh) minmax(0,1fr)}
+  .cc-grid.fold{grid-template-columns:minmax(0,1fr);grid-template-rows:minmax(0,1fr) 0}
+  .cc-fold{top:max(250px,42dvh);right:auto;left:50%;height:28px;min-width:56px;transform:translate(-50%,-50%);padding:0 10px}
+  .cc-fold svg{transform:rotate(90deg)}
+  .cc-grid.fold .cc-fold{top:auto;bottom:12px;left:50%;right:auto;transform:translate(-50%,0);padding:0 14px}.cc-grid.fold .cc-fold svg{transform:rotate(-90deg)}
+  .cc-foldl{writing-mode:horizontal-tb}
   .cc-insp{border-left:0;border-top:1px solid var(--line)}
   .cc-legend,.cc-note{display:none}
   .cc-searchbtn{display:inline-flex}.cc-search .cc-q,.cc-search .cc-qi{display:none}.cc-search.open .cc-q{display:block;position:absolute;left:0;top:0;width:min(250px,60vw)}
@@ -197,3 +211,4 @@ body.kn .cc-pill{text-transform:none;letter-spacing:0}
 }
 @media (max-width:420px){.cc-kpis .kpi .v{font-size:19px}.cc-tab{padding:12px 9px 10px}}
 @media (prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.001ms!important;animation-iteration-count:1!important;transition-duration:.001ms!important;scroll-behavior:auto!important}}
+.cc-tllegend{gap:14px;align-items:center;flex-wrap:wrap;margin:2px 0 4px}

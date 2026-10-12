@@ -8,6 +8,18 @@ export const CLASS_NAMES = ['arterial', 'subArterial', 'collector'];
 
 /** v/c -> colour bucket 0..5 (matches --c0..--c5). */
 export const colourClass = (vc) => (vc < 0.5 ? 0 : vc < 0.75 ? 1 : vc < 0.95 ? 2 : vc < 1.15 ? 3 : vc < 1.5 ? 4 : 5);
+/**
+ * Google-style road state: speed as a share of the road's free-flow speed. 0 free-flowing (>=75%), 1 slowing (50-75%),
+ * 2 slow (25-50%), 3 stop-and-go (<25%). Independent of the load/capacity view, so the two can be compared.
+ */
+export const SPEED_CLS = [0, 2, 4, 5]; // palette index (--c0..--c5) used for each speed band
+export const speedBand = (net, spd, e) => { const free = net.len[e] / 1000 / (net.t0[e] / 60), r = free > 0 ? spd[e] / free : 1; return r >= 0.75 ? 0 : r >= 0.5 ? 1 : r >= 0.25 ? 2 : 3; };
+/** Road-km per band (speed: 4 bands, load: 6 bands) over the stations `inScope(stIdx)` accepts. */
+export function bandKm(net, vc, spd, metric, inScope = () => true) {
+  const out = new Array(metric === 'speed' ? 4 : 6).fill(0); let tot = 0;
+  for (let e = 0; e < net.ne; e++) { if (!inScope(net.stn[e])) continue; const l = net.len[e] / 1000; out[metric === 'speed' ? speedBand(net, spd, e) : colourClass(vc[e])] += l; tot += l; }
+  return { km: out, tot };
+}
 /** speed -> shading colour bucket for the territory "speed" layer (0 worst .. 4 best), null when unknown. */
 export const DEFAULT_MAP = { defaultView: 'traffic', views: { safety: { viewer: false }, speed: {} }, layers: { minorRoads: true, stations: true, incidents: true, works: true, googleTraffic: true }, speedBands: { slow: 14, moderate: 20, good: 27, fast: 34 }, crashScale: 26 };
 export const speedBucket = (v, b = DEFAULT_MAP.speedBands) => (v == null ? null : v < b.slow ? 0 : v < b.moderate ? 1 : v < b.good ? 2 : v < b.fast ? 3 : 4);

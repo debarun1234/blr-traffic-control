@@ -45,6 +45,13 @@ export function registerOps(api, ctx) {
     return doc;
   });
 
+  // Today's (IST) speed history for the "actual vs usual" chart: one point per tick, per city / urban / region / station.
+  api.get('/state/history', async () => {
+    const { date } = istParts(clock.now()), start = Date.parse(`${date}T00:00:00+05:30`);
+    const rows = await store.list('state_hist', { where: [['t', '>=', start]], orderBy: ['t', 'asc'], limit: 600 });
+    return { date, points: rows.filter((r) => r.hs).map((r) => ({ t: r.t, city: r.hs.city, urban: r.hs.urban, reg: r.hs.reg, st: r.hs.st, cg: r.hs.cg })) };
+  });
+
   // On-demand refresh: one tick now, for people with state.refresh. Connectors still obey their own intervals and daily caps
   // (runDue), so a refresh never makes an extra paid call. One refresh a minute for the whole city, and never two at once.
   let refreshing = false;

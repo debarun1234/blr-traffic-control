@@ -39,9 +39,13 @@ export async function refreshState() {
     city: st.city ?? null, stations: st.stations ?? [], vc: dec.vc, spd: dec.spd, works: st.works ?? [], calibration: st.calibration ?? null,
     net: st.net ?? null, incidents: (st.incidents ?? []).map(normIncident),
   };
-  applyResult(); emit('live', 'incidents');
+  applyResult(); emit('live', 'incidents'); void refreshHistory();
   if (prevBoost == null || Math.abs(prevBoost - S.live.boost) > 1e-6) { startTimeline(); refreshReplay(); }
   return true;
+}
+/** Today's actual speed per tick (city / region / station), drawn against the typical-day model curve. */
+export async function refreshHistory() {
+  try { const r = await S.api.get('/state/history'); S.hist = { date: r.data.date ?? null, points: r.data.points ?? [] }; emit('tl'); } catch { /* chart falls back to the typical curve only */ }
 }
 export async function refreshActions() {
   const r = await S.api.get('/actions?state=all&limit=200');

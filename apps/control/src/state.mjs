@@ -8,12 +8,12 @@ import { setI18nLang } from './i18n.mjs';
 export const S = {
   cfg: null, api: null, auth: null, MD: null, me: null,
   lang: lsGet('blr-lang', 'en') === 'kn' ? 'kn' : 'en',
-  scope: 'All', sel: null, tab: 'overview',
-  layers: { minor: true, stn: true, inc: true, works: true, view: ['traffic', 'safety', 'speed'].includes(lsGet('blr-view', '')) ? lsGet('blr-view', '') : null, gtraffic: lsGet('blr-gtraffic', '0') === '1', base: ['roadmap', 'hybrid'].includes(lsGet('blr-base', 'plain')) ? lsGet('blr-base', 'plain') : 'plain' },
+  scope: 'All', sel: null, tab: 'overview', fold: lsGet('blr-fold', '0') === '1',
+  layers: { minor: true, stn: true, inc: true, works: true, view: ['traffic', 'safety', 'speed'].includes(lsGet('blr-view', '')) ? lsGet('blr-view', '') : null, gtraffic: lsGet('blr-gtraffic', '1') === '1', gmodel: lsGet('blr-gmodel', '0') === '1', metric: lsGet('blr-metric', 'speed') === 'load' ? 'load' : 'speed', base: ['roadmap', 'hybrid'].includes(lsGet('blr-base', 'plain')) ? lsGet('blr-base', 'plain') : 'plain' },
   replay: null, replayBusy: false, replayRes: null,
   live: null, result: null, sum: null,
   incidents: [], works: [], actions: [], crash: null, quota: null,
-  conn: { ok: true, lastOk: 0, fails: 0, loaded: false }, simBusy: 0, tl: new Array(24).fill(null), tlBoost: null,
+  conn: { ok: true, lastOk: 0, fails: 0, loaded: false }, simBusy: 0, tl: new Array(24).fill(null), tlSum: new Array(24).fill(null), tlBoost: null, hist: { date: null, points: [] },
   hover: null, mapMismatch: false,
 };
 
@@ -50,6 +50,8 @@ const LAYER_KEY = { minor: 'minorRoads', stn: 'stations', inc: 'incidents', work
 export function mapCfg() { const m = S.me?.map ?? {}; return { ...DEFAULT_MAP, ...m, views: { ...DEFAULT_MAP.views, ...m.views }, layers: { ...DEFAULT_MAP.layers, ...m.layers }, speedBands: { ...DEFAULT_MAP.speedBands, ...m.speedBands } }; }
 export const allowedViews = () => ['traffic', ...['safety', 'speed'].filter((v) => mapCfg().views[v]?.[S.me?.role] !== false)];
 export function curView() { const a = allowedViews(); return a.includes(S.layers.view) ? S.layers.view : a.includes(mapCfg().defaultView) ? mapCfg().defaultView : 'traffic'; }
+/** Side panel folded away so the map can be read on its own (phones, or just a closer look). Remembered per device. */
+export function setFold(b) { S.fold = !!b; lsSet('blr-fold', S.fold ? '1' : '0'); emit('fold'); }
 export function setView(v) { S.layers.view = v; lsSet('blr-view', v); emit('view'); }
 export const layerAllowed = (k) => mapCfg().layers[LAYER_KEY[k]] !== false;
 export const layerOn = (k) => layerAllowed(k) && !!S.layers[k];
@@ -136,10 +138,10 @@ export const refreshReplay = () => { if (S.replay != null) scheduleReplay(); };
 let tlRun = 0;
 export function startTimeline() {
   const boost = S.live?.boost ?? 1; if (S.tlBoost != null && Math.abs(S.tlBoost - boost) / boost < 0.08 && S.tl.every((v) => v != null)) return;
-  S.tlBoost = boost; const run = ++tlRun; S.tl = new Array(24).fill(null);
+  S.tlBoost = boost; const run = ++tlRun; S.tl = new Array(24).fill(null); S.tlSum = new Array(24).fill(null);
   (async function next(h) {
     if (run !== tlRun || h >= 24) return;
-    try { const r = await runAssign({ t: h, boost, iters: 4 }); if (run !== tlRun) return; S.tl[h] = r.speed; emit('tl'); } catch { /* ignore */ }
+    try { const r = await runAssign({ t: h, boost, iters: 4 }); if (run !== tlRun) return; S.tl[h] = r.speed; S.tlSum[h] = summarizeApprox(S.MD.net, r.vc, r.spd); emit('tl'); } catch { /* ignore */ }
     setTimeout(() => next(h + 1), 120);
   })(0);
 }
