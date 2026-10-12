@@ -59,7 +59,7 @@ Everything in `/state` is **modelled**; `mode:"live"` means the model is calibra
 
 ### Operations
 * `GET /api/state` `*` → State.
-* `GET /api/state/history` `*` → `{date, points:[{t, city, urban, reg:{North…Rural}, st:[speed|null per station], cg:{city,urban,reg,st} (% of road-km with v/c > 0.95, same scopes)}]}`: today's (IST) ticks, speed in km/h (vehicle-km weighted). Feeds the Control "today vs usual" chart; kept in `state_hist` (72 h TTL).
+* `GET /api/state/history` `*` → `{date, points:[{t, city, urban, reg:{North…Rural}, st:[speed|null per station], cg:{city,urban,reg,st} (% of road-km below 75% of free-flow speed (v/c > 1.22), same scopes)}]}`: today's (IST) ticks, speed in km/h (vehicle-km weighted). Feeds the Control "today vs usual" chart; kept in `state_hist` (72 h TTL).
 * `POST /api/refresh` `state.refresh` (admin, commissioner) → `{ok, updatedAt, tickMs}`. Runs one tick now in the API process. Connectors still follow their own intervals and daily caps, so it never makes an extra paid call. One refresh a minute for the whole city (`429 rate_limited` with `retry-after`), one at a time (`409 conflict`). Audited as `feed_refresh`. The Control app shows a Refresh now button to users who have the permission.
 * `GET /api/crash` `*` → `{stations:{[name]:{y2025:{fatal,nonfatal},hist}},importedAt}`. Only the 53 police stations have entries; the 9 outer taluk units have none and the UI shows a dash.
 * `GET /api/actions?state=open|all&limit=200` `*` → `{actions:[…]}` filtered server-side: `station`/`dcp` get their **region**; others all. Sorted escalated first, then newest.

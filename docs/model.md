@@ -3,7 +3,7 @@
 `packages/model` is a deterministic, dependency-free JavaScript model shared by the API, worker and the Control app (replay mode runs it in the browser).
 
 - **Network.** Routable graph of about 15,000 segments built from OpenStreetMap motorway, trunk, primary and secondary roads (`tools/mapdata`), covering the city and the outer taluks. Tertiary, unclassified and residential roads are drawn but not routed. One map unit is about 2.2 m.
-- **Link time.** BPR: `t = t0 * (1 + 0.15 * (v/c)^4)`, with `v/c` the volume to capacity ratio. Capacity is scaled by incident and works multipliers.
+- **Link time.** BPR: `t = t0 * (1 + 0.15 * (v/c)^4)`, with `v/c` the volume to capacity ratio. Load colours and the "congested" share use v/c edges derived from this curve (`LOAD_EDGES` in `@blr/model`: 0.93, 1.22, 1.45, 1.69, 1.99 = 90, 75, 60, 45, 30% of free-flow speed), so load and speed views agree; congested means below 75% of free-flow (v/c > 1.22). Capacity is scaled by incident and works multipliers.
 - **Demand.** Gravity model among 69 centroids (7 hubs, the 53 station areas and 9 outer-taluk units; the outer units carry demand and routes but no crash data), total demand 300,000 trips, shaped by an hourly tide factor (`wt`) for the day profile.
 - **Assignment.** Method of successive averages over shortest paths.
 - **Calibration.** Bisection of a global demand scale against probe observations (corridor minutes). Without probe data the state is labelled modelled/simulated, never live.

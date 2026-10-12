@@ -8,7 +8,7 @@ import { createGoogleBase } from './gmaps.mjs';
 import { lsSet } from '../util.mjs';
 import { toast } from '/vendor/ui.mjs';
 import { attachInteraction } from './interaction.mjs';
-import { edgesBox, speedBucket, bandKm, SPEED_CLS } from '../analytics.mjs';
+import { edgesBox, speedBucket, bandKm, SPEED_CLS, LOAD_EDGES } from '../analytics.mjs';
 import { fmtH } from '/vendor/ui.mjs';
 import { frame, fill } from '../util.mjs';
 
@@ -101,8 +101,8 @@ export function createMapPane() {
     const spdM = S.layers.metric === 'speed', sh = v === 'traffic' && S.result ? bandKm(net, S.result.vc, S.result.spd, S.layers.metric, (si) => inScope(MD.ST[si].r)) : null;
     const pct = (i) => (sh && sh.tot ? `${Math.round((100 * sh.km[i]) / sh.tot)}%` : '');
     if (v === 'traffic') {
-      if (spdM) rows = ['≥75%', '50–75%', '25–50%', '<25%'].map((r, i) => lg(C.cls[SPEED_CLS[i]], t(`legend.sp.${i}`), `${r} · ${pct(i)}`));
-      else rows = [['<0.50', 'legend.free'], ['0.50–0.75', 'legend.light'], ['0.75–0.95', 'legend.busy'], ['0.95–1.15', 'legend.slow'], ['1.15–1.50', 'legend.jam'], ['>1.50', 'legend.grid']].map((r, i) => lg(C.cls[i], t(r[1]), `${r[0]} · ${pct(i)}`));
+      if (spdM) rows = ['≥75%', '50–75%', '30–50%', '<30%'].map((r, i) => lg(C.cls[SPEED_CLS[i]], t(`legend.sp.${i}`), `${r} · ${pct(i)}`));
+      else rows = [[`<${LOAD_EDGES[0]}`, 'legend.free'], [`${LOAD_EDGES[0]}–${LOAD_EDGES[1]}`, 'legend.light'], [`${LOAD_EDGES[1]}–${LOAD_EDGES[2]}`, 'legend.busy'], [`${LOAD_EDGES[2]}–${LOAD_EDGES[3]}`, 'legend.slow'], [`${LOAD_EDGES[3]}–${LOAD_EDGES[4]}`, 'legend.jam'], [`≥${LOAD_EDGES[4]}`, 'legend.grid']].map((r, i) => lg(C.cls[i], t(r[1]), `${r[0]} · ${pct(i)}`));
       rows.push(h('div.faint.xs', t('legend.share')));
       rows.push(lg(C['--nofeed'], t('legend.nofeed')));
     } else if (v === 'safety') {
@@ -120,7 +120,7 @@ export function createMapPane() {
     if (v === 'traffic' && R.baseOn()) { // Google basemap: Google's own layer is the measured one; our model is an optional, separate estimate
       const gl = ['#10b981', '#f5b400', '#ef4444', '#991b1b'];
       rows = [S.layers.gtraffic ? h('b.xs', t('legend.g.t')) : h('div.faint.xs', t('legend.gnone')), ...(S.layers.gtraffic ? gl.map((c, i) => lg(c, t(`legend.g.${i}`))) : []),
-        ...(S.layers.gmodel ? [h('b.xs', { style: { marginTop: '6px', display: 'block' } }, t('legend.m.t')), ...R.gmColours.map((c, i) => lg(c, spdM ? t(`legend.sp.${i + 1}`) : t(['legend.slow', 'legend.jam', 'legend.grid'][i]), spdM ? ['50–75%', '25–50%', '<25%'][i] : ['0.95–1.15', '1.15–1.50', '>1.50'][i]))] : [])];
+        ...(S.layers.gmodel ? [h('b.xs', { style: { marginTop: '6px', display: 'block' } }, t('legend.m.t')), ...R.gmColours.map((c, i) => lg(c, spdM ? t(`legend.sp.${i + 1}`) : t(['legend.slow', 'legend.jam', 'legend.grid'][i]), spdM ? ['50–75%', '30–50%', '<30%'][i] : [`${LOAD_EDGES[2]}–${LOAD_EDGES[3]}`, `${LOAD_EDGES[3]}–${LOAD_EDGES[4]}`, `≥${LOAD_EDGES[4]}`][i]))] : [])];
       top = S.layers.gmodel ? t('legend.gm') : null;
     }
     const marks = [layerOn('inc') ? h('div.cc-lg', h('i.inc', '!'), h('span', t('legend.inc'))) : null, layerOn('works') ? h('div.cc-lg', h('i.wk'), h('span', t('legend.works'))) : null];

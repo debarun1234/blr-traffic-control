@@ -7,13 +7,16 @@ export const URBAN = ['North', 'East', 'Central', 'West', 'South'];
 export const CLASS_NAMES = ['arterial', 'subArterial', 'collector'];
 
 /** v/c -> colour bucket 0..5 (matches --c0..--c5). */
-export const colourClass = (vc) => (vc < 0.5 ? 0 : vc < 0.75 ? 1 : vc < 0.95 ? 2 : vc < 1.15 ? 3 : vc < 1.5 ? 4 : 5);
+// Same numbers as LOAD_EDGES / CONG_VC in @blr/model (a test keeps them in step): v/c where the BPR curve reaches 90/75/60/45/30% of free-flow speed.
+export const LOAD_EDGES = [0.93, 1.22, 1.45, 1.69, 1.99];
+export const CONG_VC = LOAD_EDGES[1];
+export const colourClass = (vc) => (vc < LOAD_EDGES[0] ? 0 : vc < LOAD_EDGES[1] ? 1 : vc < LOAD_EDGES[2] ? 2 : vc < LOAD_EDGES[3] ? 3 : vc < LOAD_EDGES[4] ? 4 : 5);
 /**
  * Google-style road state: speed as a share of the road's free-flow speed. 0 free-flowing (>=75%), 1 slowing (50-75%),
- * 2 slow (25-50%), 3 stop-and-go (<25%). Independent of the load/capacity view, so the two can be compared.
+ * 2 slow (30-50%), 3 stop-and-go (<30%; the model's BPR curve bottoms out near 29%, so this is where load >= 1.99 lands). Independent of the load/capacity view, so the two can be compared.
  */
 export const SPEED_CLS = [0, 2, 4, 5]; // palette index (--c0..--c5) used for each speed band
-export const speedBand = (net, spd, e) => { const free = net.len[e] / 1000 / (net.t0[e] / 60), r = free > 0 ? spd[e] / free : 1; return r >= 0.75 ? 0 : r >= 0.5 ? 1 : r >= 0.25 ? 2 : 3; };
+export const speedBand = (net, spd, e) => { const free = net.len[e] / 1000 / (net.t0[e] / 60), r = free > 0 ? spd[e] / free : 1; return r >= 0.75 ? 0 : r >= 0.5 ? 1 : r >= 0.3 ? 2 : 3; };
 /** Road-km per band (speed: 4 bands, load: 6 bands) over the stations `inScope(stIdx)` accepts. */
 export function bandKm(net, vc, spd, metric, inScope = () => true) {
   const out = new Array(metric === 'speed' ? 4 : 6).fill(0); let tot = 0;
@@ -32,7 +35,7 @@ export function summarizeApprox(net, vc, spd) {
   const ns = net.map.st.length, per = Array.from({ length: ns }, () => ({ vk: 0, sp: 0, L: 0, c: 0 }));
   for (let e = 0; e < net.ne; e++) {
     const l = net.len[e] / 1000, w = vc[e] * net.cap[e] * l, P = per[net.stn[e]];
-    P.vk += w; P.sp += w * spd[e]; P.L += l; if (vc[e] > 0.95) P.c += l;
+    P.vk += w; P.sp += w * spd[e]; P.L += l; if (vc[e] > CONG_VC) P.c += l;
   }
   const agg = () => ({ vk: 0, sp: 0, L: 0, c: 0 }), city = agg(), urban = agg(), reg = {};
   for (const r of REGIONS) reg[r] = agg();

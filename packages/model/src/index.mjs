@@ -116,12 +116,20 @@ function aon(net, D, tm, flow) {
   }
 }
 
+export const BPR = { a: 0.15, b: 4 }; // link performance: time = t0 (1 + a (v/c)^b)
+/**
+ * v/c at which the BPR curve slows a road to 90, 75, 60, 45 and 30% of its free-flow speed. The load colours use these
+ * edges, so a road is never coloured "jammed" by load while the same model has it moving at near free-flow speed.
+ */
+export const LOAD_EDGES = [0.9, 0.75, 0.6, 0.45, 0.3].map((r) => Math.round(((1 / r - 1) / BPR.a) ** (1 / BPR.b) * 100) / 100);
+/** A road counts as congested when the model has it below 75% of free-flow speed. */
+export const CONG_VC = LOAD_EDGES[1];
 function arcTimes(net, flow, capMul) {
   const tm = new Float32Array(2 * net.ne);
   for (let i = 0; i < net.ne; i++) {
     const c = net.cap[i] * (capMul ? capMul[i] : 1);
     if (c <= 0) { tm[2 * i] = tm[2 * i + 1] = 1e9; continue; }
-    for (let s = 0; s < 2; s++) { const x = Math.min(2, flow[2 * i + s] / c); tm[2 * i + s] = net.t0[i] * (1 + 0.15 * x ** 4); }
+    for (let s = 0; s < 2; s++) { const x = Math.min(2, flow[2 * i + s] / c); tm[2 * i + s] = net.t0[i] * (1 + BPR.a * x ** BPR.b); }
   }
   return tm;
 }
@@ -159,9 +167,9 @@ export function summarize(net, res, scope = () => true) {
   let vk = 0, vs = 0, L = 0, cl = 0;
   for (let e = 0; e < net.ne; e++) {
     const s = net.stn[e], f = Math.max(res.flow[2 * e], res.flow[2 * e + 1]), l = net.len[e] / 1000, w = f * l, P = per[s];
-    P.vk += w; P.sp += w * res.spd[e]; P.L += l; if (res.vc[e] > 0.95) P.c += l;
+    P.vk += w; P.sp += w * res.spd[e]; P.L += l; if (res.vc[e] > CONG_VC) P.c += l;
     if (!scope(s)) continue;
-    vk += w; vs += w * res.spd[e]; L += l; if (res.vc[e] > 0.95) cl += l;
+    vk += w; vs += w * res.spd[e]; L += l; if (res.vc[e] > CONG_VC) cl += l;
   }
   return {
     speed: vk ? vs / vk : 0, congPct: L ? (100 * cl) / L : 0,

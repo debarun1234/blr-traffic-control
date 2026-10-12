@@ -6,8 +6,14 @@ import { colourClass, hoursOK, worksActiveAt, worksEdges, capMulFor, clashes, su
 
 const map = loadMap(), net = createNetwork(map);
 
+test('load colour edges match the model BPR curve, so load never reads red where speed is near free-flow', async () => {
+  const { LOAD_EDGES: M, CONG_VC, BPR } = await import('../../../packages/model/src/index.mjs'); const { LOAD_EDGES, CONG_VC: C2 } = await import('../src/analytics.mjs');
+  assert.deepEqual(LOAD_EDGES, M); assert.equal(C2, CONG_VC);
+  for (const [i, r] of [0.9, 0.75, 0.6, 0.45, 0.3].entries()) assert.ok(Math.abs(1 / (1 + BPR.a * LOAD_EDGES[i] ** BPR.b) - r) < 0.02, `edge ${i}`);
+  assert.ok(1 / (1 + BPR.a * 1.2 ** BPR.b) > 0.75, 'v/c 1.2 is still above 75% of free-flow speed, so it is not coloured as congestion');
+});
 test('colourClass buckets follow the legend thresholds', () => {
-  assert.deepEqual([0.1, 0.5, 0.75, 0.95, 1.15, 1.5, 3].map(colourClass), [0, 1, 2, 3, 4, 5, 5]);
+  assert.deepEqual([0.1, 0.93, 1.22, 1.45, 1.69, 1.99, 3].map(colourClass), [0, 1, 2, 3, 4, 5, 5]);
   assert.equal(speedBucket(null), null); assert.equal(speedBucket(10), 0); assert.equal(speedBucket(40), 4);
 });
 test('works hours and activity windows', () => {
